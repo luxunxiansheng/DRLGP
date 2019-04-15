@@ -1,24 +1,44 @@
 import copy
-from board import Board
-from gamestate import GameState
-from move import Move
-from player import Player
-from point import Point
+
+from .board import Board
+from .gamestate import GameState
+from .move import Move
+from .player import Player
+from .point import Point
 
 
 class Game:
-    def __init__(self,board,playerlist,start_player):
-        self._board= board
-        self._players= playerlist
-        self._current_player = start_player
+    def __init__(self, board, playerlist, start_player):
+        self._board = board
+        self._players = playerlist
+        self._next_player = start_player
+        self._game_state = GameState(board, start_player, None)
 
     @property
     def board(self):
         return self._board
 
-    
-    
+    @property
+    def gamestate(self):
+        return self._game_state
+
+    @property
+    def next_round_player(self):
+        return self._next_player
+
+    @property
+    def players(self):
+        return self._players
+
+    def is_valid_move(self, move):
+        pass
+
+    def is_over(self):
+        pass
+
     def apply_move(self, move):
-        next_board = copy.deepcopy(self.board)
-        next_board.place(self.the_player, move.point)
-        return GameState(next_board, self.the_player.other, move)
+        pass
+
+    def get_other_players(self, the_player):
+        all_players = copy.deepcopy(self._players)
+        return all_players.remove(the_player)
