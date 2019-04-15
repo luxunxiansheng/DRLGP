@@ -1,8 +1,8 @@
 class Player:
-    def __init__(self,id,name,mark):
-        self._id   = id
+    def __init__(self, id, name, mark):
+        self._id = id
         self._name = name
-        self._mark = mark 
+        self._mark = mark
 
     @property
     def id(self):
@@ -10,11 +10,8 @@ class Player:
 
     @property
     def name(self):
-        return self._name    
-    
+        return self._name
+
     @property
     def mark(self):
         return self._mark
-       
-
-        
