@@ -1,36 +1,26 @@
-from six.moves import input
 
-from common.player import Player
 from common.point import Point
 from common.move import Move
 from common.board import Board
-from game.tictactoegame import TicTacToeGame
-
-
-def point_from_coords(text):
-    col_name = text[0]
-    row = int(text[1])
-
-    return Point(row, Board.get_column_indicator_index(col_name)+1)
-
+from game.tictactoe.tictactoegame import TicTacToeGame
+from game.tictactoe.humanplayer import HumanPlayer
+from game.tictactoe.agent.randomagent import RandomBot
 
 def main():
-    human_player_X = Player(0, "john", "X")
-    human_player_O = Player(1, "jack", "O")
+    human_player_X = HumanPlayer(0, "Human", "X")
+    random_bot_O = RandomBot(1, "Robot", "O")
 
-    players=[human_player_X, human_player_O]
+    players=[human_player_X, random_bot_O]
 
     game = TicTacToeGame(3,players,human_player_X)
 
     game.board.print_board()
 
     while not game.is_over():
-        human_move = input('--')
-        point = point_from_coords(human_move.strip())
-        move = Move(point)
+        move= game.next_round_player.select_move(game,game.game_state)
         game.apply_move(move)
-        game.gamestate.board.print_board()
-    
+        game.game_state.board.print_board()
+   
 
     winner = game.winner(players)
 

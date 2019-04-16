@@ -19,7 +19,7 @@ class Game:
         return self._board
     
     @property
-    def gamestate(self):
+    def game_state(self):
         return self._game_state
 
     @property
