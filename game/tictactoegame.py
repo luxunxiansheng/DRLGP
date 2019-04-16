@@ -13,9 +13,9 @@ class TicTacToeGame(Game):
         Game.__init__(self, board, playerlist, start_player)
 
     def apply_move(self, move):
-        self._board = copy.copy(self.board)
-        self._board.place(self.next_round_player, move.point)
-        self._next_round_player = self.get_other_player(self.next_round_player)
+        self._board = copy.copy(self._board)
+        self._board.place(self._next_round_player, move.point)
+        self._next_round_player = self.get_other_player(self._next_round_player)
         self._game_state = GameState(self._board, self._next_round_player, move)
 
     def legal_moves(self):

@@ -28,9 +28,7 @@ class Board:
     def place(self, player, point):
         assert self.is_on_grid(point)
         assert self.get_player(point) is None
-
         self._grid[point] = player
-
         
     
     def print_board(self):
