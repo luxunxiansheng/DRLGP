@@ -11,13 +11,19 @@ class Board:
         self._board_size = board_size
         self._column_indicator = ['  %s' % Board.alphabet[i]
                                   for i in range(0, board_size)]
+       
         self._rows = tuple(range(1, board_size+1))
         self._cols = tuple(range(1, board_size+1))
+        
         self._grid = {}
 
     @classmethod
     def get_column_indicator_index(cls,char):
         return Board.alphabet.index(char) 
+    
+    @property
+    def board_size(self):
+        return self._board_size
 
     def is_on_grid(self, point):
         return 1 <= point.row <= self._board_size and 1 <= point.col <= self._board_size
