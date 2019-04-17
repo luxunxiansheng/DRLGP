@@ -16,6 +16,6 @@ class HumanPlayer(Player):
     def select_move(self,game_state):
         human_move = input('--')
         point = HumanPlayer.point_from_coords(human_move.strip())
-        return  Move(point)
+        return  Move(self,point)
 
     

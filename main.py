@@ -17,7 +17,7 @@ def main():
     game.working_game_state.board.print_board()
 
     while not game.is_over():
-        move= game.working_game_state.next_round_player.select_move(game.working_game_state)
+        move= game.working_game_state.player_in_action.select_move(game.working_game_state)
         game.apply_move(move)
         game.working_game_state.board.print_board()
 
