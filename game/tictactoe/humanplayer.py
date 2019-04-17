@@ -13,7 +13,7 @@ class HumanPlayer(Player):
         row = int(text[1])
         return Point(row, Board.get_column_indicator_index(col_name)+1)
     
-    def select_move(self,game,game_state):
+    def select_move(self,game_state):
         human_move = input('--')
         point = HumanPlayer.point_from_coords(human_move.strip())
         return  Move(point)

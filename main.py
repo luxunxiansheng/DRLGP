@@ -14,20 +14,19 @@ def main():
 
     game = TicTacToeGame(3,players,human_player_X)
 
-    game.board.print_board()
+    game.working_game_state.board.print_board()
 
     while not game.is_over():
-        move= game.next_round_player.select_move(game,game.game_state)
+        move= game.working_game_state.next_round_player.select_move(game.working_game_state)
         game.apply_move(move)
-        game.game_state.board.print_board()
-   
+        game.working_game_state.board.print_board()
 
-    winner = game.winner(players)
+    winner = game.get_winner()
 
     if winner is None:
         print("Draw!")
     else:
-        print('Winner :' + str(winner.name))
+        print('Winner is:' + str(winner.name))
 
 
 if __name__ == '__main__':
