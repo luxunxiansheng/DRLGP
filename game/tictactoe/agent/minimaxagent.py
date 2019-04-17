@@ -1,21 +1,25 @@
 import random
 
+from common.move import Move
 from common.player import Player
-from common.move  import Move
 from common.point import Point
 
 
-class MinmaxAgent(Player):
-    def __init__(self, player):
-        self.the_player = player
+""" class MinmaxAgent(Player):
+    def __init__(self, game, id, name, mark):
+        Player.__init__(id, name, mark)
+        self._game = game
 
-    def select_move(self,game,game_state):
+    def select_move(self, game_state):
         winning_moves = []
         draw_moves = []
         losing_moves = []
 
-        for possible_move in game.legal_moves():
-            next_state = game_state.apply_move(possible_move)
+        for possible_point in game_state.board.get_legal_points():
+            possible_move = Move(possible_point)
+            player_after_possible_move=self._game.get_other_player_after_move(game_state.next_round_player)
+            next_state = game_state.transit(possible_move,player_after_possible_move)
+
             our_best_outcome = self.best_result(next_state, self.the_player)
 
             if self.the_player == Player.x:
@@ -62,7 +66,7 @@ class MinmaxAgent(Player):
         if the_player == Player.o:
             min_value = 2.0
             for candidate_move in tqdm(game_state.legal_moves()):
-                candidate_state = game_state.apply_move(candidate_move)
+                candidate_state = game_state.apply_move(candidate """_move)
                 the_value = self.best_result(candidate_state, Player.x)
                 min_value = min(min_value, the_value)
 

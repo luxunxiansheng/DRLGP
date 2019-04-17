@@ -29,6 +29,7 @@ class Game:
     def apply_move(self,move):
         pass
     
-
+    def get_player_after_move(self,the_player):
+        pass
 
    

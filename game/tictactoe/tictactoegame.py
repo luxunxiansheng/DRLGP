@@ -12,7 +12,7 @@ class TicTacToeGame(Game):
         Game.__init__(self,Board(board_size),playerlist,start_player)
 
     def apply_move(self,move):
-        player_after_move= self.get_player_after_move(self._working_game_state._next_round_player)
+        player_after_move= self.get_player_after_move(move)
         self._working_game_state= self._working_game_state.transit(move,player_after_move)
 
     @staticmethod 
@@ -42,8 +42,8 @@ class TicTacToeGame(Game):
 
         return False
     
-    def get_player_after_move(self,the_player):
-        if self._players[0]== the_player:
+    def get_player_after_move(self,move):
+        if self._players[0]== move.player:
             return self._players[1]
         else:
             return self._players[0]     
