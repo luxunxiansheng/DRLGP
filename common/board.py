@@ -79,6 +79,5 @@ class Board:
             pieces = []
             for col in range(1, self._board_size+1):
                 player = self.get_player(Point(row, col))
-                pieces.append(
-                   player.mark) if player is not None else pieces.append('')
+                pieces.append(player.mark) if player is not None else pieces.append('')
             print('%d %s' % (row, ' | '.join(pieces)))

@@ -16,5 +16,11 @@ class Player:
     def mark(self):
         return self._mark
 
-    def select_move(self, game_state):
+    def select_move(self,game,game_state):
         raise NotImplementedError()
+
+    def __eq__(self,other):
+        if not isinstance(other,Player):
+            return NotImplemented
+        
+        return self.id == other.id 

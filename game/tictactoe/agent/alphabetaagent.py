@@ -7,7 +7,7 @@ from common.player import Player
 from common.point import Point
 
 
-class MinmaxAgent(Player):
+class AlphaBetaAgent(Player):
     def select_move(self, game, game_state):
         assert game_state.player_in_action== self
 
@@ -18,7 +18,7 @@ class MinmaxAgent(Player):
         for possible_point in game_state.board.get_legal_points():
             possible_move = Move(possible_point)
             next_state = game.transit(game_state, possible_move)
-            our_best_outcome = self.best_result(game, next_state)
+            our_best_outcome = self.best_result(game,next_state,-2.0,2.0)
 
             # We set the player_0 as the  maximizer, the best score is 1.0
             if self == game.players[0]:
@@ -46,7 +46,7 @@ class MinmaxAgent(Player):
 
         return random.choice(losing_moves)
 
-    def best_result(self, game, game_state):
+    def best_result(self, game, game_state,best_max,best_min):
         if game.is_final_state(game_state):
             if game.get_winner(game_state) == game.players[0]:
                 return 1.0
@@ -60,8 +60,11 @@ class MinmaxAgent(Player):
             for possible_point in tqdm(game_state.board.get_legal_points()):
                 possible_move = Move(possible_point)
                 next_game_state = game.transit(game_state, possible_move)
-                the_value = self.best_result(game, next_game_state)
+                the_value = self.best_result(game, next_game_state,best_max,best_min)
                 max_value = max(max_value, the_value)
+                best_max  = max(best_max,the_value)
+                if best_max >= best_min:
+                    break
             return max_value
         # for the minimizer
         if game_state.player_in_action == game.players[1]:
@@ -69,6 +72,9 @@ class MinmaxAgent(Player):
             for possible_point in tqdm(game_state.board.get_legal_points()):
                 possible_move = Move(possible_point)
                 next_game_state = game.transit(game_state, possible_move)
-                the_value = self.best_result(game, next_game_state)
+                the_value = self.best_result(game, next_game_state,best_max,best_min)
                 min_value = min(min_value,the_value)
+                best_min =  min(best_min,the_value)
+                if best_min <= best_max:
+                    break
             return min_value

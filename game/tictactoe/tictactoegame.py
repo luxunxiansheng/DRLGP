@@ -41,7 +41,7 @@ class TicTacToeGame(Game):
         return False
 
     def get_player_after_move(self, player_in_action):
-        if self._players[0] == player_in_action:
+        if self._players[0]== player_in_action:
             return self._players[1]
         else:
             return self._players[0]
@@ -53,16 +53,16 @@ class TicTacToeGame(Game):
         return TicTacToeGame.winner(game_state.board, self._players)
 
     def transit(self, game_state, move):
-        new_board = copy.copy(game_state.board)
+        new_board = copy.deepcopy(game_state.board)
         new_board.place(game_state.player_in_action, move.point)
         return GameState(new_board, self.get_player_after_move(game_state.player_in_action), move)
 
     @staticmethod
     def winner(board, players):
         if TicTacToeGame._connect_into_a_line(board, players[0]):
-            return players[0]
+            return players[0].name
 
         if TicTacToeGame._connect_into_a_line(board, players[1]):
-            return players[1]
+            return players[1].name
 
         return None
