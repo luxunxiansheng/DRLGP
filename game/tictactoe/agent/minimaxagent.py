@@ -1,28 +1,28 @@
 import random
 
+from tqdm import tqdm
+
 from common.move import Move
 from common.player import Player
 from common.point import Point
 
 
-""" class MinmaxAgent(Player):
-    def __init__(self, game, id, name, mark):
-        Player.__init__(id, name, mark)
-        self._game = game
-
+class MinmaxAgent(Player):
     def select_move(self, game_state):
+        assert game_state.player_in_action == self
+
         winning_moves = []
         draw_moves = []
         losing_moves = []
 
         for possible_point in game_state.board.get_legal_points():
             possible_move = Move(possible_point)
-            player_after_possible_move=self._game.get_other_player_after_move(game_state.next_round_player)
-            next_state = game_state.transit(possible_move,player_after_possible_move)
+            player_after_possible_move = self._game.get_other_player_after_move(self)
+            next_state = game_state.transit(possible_move, player_after_possible_move)
+            our_best_outcome = self.best_result(next_state, self)
 
-            our_best_outcome = self.best_result(next_state, self.the_player)
-
-            if self.the_player == Player.x:
+            # We set the player_0 as the  maximizer, the best score is 1.0
+            if self == self._game.player[0]:
                 if our_best_outcome == 1.0:
                     winning_moves.append(possible_move)
                 if our_best_outcome == -1.0:
@@ -30,7 +30,8 @@ from common.point import Point
                 else:
                     draw_moves.append(possible_move)
 
-            if self.the_player == Player.o:
+            # We set the player_0 as the  maximizer, the best score is -1.0
+            if self == self._game.player[1]:
                 if our_best_outcome == -1.0:
                     winning_moves.append(possible_move)
                 if our_best_outcome == 1.0:
@@ -47,27 +48,33 @@ from common.point import Point
         return random.choice(losing_moves)
 
     def best_result(self, game_state, the_player):
-        if game_state.is_over():
-            if game_state.winner() == Player.x:
+        assert game_state.player_in_action == the_player
+
+        if self._game.is_final_state(game_state):
+            if self._game.get_winner(game_state) == self._game.player[0]:
                 return 1.0
-            if game_state.winner() == Player.o:
+            if self._game.get_winner(game_state) == self._game.player[1]:
                 return -1.0
             else:
                 return 0.0
-
-        if the_player == Player.x:
+        # for the maximizer
+        if the_player == self._game.player[0]:
             max_value = -2.0
-            for candidate_move in tqdm(game_state.legal_moves()):
-                candidate_state = game_state.apply_move(candidate_move)
-                the_value = self.best_result(candidate_state, Player.o)
+            for possible_point in tqdm(game_state.board.get_legal_points()):
+                possible_move=Move(the_player,possible_point)
+                player_after_possible_move = self._game.get_other_player_after_move(the_player)
+                next_game_state = game_state.transit(possible_move,player_after_possible_move)
+                the_value = self.best_result(next_game_state, self._game.player[1])
                 max_value = max(max_value, the_value)
             return max_value
-
-        if the_player == Player.o:
+        # for the minimizer 
+        if the_player == self._game.player[1]:
             min_value = 2.0
-            for candidate_move in tqdm(game_state.legal_moves()):
-                candidate_state = game_state.apply_move(candidate """_move)
-                the_value = self.best_result(candidate_state, Player.x)
-                min_value = min(min_value, the_value)
-
+            for possible_point in tqdm(game_state.board.get_legal_points()):
+                possible_move=Move(the_player,possible_point)
+                player_after_possible_move = self._game.get_other_player_after_move(the_player)
+                next_game_state = game_state.transit(possible_move,player_after_possible_move)
+                the_value = self.best_result(next_game_state, self._game.player[0])
+                max_value = min(max_value, the_value)
             return min_value
+           

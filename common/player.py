@@ -15,6 +15,6 @@ class Player:
     @property
     def mark(self):
         return self._mark
-    
-    def select_move(self,game_state):
+
+    def select_move(self, game_state):
         raise NotImplementedError()
