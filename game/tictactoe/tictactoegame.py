@@ -60,9 +60,9 @@ class TicTacToeGame(Game):
     @staticmethod
     def winner(board, players):
         if TicTacToeGame._connect_into_a_line(board, players[0]):
-            return players[0].name
+            return players[0]
 
         if TicTacToeGame._connect_into_a_line(board, players[1]):
-            return players[1].name
+            return players[1]
 
         return None
