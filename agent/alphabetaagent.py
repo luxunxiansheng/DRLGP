@@ -16,7 +16,7 @@ class AlphaBetaAgent(Player):
         for possible_point in game_state.board.get_legal_points():
             possible_move = Move(possible_point)
             next_state = game.transit(game_state, possible_move)
-            our_best_outcome = self.best_result(game,next_state,-2.0,2.0)
+            our_best_outcome = self.minmax(game,next_state,-2.0,2.0)
 
             # We set the player_0 as the  maximizer, the best score is 1.0
             if self == game.players[0]:
@@ -44,7 +44,7 @@ class AlphaBetaAgent(Player):
 
         return random.choice(losing_moves)
 
-    def best_result(self, game, game_state,best_max,best_min):
+    def minmax(self, game, game_state,best_max,best_min):
         if game.is_final_state(game_state):
             if game.get_winner(game_state) == game.players[0]:
                 return 1.0
@@ -58,7 +58,7 @@ class AlphaBetaAgent(Player):
             for possible_point in game_state.board.get_legal_points():
                 possible_move = Move(possible_point)
                 next_game_state = game.transit(game_state, possible_move)
-                the_value = self.best_result(game, next_game_state,best_max,best_min)
+                the_value = self.minmax(game, next_game_state,best_max,best_min)
                 max_value = max(max_value, the_value)
                 best_max  = max(best_max,the_value)
                 if best_max >= best_min:
@@ -70,7 +70,7 @@ class AlphaBetaAgent(Player):
             for possible_point in game_state.board.get_legal_points():
                 possible_move = Move(possible_point)
                 next_game_state = game.transit(game_state, possible_move)
-                the_value = self.best_result(game, next_game_state,best_max,best_min)
+                the_value = self.minmax(game, next_game_state,best_max,best_min)
                 min_value = min(min_value,the_value)
                 best_min =  min(best_min,the_value)
                 if best_min <= best_max:

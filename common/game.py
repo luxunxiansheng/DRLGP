@@ -12,9 +12,7 @@ from .point import Point
 class Game:
     """
     A abstract class about Game. Essentially, it contains a player list and a current working state. 
-    
     """
-            
     def __init__(self, board, playerlist, start_player):
         self._players = playerlist
         self._working_game_state = GameState(board, start_player, None)
@@ -27,20 +25,28 @@ class Game:
     def players(self):
         return self._players
 
+    @players.setter
+    def players(self, playerlist):
+        self._players = playerlist
+
+    @working_game_state.setter
+    def working_game_state(self, game_state):
+        self._working_game_state = game_state
+
     def is_final_state(self, game_state):
         pass
 
     def is_over(self):
         pass
 
-    def get_winner(self,game_state):
+    def get_winner(self, game_state):
         pass
 
     def apply_move(self, move):
         pass
 
-    def transit(self,game_state,move):
-        pass    
+    def transit(self, game_state, move):
+        pass
 
     def get_player_after_move(self, the_player):
         pass
