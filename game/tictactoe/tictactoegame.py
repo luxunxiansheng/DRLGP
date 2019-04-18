@@ -10,7 +10,7 @@ from common.point import Point
 class TicTacToeGame(Game):
     def __init__(self, board_size, playerlist, start_player):
         Game.__init__(self, Board(board_size), playerlist, start_player)
-
+    
     def apply_move(self, move):
         self._working_game_state = self.transit(self._working_game_state, move)
 
@@ -28,7 +28,7 @@ class TicTacToeGame(Game):
         if all(board.get_player(Point(i, board.board_size+1-i)) == player for i in range(1, board.board_size+1)):
             return True
         return False
-
+    
     def is_final_state(self, game_state):
         if TicTacToeGame._connect_into_a_line(game_state.board, self._players[0]) or TicTacToeGame._connect_into_a_line(game_state.board, self._players[1]):
             return True

@@ -2,6 +2,7 @@ from tqdm import tqdm
 
 from agent.alphabetaagent import AlphaBetaAgent
 from agent.humanplayer import HumanPlayer
+from agent.mctsagent import MCTSAgent
 from agent.minimaxagent import MinmaxAgent
 from agent.randomagent import RandomAgent
 from common.board import Board
@@ -12,8 +13,6 @@ from game.tictactoe.tictactoegame import TicTacToeGame
 
 def experiment(players, start_player):
     game = TicTacToeGame(3, players, start_player)
-    # game.working_game_state.board.print_board()
-
     while not game.is_over():
         move = game.working_game_state.player_in_action.select_move(
             game, game.working_game_state)
@@ -26,12 +25,12 @@ def experiment(players, start_player):
 
 def main():
 
-    total_games = 50000
+    total_games = 1000
 
     players = [RandomAgent(0, "RandomAgent0",    "X"),
-               RandomAgent(1, "RandomAgent1",    "O")]
+               MCTSAgent(  1, "MCTSAgent1",    "O" , 100, 0.5)]
 
-    start_player = players[1]
+    start_player = players[0]
 
     win_counts = {
         players[0].name: 0,
