@@ -1,7 +1,5 @@
 import random
 
-from tqdm import tqdm
-
 from common.move import Move
 from common.player import Player
 from common.point import Point
@@ -57,7 +55,7 @@ class AlphaBetaAgent(Player):
         # for the maximizer
         if game_state.player_in_action == game.players[0]:
             max_value = -2.0
-            for possible_point in tqdm(game_state.board.get_legal_points()):
+            for possible_point in game_state.board.get_legal_points():
                 possible_move = Move(possible_point)
                 next_game_state = game.transit(game_state, possible_move)
                 the_value = self.best_result(game, next_game_state,best_max,best_min)
@@ -69,7 +67,7 @@ class AlphaBetaAgent(Player):
         # for the minimizer
         if game_state.player_in_action == game.players[1]:
             min_value = 2.0
-            for possible_point in tqdm(game_state.board.get_legal_points()):
+            for possible_point in game_state.board.get_legal_points():
                 possible_move = Move(possible_point)
                 next_game_state = game.transit(game_state, possible_move)
                 the_value = self.best_result(game, next_game_state,best_max,best_min)
