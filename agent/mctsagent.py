@@ -126,15 +126,15 @@ class MCTSAgent(Player):
         for _ in tqdm(range(self._num_rounds)):
             node = root
 
-            # select                   
+            # select: based on a UCT policy                    
             while(not node.can_add_child() and (not node.is_terminal())):
                 node = self._select_child(node)
 
-            # expand  
+            # expand: addunvisited child at random
             if node.can_add_child():
                 node = node.add_random_child()
 
-            # simulate
+            # simulate: random rollout policy  
             winner = self._simulate_random_game(game,node.game_state)
 
             # backpropagate
@@ -143,12 +143,12 @@ class MCTSAgent(Player):
                 node = node.parent
 
         best_point = None
-        best_pct = -1.0
+        best_win_ratio = -1.0
 
         for child in root.children:
-            child_pct = child.win_ratio(game_state.player_in_action)
-            if child_pct > best_pct:
-                best_pct = child_pct
+            child_win_ratio = child.win_ratio(game_state.player_in_action)
+            if child_win_ratio > best_win_ratio:
+                best_win_ratio = child_win_ratio
                 best_point = child.previous_point
 
         return Move(best_point)

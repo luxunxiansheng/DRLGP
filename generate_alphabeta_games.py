@@ -1,3 +1,5 @@
+import numpy as np
+
 from tqdm import tqdm
 
 from agent.alphabetaagent import AlphaBetaAgent
@@ -9,26 +11,48 @@ from common.board import Board
 from common.move import Move
 from common.point import Point
 from game.tictactoe.tictactoegame import TicTacToeGame
+from common.oneplaneencoder import OnePlaneEncoder
 
 
 def experiment(players, start_player):
-    game = TicTacToeGame(3, players, start_player)
+    
+    boards= []
+    moves = []
+                
+    game = TicTacToeGame(2, players, start_player)
+    encoder = OnePlaneEncoder(game.working_game_state.board)
+    
     while not game.is_over():
         move = game.working_game_state.player_in_action.select_move(
             game, game.working_game_state)
-        game.apply_move(move)
-        # game.working_game_state.board.print_board()
 
+        board_matrix= encoder.encode(game._working_game_state)
+        boards.append(board_matrix)
+
+        move_one_hot = np.zeros(encoder.num_points())
+        move_one_hot[encoder.encode_point(move.point)] =1
+        moves.append(move_one_hot)   
+
+        game.apply_move(move)
+        
+        # game.working_game_state.board.print_board()
     winner = game.get_winner(game.working_game_state)
-    return winner
+    return winner,np.array(boards), np.array(moves)
+
+
+def load_generated_data():
+    boards = np.load('./generated_data/features.npy')
+    moves  = np.load('./generated_data/labels.npy')
+
+    return boards, moves
 
 
 def main():
 
-    total_games = 100
+    total_games = 1
 
-    players = [AlphaBetaAgent(0, "AlphaBetaAgentX",    "X"),
-               MCTSAgent(  1, "MCTSAgentO",      "O" , 500, 0.5)]
+    players = [AlphaBetaAgent(0, "AlphaBetaAgentX","X"),
+               AlphaBetaAgent(1, "AlphaBetaAgentO","O")]
 
     start_player = players[1]
 
@@ -39,8 +63,14 @@ def main():
 
     }
 
+    features=[]
+    labels=[]
+
     for _ in tqdm(range(0, total_games)):
-        winner = experiment(players, start_player)
+        winner,x,y = experiment(players, start_player)
+        features.append(x)
+        labels.append(y)
+        
         if winner is not None:
             win_counts[winner.name] += 1
         else:
@@ -58,6 +88,9 @@ def main():
     print("Draw ratio is {:.2f}".format(float(
         win_counts["Draw"])/float(total_games)))
     print("************************************************************************************")
+
+    np.save('./generated_data/features.npy',np.concatenate(features))
+    np.save('./generated_data/labels.npy',np.concatenate(labels))  
 
 
 if __name__ == '__main__':
