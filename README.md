@@ -53,3 +53,5 @@ In computer science, Monte Carlo tree search (MCTS) is a heuristic search algori
 [MIT](https://choosealicense.com/licenses/mit/)
 
 
+## Some Notes
+1. [A best tutorial on Cross Entroy](https://rdipietro.github.io/friendly-intro-to-cross-entropy-loss/)
