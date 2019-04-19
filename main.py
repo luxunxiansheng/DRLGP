@@ -25,17 +25,17 @@ def experiment(players, start_player):
 
 def main():
 
-    total_games = 1000
+    total_games = 500
 
-    players = [RandomAgent(0, "RandomAgent0",    "X"),
-               MCTSAgent(  1, "MCTSAgent1",    "O" , 100, 0.5)]
+    players = [AlphaBetaAgent(0, "AlphaBetaAgentX",    "X"),
+               MCTSAgent(  1, "MCTSAgentO",      "O" , 100, 0.5)]
 
-    start_player = players[0]
+    start_player = players[1]
 
     win_counts = {
         players[0].name: 0,
         players[1].name: 0,
-        "Draw":            0,
+        "Draw":          0,
 
     }
 
