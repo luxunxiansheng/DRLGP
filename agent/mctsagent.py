@@ -99,18 +99,45 @@ class MCTSAgent(Player):
         return best_child
 
     def select_move(self, game, game_state):
+        # The basic MCTS process is described as below:
+        # 
+        # Selection: 
+        # 
+        # Start from root and select successive child nodes until a leaf node is 
+        # reached. The  root is the current game state and a leaf is any node from which no 
+        # simulation has yet been initated. The selection will let the game tree expand 
+        # towards the most promising moves.
+        #  
+        # Expansion: 
+        # Unless leaf node ends the game decisively for either player, create one(or more) 
+        # child nodes and choose one of them. 
+        # 
+        # Simulation:
+        # Complete one random playout from created node.
+        # 
+        # Backpropagation:
+        # Use the result of the rollout to update information in the nodes on the path from
+        # created node to root        
+        #
+
+        
         root = MCTSNode(game, game_state)
 
         for _ in tqdm(range(self._num_rounds)):
             node = root
+
+            # select                   
             while(not node.can_add_child() and (not node.is_terminal())):
                 node = self._select_child(node)
 
+            # expand  
             if node.can_add_child():
                 node = node.add_random_child()
 
+            # simulate
             winner = self._simulate_random_game(game,node.game_state)
 
+            # backpropagate
             while node is not None:
                 node.record_win(winner)
                 node = node.parent
