@@ -9,7 +9,7 @@ from common.point import Point
 
 class TicTacToeGame(Game):
     def __init__(self, board_size, playerlist, start_player):
-        Game.__init__(self, Board(board_size), playerlist, start_player)
+        super.__init__(Board(board_size), playerlist, start_player)
     
     def apply_move(self, move):
         self._working_game_state = self.transit(self._working_game_state, move)

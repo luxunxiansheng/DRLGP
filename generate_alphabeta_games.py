@@ -1,7 +1,6 @@
+import argparse
+
 import numpy as np
-
-from tqdm import tqdm
-
 from agent.alphabetaagent import AlphaBetaAgent
 from agent.humanplayer import HumanPlayer
 from agent.mctsagent import MCTSAgent
@@ -9,9 +8,10 @@ from agent.minimaxagent import MinmaxAgent
 from agent.randomagent import RandomAgent
 from common.board import Board
 from common.move import Move
+from common.oneplaneencoder import OnePlaneEncoder
 from common.point import Point
 from game.tictactoe.tictactoegame import TicTacToeGame
-from common.oneplaneencoder import OnePlaneEncoder
+from tqdm import tqdm
 
 
 def experiment(players, start_player):
@@ -19,7 +19,7 @@ def experiment(players, start_player):
     boards= []
     moves = []
                 
-    game = TicTacToeGame(2, players, start_player)
+    game = TicTacToeGame(3, players, start_player)
     encoder = OnePlaneEncoder(game.working_game_state.board)
     
     while not game.is_over():
@@ -49,7 +49,13 @@ def load_generated_data():
 
 def main():
 
-    total_games = 1
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--num-games','-n',type=int, default=20)
+    
+
+    args= parser.parse_args()
+
+    total_games = args.num_games
 
     players = [AlphaBetaAgent(0, "AlphaBetaAgentX","X"),
                AlphaBetaAgent(1, "AlphaBetaAgentO","O")]
@@ -60,7 +66,7 @@ def main():
         players[0].name: 0,
         players[1].name: 0,
         "Draw":          0,
-
+ 
     }
 
     features=[]
