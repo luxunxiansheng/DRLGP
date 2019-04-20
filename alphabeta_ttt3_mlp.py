@@ -58,7 +58,7 @@ def test(epoch,model,test_data,device='cpu'):
 
     with torch.no_grad():
         output = model(X)
-        test_loss += F.mse_loss(output, Y, reduction='sum').item()
+        test_loss += F.mse_loss(output, Y).item()
         pred = output.argmax(dim=1, keepdim=True)
         target = Y.argmax(dim=1, keepdim=True)
         
@@ -73,13 +73,11 @@ def main():
     torch.manual_seed(1)
     use_cuda = torch.cuda.is_available()
     device = torch.device('cuda' if use_cuda else 'cpu')
-    batch_size = 32
+    batch_size = 64
 
     model = Net().to(device)
-    optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.5)
+    optimizer = optim.SGD(model.parameters(), lr=0.1, momentum=0.5)
 
-    
-   
     boards = np.load('./generated_data/features.npy')
     moves =  np.load('./generated_data/labels.npy')
 
@@ -95,7 +93,7 @@ def main():
     train_data = sample_data[:train_num]
     test_data = sample_data[train_num:]
 
-    for epoch in tqdm(range(1, 200000)):
+    for epoch in tqdm(range(1, 10000)):
         
         train_correct = 0
         
@@ -109,7 +107,9 @@ def main():
 
         model.eval()
         test_correct= test(epoch,model,test_data,device)
-        print('Train Epoch: {}, test Accuracy:{:.0f}%'.format(epoch,100.*test_correct/len(test_data)))       
+        print('Train Epoch: {}, test Accuracy:{:.0f}%'.format(epoch,100.*test_correct/len(test_data)))     
+
+    torch.save(model.state_dict(),'./checkpoints/ttt3_mlp.pth.tar')      
 
 if __name__ == '__main__':
     main()
