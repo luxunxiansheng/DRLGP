@@ -12,14 +12,14 @@ from tqdm import tqdm
 class Net(nn.Module):
     def __init__(self):
         super().__init__()
-        self._fc1 = nn.Linear(9, 20)
-        self._fc2 = nn.Linear(20, 40)
-        self._fc3 = nn.Linear(40, 9)
+        self._fc1 = nn.Linear(9,20)
+        self._fc2 = nn.Linear(20,40)
+        self._fc3 = nn.Linear(40,9)
 
     def forward(self, x):
-        x = torch.sigmoid(self._fc1(x))
-        x = torch.sigmoid(self._fc2(x))
-        x = torch.softmax(self._fc3(x),dim=1)
+        x = torch.relu(self._fc1(x))
+        x = torch.relu(self._fc2(x))
+        x = torch.sigmoid(self._fc3(x))
 
         return x
 
@@ -31,10 +31,10 @@ def train_batch(epach,model,optimizer,mini_batch,device='cpu'):
     optimizer.zero_grad()
  
     X= torch.tensor(np.array(mini_batch)[:,0,:],dtype=torch.float).to(device)
-    Y= torch.tensor(np.array(mini_batch)[:,1,:],dtype=torch.long).to(device) 
+    Y= torch.tensor(np.array(mini_batch)[:,1,:],dtype=torch.float).to(device) 
    
     output = model(X)
-    train_loss = F.cross_entropy(output,torch.max(Y,1)[1],reduction='sum')
+    train_loss = F.mse_loss(output,Y,reduction='sum')
     
     pred = output.argmax(dim=1, keepdim=True)
     target = Y.argmax(dim=1, keepdim=True)
@@ -52,11 +52,11 @@ def test(epoch,model,test_data,device='cpu'):
     test_correct = 0
 
     X= torch.tensor(np.array(test_data)[:,0,:],dtype=torch.float).to(device)
-    Y= torch.tensor(np.array(test_data)[:,1,:],dtype=torch.long).to(device)
+    Y= torch.tensor(np.array(test_data)[:,1,:],dtype=torch.float).to(device)
 
     with torch.no_grad():
         output = model(X)
-        test_loss += F.cross_entropy(output,torch.max(Y,1)[1],reduction='sum').item()
+        test_loss += F.mse_loss(output,Y,reduction='sum').item()
         pred = output.argmax(dim=1, keepdim=True)
         target = Y.argmax(dim=1, keepdim=True)
         
@@ -91,7 +91,7 @@ def main():
     train_data = sample_data[:train_num]
     test_data = sample_data[train_num:]
 
-    for epoch in tqdm(range(1, 10000)):
+    for epoch in tqdm(range(1,200)):
         
         train_correct = 0
         
