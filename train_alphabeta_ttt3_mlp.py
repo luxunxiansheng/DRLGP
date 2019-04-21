@@ -1,6 +1,7 @@
 import random
 
 import numpy as np
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -18,34 +19,31 @@ class Net(nn.Module):
     def forward(self, x):
         x = torch.sigmoid(self._fc1(x))
         x = torch.sigmoid(self._fc2(x))
-        x = torch.sigmoid(self._fc3(x))
+        x = torch.softmax(self._fc3(x),dim=1)
 
         return x
 
 
-def train_batch(epach,model,optimizer,mini_batch,device='cpu'):
-    
+def train_batch(epach,model,optimizer,mini_batch,device='cpu'):    
     train_loss = 0
     train_correct = 0
 
     optimizer.zero_grad()
  
     X= torch.tensor(np.array(mini_batch)[:,0,:],dtype=torch.float).to(device)
-    Y= torch.tensor(np.array(mini_batch)[:,1,:],dtype=torch.float).to(device) 
+    Y= torch.tensor(np.array(mini_batch)[:,1,:],dtype=torch.long).to(device) 
    
     output = model(X)
-    train_loss = F.mse_loss(output, Y)
+    train_loss = F.cross_entropy(output,torch.max(Y,1)[1],reduction='sum')
     
     pred = output.argmax(dim=1, keepdim=True)
     target = Y.argmax(dim=1, keepdim=True)
     
     train_correct += pred.eq(target.view_as(pred)).sum().item()
- 
-       
+        
     train_loss.backward()
     optimizer.step()
    
-
     return train_correct
     
 def test(epoch,model,test_data,device='cpu'):
@@ -54,11 +52,11 @@ def test(epoch,model,test_data,device='cpu'):
     test_correct = 0
 
     X= torch.tensor(np.array(test_data)[:,0,:],dtype=torch.float).to(device)
-    Y= torch.tensor(np.array(test_data)[:,1,:],dtype=torch.float).to(device)
+    Y= torch.tensor(np.array(test_data)[:,1,:],dtype=torch.long).to(device)
 
     with torch.no_grad():
         output = model(X)
-        test_loss += F.mse_loss(output, Y).item()
+        test_loss += F.cross_entropy(output,torch.max(Y,1)[1],reduction='sum').item()
         pred = output.argmax(dim=1, keepdim=True)
         target = Y.argmax(dim=1, keepdim=True)
         
@@ -73,10 +71,10 @@ def main():
     torch.manual_seed(1)
     use_cuda = torch.cuda.is_available()
     device = torch.device('cuda' if use_cuda else 'cpu')
-    batch_size = 64
+    batch_size = 32
 
     model = Net().to(device)
-    optimizer = optim.SGD(model.parameters(), lr=0.1, momentum=0.5)
+    optimizer = optim.SGD(model.parameters(), lr=0.1, momentum=0.5,weight_decay=0.01)
 
     boards = np.load('./generated_data/features.npy')
     moves =  np.load('./generated_data/labels.npy')
@@ -107,7 +105,7 @@ def main():
 
         model.eval()
         test_correct= test(epoch,model,test_data,device)
-        print('Train Epoch: {}, test Accuracy:{:.0f}%'.format(epoch,100.*test_correct/len(test_data)))     
+        print('Test Epoch: {}, test Accuracy:{:.0f}%'.format(epoch,100.*test_correct/len(test_data)))     
 
     torch.save(model.state_dict(),'./checkpoints/ttt3_mlp.pth.tar')      
 
