@@ -20,7 +20,7 @@ class Net(nn.Module):
 
 def main():
     model= Net()
-    model.load_state_dict(torch.load('./checkpoints/ttt3_mlp.pth.tar'))
+    model.load_state_dict(torch.load('./checkpoints/ttt3_mlp.pth.tar',map_location='cpu'))
     model.eval()
 
     test_board=np.array([[
