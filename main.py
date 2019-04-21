@@ -1,6 +1,10 @@
+import torch
+
 from tqdm import tqdm
 
+
 from agent.alphabetaagent import AlphaBetaAgent
+from agent.feedforwardnnagent import FeedForwardNeuralNetworkAgent
 from agent.humanplayer import HumanPlayer
 from agent.mctsagent import MCTSAgent
 from agent.minimaxagent import MinmaxAgent
@@ -8,11 +12,12 @@ from agent.randomagent import RandomAgent
 from common.board import Board
 from common.move import Move
 from common.point import Point
+from common.oneplaneencoder import OnePlaneEncoder
 from game.tictactoe.tictactoegame import TicTacToeGame
 
 
-def experiment(players, start_player):
-    game = TicTacToeGame(3, players, start_player)
+def episode(board_size, players, start_player):
+    game = TicTacToeGame(board_size, players, start_player)
     while not game.is_over():
         move = game.working_game_state.player_in_action.select_move(
             game, game.working_game_state)
@@ -25,10 +30,14 @@ def experiment(players, start_player):
 
 def main():
 
-    total_games = 100
+    board_size = 3
+    total_games =300
 
-    players = [AlphaBetaAgent(0, "AlphaBetaAgentX",    "X"),
-               MCTSAgent(  1, "MCTSAgentO",      "O" , 500, 0.5)]
+    player_1 = AlphaBetaAgent(0, "AlphaBetaAgentX",    "X")
+    player_2 = RandomAgent(1, "RandomAgentO",    "O")
+    #player_2 = FeedForwardNeuralNetworkAgent(1, "FeedForwardNeuralNetworkAgentO", "O", OnePlaneEncoder(board_size), board_size, torch.load('./checkpoints/ttt3_mlp.pth.tar', map_location='cpu'))
+    
+    players = [player_1, player_2]
 
     start_player = players[1]
 
@@ -36,11 +45,10 @@ def main():
         players[0].name: 0,
         players[1].name: 0,
         "Draw":          0,
-
     }
 
     for _ in tqdm(range(0, total_games)):
-        winner = experiment(players, start_player)
+        winner = episode(board_size, players, start_player)
         if winner is not None:
             win_counts[winner.name] += 1
         else:
