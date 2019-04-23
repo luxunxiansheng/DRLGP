@@ -29,13 +29,17 @@ def episode(board_size, players, start_player):
 
 
 def main():
+   
+    use_cuda = torch.cuda.is_available()
+    device = torch.device('cuda' if use_cuda else 'cpu')
+
 
     board_size = 3
     total_games =300
 
     player_1 = AlphaBetaAgent(0, "AlphaBetaAgentX",    "X")
     player_2 = RandomAgent(1, "RandomAgentO",    "O")
-    #player_2 = FeedForwardNeuralNetworkAgent(1, "FeedForwardNeuralNetworkAgentO", "O", OnePlaneEncoder(board_size), board_size, torch.load('./checkpoints/ttt3_mlp.pth.tar', map_location='cpu'))
+    #player_2 = FeedForwardNeuralNetworkAgent(1, "FeedForwardNeuralNetworkAgentO", "O", OnePlaneEncoder(board_size), board_size, torch.load('./checkpoints/ttt3_mlp.pth.tar', map_location=device))
     
     players = [player_1, player_2]
 

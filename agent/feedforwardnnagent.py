@@ -1,13 +1,14 @@
 import numpy as np 
 import torch 
 
+import pysnooper
+
 from common.gamestate              import GameState
 from common.move                   import Move
 from common.player                 import Player
 from common.encoder                import Encoder
 from common.board                  import Board
 from models.feedfowrdnerualnetwork import FeedForwardNeuralNetwork
-
 
 
 class FeedForwardNeuralNetworkAgent(Player):
@@ -19,7 +20,7 @@ class FeedForwardNeuralNetworkAgent(Player):
         self._encoder = encoder
         self._num_points = board_size*board_size
 
-
+    #@pysnooper.snoop()
     def select_move(self,game,game_state):
         point_probs= self._predict(game_state).detach().numpy()
         point_probs = point_probs **3
