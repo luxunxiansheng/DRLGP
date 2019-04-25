@@ -1,4 +1,4 @@
 {
-    "python.pythonPath": "/home/lb/anaconda3/bin/python",
-    "python.formatting.provider": "black"
+    "python.pythonPath": "/home/ornot/anaconda3/bin/python",
+    "python.formatting.provider": "autopep8"
 }

@@ -1,27 +1,13 @@
 import random
 
 import numpy as np
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from tqdm import tqdm
 
-
-class Net(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self._fc1 = nn.Linear(9,20)
-        self._fc2 = nn.Linear(20,40)
-        self._fc3 = nn.Linear(40,9)
-
-    def forward(self, x):
-        x = torch.relu(self._fc1(x))
-        x = torch.relu(self._fc2(x))
-        x = torch.sigmoid(self._fc3(x))
-
-        return x
+from models.feedfowrdnerualnetwork import FeedForwardNeuralNetwork
 
 
 def train_batch(epach,model,optimizer,mini_batch,device='cpu'):    
@@ -47,7 +33,6 @@ def train_batch(epach,model,optimizer,mini_batch,device='cpu'):
     return train_correct
     
 def test(epoch,model,test_data,device='cpu'):
-       
     test_loss = 0
     test_correct = 0
 
@@ -73,7 +58,7 @@ def main():
     device = torch.device('cuda' if use_cuda else 'cpu')
     batch_size = 32
 
-    model = Net().to(device)
+    model = FeedForwardNeuralNetwork().to(device)
     optimizer = optim.SGD(model.parameters(), lr=0.1, momentum=0.5,weight_decay=0.01)
 
     boards = np.load('./generated_data/features.npy')
