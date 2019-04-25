@@ -7,12 +7,22 @@ from .point import Point
 
 class OnePlaneEncoder(Encoder):
     def __init__(self, board_size):
+        self._board_size= board_size
         self._board_width = board_size
         self._board_height = board_size
         self._num_plane = 1
 
     def name(self):
         return 'OnePlaneEncoder'
+
+    
+    @property
+    def board_width(self):
+        return self._board_width
+
+    @property
+    def board_height(self):
+        return self._board_height
 
     def encode(self, game_state):
         board_matrix = np.zeros(self.shape())

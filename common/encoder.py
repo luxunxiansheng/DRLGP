@@ -18,6 +18,12 @@ class Encoder:
         raise NotImplementedError()
 
     def shape(self):
-        raise NotImplementedError()        
+        raise NotImplementedError()       
+    
+    def board_width(self):
+        raise NotImplementedError()       
+    
+    def board_height(self):
+        raise NotImplementedError()       
     
 
