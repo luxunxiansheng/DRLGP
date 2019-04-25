@@ -18,8 +18,8 @@ from models.feedfowrdnerualnetwork import FeedForwardNeuralNetwork
 
 
 class PolicyAgent(Player):
-    def __init__(self, id, name, mark, encoder, collector, state_dict=None):
-        super().__init__(id, name, mark)
+    def __init__(self, id, name, encoder, collector, state_dict=None):
+        super().__init__(id, name)
         self._model = FeedForwardNeuralNetwork()
         if state_dict is not None:
             self._model.load_state_dict(state_dict)
