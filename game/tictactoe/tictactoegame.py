@@ -37,7 +37,6 @@ class TicTacToeGame(Game):
                for row in game_state.board.rows
                for col in game_state.board.cols):
             return True
-
         return False
 
     def get_player_after_move(self, player_in_action):
@@ -66,3 +65,14 @@ class TicTacToeGame(Game):
             return players[1]
 
         return None
+    
+    @staticmethod
+    def simulate(board_size,players,start_player):
+        game = TicTacToeGame(board_size, players, start_player)
+        while not game.is_over():
+            move = game.working_game_state.player_in_action.select_move(game, game.working_game_state)
+            game.apply_move(move)
+            # game.working_game_state.board.print_board()
+
+        winner = game.get_winner(game.working_game_state)
+        return winner 

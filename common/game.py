@@ -13,9 +13,17 @@ class Game:
     """
     A abstract class about Game. Essentially, it contains a player list and a current working state. 
     """
+      
+    
     def __init__(self, board, playerlist, start_player):
         self._players = playerlist
+        self._board_size = board.board_size
         self._working_game_state = GameState(board, start_player, None)
+
+    
+    @property
+    def board_size(self):
+        return self._board_size
 
     @property
     def working_game_state(self):
@@ -50,3 +58,12 @@ class Game:
 
     def get_player_after_move(self, the_player):
         pass
+    
+    @staticmethod
+    def winner(board, players):
+        pass
+
+    @staticmethod
+    def simulate(board_size,players,start_player):
+        pass
+    

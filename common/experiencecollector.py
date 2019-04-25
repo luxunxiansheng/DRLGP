@@ -14,5 +14,23 @@ class ExperienceCollector():
         self._current_episode_esimated_values = []
     
     def record_decision(self, state, action, estimated_value=0):
-        
+        self._current_episode_states.append(state)
+        self._current_episode_actions.append(action) 
+        self._current_episode_esimated_values(estimated_value)
+
+    def compelte_episode(self,reward):
+        num_states= len(self._current_episode_states)
+        self._states += self._current_episode_states
+        self._actions+= self._current_episode_actions
+        self._rewards+= [reward for _ in range(num_states)]
+
+        for i in range(num_states):
+            advantage = reward - self._current_episode_esimated_values[i]
+            self._advantages.append(advantage)
+
+        self._current_episode_states = []
+        self._current_episode_actions = []
+        self._current_episode_esimated_values = []
+         
+
         

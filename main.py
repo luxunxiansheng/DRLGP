@@ -16,23 +16,9 @@ from common.oneplaneencoder import OnePlaneEncoder
 from game.tictactoe.tictactoegame import TicTacToeGame
 
 
-def episode(board_size, players, start_player):
-    game = TicTacToeGame(board_size, players, start_player)
-    while not game.is_over():
-        move = game.working_game_state.player_in_action.select_move(
-            game, game.working_game_state)
-        game.apply_move(move)
-        # game.working_game_state.board.print_board()
-
-    winner = game.get_winner(game.working_game_state)
-    return winner
-
-
 def main():
-   
     use_cuda = torch.cuda.is_available()
     device = torch.device('cuda' if use_cuda else 'cpu')
-
 
     board_size = 3
     total_games =300
@@ -52,7 +38,7 @@ def main():
     }
 
     for _ in tqdm(range(0, total_games)):
-        winner = episode(board_size, players, start_player)
+        winner = TicTacToeGame.simulate(board_size, players, start_player)
         if winner is not None:
             win_counts[winner.name] += 1
         else:
