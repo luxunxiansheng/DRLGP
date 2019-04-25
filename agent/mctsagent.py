@@ -75,8 +75,8 @@ class MCTSNode(object):
 
 
 class MCTSAgent(Player):
-    def __init__(self, id, name, mark, num_rounds, temperature):
-        Player.__init__(self,id, name, mark)
+    def __init__(self, id, name, num_rounds, temperature):
+        Player.__init__(self,id, name)
         self._num_rounds = num_rounds
         self._temperature = temperature
 

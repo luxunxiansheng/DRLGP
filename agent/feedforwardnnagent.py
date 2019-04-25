@@ -12,8 +12,8 @@ from models.feedfowrdnerualnetwork import FeedForwardNeuralNetwork
 
 
 class FeedForwardNeuralNetworkAgent(Player):
-    def __init__(self,id,name,mark,encoder,board_size,state_dict):
-        super().__init__(id,name,mark)
+    def __init__(self,id,name,encoder,board_size,state_dict):
+        super().__init__(id,name)
         self._model= FeedForwardNeuralNetwork()
         self._model.load_state_dict(state_dict)
         self._model.eval()

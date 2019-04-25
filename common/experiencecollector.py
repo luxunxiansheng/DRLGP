@@ -7,7 +7,24 @@ class ExperienceCollector():
         self._current_episode_states = []
         self._current_episode_actions = []
         self._current_episode_esimated_values = []
-        
+
+    @property
+    def states(self):
+        return self._states
+    
+    @property
+    def actions(self):
+        return self._actions
+    
+    @property
+    def rewards(self):
+        return self._rewards
+
+    @property
+    def advantages(self):
+        return self._advantages    
+
+
     def begin_episode(self):
         self._current_episode_states = []
         self._current_episode_actions = []

@@ -30,9 +30,9 @@ class OnePlaneEncoder(Encoder):
         for row in range(self._board_height):
             for col in range(self._board_width):
                 point = Point(row+1, col+1)
-                point_owner = game_state.board.get_player(point)
-                if point_owner is not None:
-                    if point_owner == player_in_action:
+                point_owner_id = game_state.board.get_player_id(point)
+                if point_owner_id is not None:
+                    if point_owner_id == player_in_action.id:
                         board_matrix[0, row, col] = 1
                     else:
                         board_matrix[0, row, col] = -1

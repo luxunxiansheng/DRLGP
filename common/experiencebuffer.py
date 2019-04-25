@@ -1,5 +1,7 @@
 import numpy as np
 
+import torch
+
 
 class ExpericenceBuffer:
     def __init__(self, states, actions, rewards, advantages):
@@ -18,30 +20,27 @@ class ExpericenceBuffer:
 
     @property
     def rewards(self):
-        return self._rewards   
+        return self._rewards
 
     @property
     def advantages(self):
-        return self._advantages   
+        return self._advantages
 
-    def serialize(self, h5file):
-        h5file.create_group('experience')
-        h5file['experience'].create_dataset('states', data=self._states)
-        h5file['experience'].create_dataset('actions', data=self._actions)
-        h5file['experience'].create_dataset('rewards', data=self._rewards)
-        h5file['experience'].create_dataset(
-            'advantages', data=self._advantages)
+    def serialize(self, path):
+        torch.save({'states': self._states,'actions': self._actions,'rewards': self._rewards,'advantages': self._advantages}, path)
 
-    def deserialize(self, h5file):
-        return ExpericenceBuffer(states=np.array(h5file['experience']['states']),
-                                 actions=np.array(h5file['experience']['actions']),
-                                 rewards=np.array(h5file['experience']['rewards']),
-                                 advantages=np.array(h5file['experience']['advantages']))
+    def deserialize(self, path):
+        saved = torch.load(path)
+        return ExpericenceBuffer(saved['states'], saved['actions'], saved['rewards'], saved['advantages'])
 
     @staticmethod
     def combine_experience(collectors):
-        combined_states = np.concatenate([np.array(c.states) for c in collectors])
-        combined_actions = np.concatenate([np.array(c.actions) for c in collectors])
-        combined_rewards = np.concatenate([np.array(c.rewards) for c in collectors])
-        combined_advantages = np.concatenate([np.array(c.advantages) for c in collectors])
+        combined_states = np.concatenate(
+            [np.array(c.states) for c in collectors])
+        combined_actions = np.concatenate(
+            [np.array(c.actions) for c in collectors])
+        combined_rewards = np.concatenate(
+            [np.array(c.rewards) for c in collectors])
+        combined_advantages = np.concatenate(
+            [np.array(c.advantages) for c in collectors])
         return ExpericenceBuffer(combined_states, combined_actions, combined_rewards, combined_advantages)

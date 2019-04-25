@@ -17,15 +17,15 @@ class TicTacToeGame(Game):
     @staticmethod
     def _connect_into_a_line(board, player):
         for col in board.cols:
-            if all(board.get_player(Point(row, col)) == player for row in board.rows):
+            if all(board.get_player_id(Point(row, col)) == player.id for row in board.rows):
                 return True
         for row in board.rows:
-            if all(board.get_player(Point(row, col)) == player for col in board.cols):
+            if all(board.get_player_id(Point(row, col)) == player.id for col in board.cols):
                 return True
         # Diagonal RL to LR
-        if all(board.get_player(Point(i, i)) == player for i in range(1, board.board_size+1)):
+        if all(board.get_player_id(Point(i, i)) == player.id for i in range(1, board.board_size+1)):
             return True
-        if all(board.get_player(Point(i, board.board_size+1-i)) == player for i in range(1, board.board_size+1)):
+        if all(board.get_player_id(Point(i, board.board_size+1-i))== player.id for i in range(1, board.board_size+1)):
             return True
         return False
     
@@ -33,7 +33,7 @@ class TicTacToeGame(Game):
         if TicTacToeGame._connect_into_a_line(game_state.board, self._players[0]) or TicTacToeGame._connect_into_a_line(game_state.board, self._players[1]):
             return True
 
-        if all(game_state.board.get_player(Point(row, col)) is not None
+        if all(game_state.board.get_player_id(Point(row, col)) is not None
                for row in game_state.board.rows
                for col in game_state.board.cols):
             return True

@@ -16,10 +16,10 @@ def main():
 
     encoder = OnePlaneEncoder(board_size)
     collector1 = ExperienceCollector()
-    pgAgent1 = PolicyAgent(0, 'PG1', 'X', encoder, collector1)
+    pgAgent1 = PolicyAgent(0,'PG1',encoder, collector1)
 
     collector2 = ExperienceCollector()
-    pgAgent2 = PolicyAgent(1, 'PG2', 'O', encoder, collector2)
+    pgAgent2 = PolicyAgent(1, 'PG2', encoder, collector2)
 
     players = [pgAgent1, pgAgent2]
 
@@ -39,8 +39,8 @@ def main():
 
     experience = ExpericenceBuffer.combine_experience([collector1, collector2])
 
-    with h5py.File("./experience/pg.tar") as experience_outf:
-        experience.serialize(experience_outf)
+    
+    experience.serialize('./experience/pg.tar')
 
 
 if __name__ == "__main__":

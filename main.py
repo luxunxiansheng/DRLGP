@@ -23,9 +23,9 @@ def main():
     board_size = 3
     total_games =300
 
-    player_1 = AlphaBetaAgent(0, "AlphaBetaAgentX",    "X")
-    player_2 = RandomAgent(1, "RandomAgentO",    "O")
-    #player_2 = FeedForwardNeuralNetworkAgent(1, "FeedForwardNeuralNetworkAgentO", "O", OnePlaneEncoder(board_size), board_size, torch.load('./checkpoints/ttt3_mlp.pth.tar', map_location=device))
+    player_1 = AlphaBetaAgent(0, "AlphaBetaAgentX")
+    #player_2 = RandomAgent(1, "RandomAgentO")
+    player_2 = FeedForwardNeuralNetworkAgent(1, "FeedForwardNeuralNetworkAgentO",OnePlaneEncoder(board_size), board_size, torch.load('./checkpoints/ttt3_mlp.pth.tar', map_location=device))
     
     players = [player_1, player_2]
 
