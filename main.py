@@ -25,7 +25,8 @@ def main():
 
     player_1 = AlphaBetaAgent(0, "AlphaBetaAgentX")
     #player_2 = RandomAgent(1, "RandomAgentO")
-    player_2 = FeedForwardNeuralNetworkAgent(1, "FeedForwardNeuralNetworkAgentO",OnePlaneEncoder(board_size), board_size, torch.load('./checkpoints/ttt3_mlp.pth.tar', map_location=device))
+    #player_2 = FeedForwardNeuralNetworkAgent(1, "FeedForwardNeuralNetworkAgentO",OnePlaneEncoder(board_size), board_size, torch.load('./checkpoints/ttt3_mlp.pth.tar', map_location=device))
+    player_2 = MCTSAgent(1,"MCTSAgentO",200,0.5)
     
     players = [player_1, player_2]
 
