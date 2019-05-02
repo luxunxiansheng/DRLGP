@@ -2,11 +2,12 @@
 import copy
 import os
 
-from .board import Board
-from .gamestate import GameState
-from .move import Move
-from .player import Player
-from .point import Point
+from common.board import Board
+from common.gamestate import GameState
+from common.move import Move
+from common.player import Player
+from common.point import Point
+from common.piece import Piece
 
 
 class Game:
@@ -17,13 +18,13 @@ class Game:
     
     def __init__(self, board, playerlist, start_player):
         self._players = playerlist
-        self._board_size = board.board_size
+        self._board = board
         self._working_game_state = GameState(board, start_player, None)
 
     
     @property
-    def board_size(self):
-        return self._board_size
+    def board(self):
+        return self._board
 
     @property
     def working_game_state(self):
