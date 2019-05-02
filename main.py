@@ -20,11 +20,11 @@ def main():
     use_cuda = torch.cuda.is_available()
     device = torch.device('cuda' if use_cuda else 'cpu')
 
-    board_size = 3
-    total_games =300
+    board_size = 19
+    total_games =100
 
-    player_1 = RandomAgent(0, "RandomAgentX")
-    player_2 = RandomAgent(1, "RandomAgnetO")
+    player_1 = RandomAgent(0, "RandomAgentX","X")
+    player_2 = RandomAgent(1, "RandomAgnetO","O")
     
         
     players = [player_1, player_2]

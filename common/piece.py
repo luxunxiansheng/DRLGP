@@ -12,4 +12,4 @@ class Piece:
 
     @property
     def point(self):
-        return self.point
+        return self._point
