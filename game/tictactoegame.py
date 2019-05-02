@@ -18,15 +18,15 @@ class TicTacToeGame(Game):
     @staticmethod
     def _connect_into_a_line(board, player):
         for col in board.cols:
-            if all(board.get_piece_at_point(Point(row, col)).owner == player for row in board.rows):
+            if all(board.get_piece_at_point(Point(row, col)) is not None and board.get_piece_at_point(Point(row, col)).owner == player for row in board.rows):
                 return True
         for row in board.rows:
-            if all(board.get_piece_at_point(Point(row, col)).owner == player for col in board.cols):
+            if all(board.get_piece_at_point(Point(row, col)) is not None and board.get_piece_at_point(Point(row, col)).owner == player for col in board.cols):
                 return True
         # Diagonal RL to LR
-        if all(board.get_piece_at_point(Point(i, i)).owner == player for i in range(1, board.board_size+1)):
+        if all(board.get_piece_at_point(Point(i, i)) is not None and board.get_piece_at_point(Point(i, i)).owner == player for i in range(1, board.board_size+1)):
             return True
-        if all(board.get_piece_at_point(Point(i, board.board_size+1-i)).owner== player for i in range(1, board.board_size+1)):
+        if all(board.get_piece_at_point(Point(i, board.board_size+1-i)) is not None and board.get_piece_at_point(Point(i, board.board_size+1-i)).owner== player for i in range(1, board.board_size+1)):
             return True
         return False
     
@@ -75,7 +75,7 @@ class TicTacToeGame(Game):
         while not game.is_over():
             move = game.working_game_state.player_in_action.select_move(game, game.working_game_state)
             game.apply_move(move)
-            # game.working_game_state.board.print_board()
+            #game.working_game_state.board.print_board()
 
         winner = game.get_winner(game.working_game_state)
         return winner 
