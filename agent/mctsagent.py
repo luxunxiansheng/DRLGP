@@ -9,20 +9,22 @@ from common.gamestate import GameState
 from common.move import Move
 from common.player import Player
 from agent.randomagent import RandomAgent
+from game.tictactoegame import TicTacToeGame
 
 
 class MCTSNode(object):
 
     DRAW = -1
-    def __init__(self, game, game_state, parent=None, previous_point=None):
+
+    def __init__(self, game, game_state, parent=None, previous_move=None):
         self._game = game
         self._game_state = game_state
         self._parent = parent
-        self._previous_point = previous_point
+        self._previous_move = previous_move
         self._win_counts = {
             game.players[0].id: 0,
             game.players[1].id: 0,
-            MCTSNode.DRAW  :    0,   
+            MCTSNode.DRAW:    0,
         }
 
         self._num_rollouts = 0
@@ -32,10 +34,10 @@ class MCTSNode(object):
     @property
     def game_state(self):
         return self._game_state
-   
+
     @property
-    def previous_point(self):
-        return self._previous_point 
+    def previous_move(self):
+        return self._previous_move
 
     @property
     def num_rollouts(self):
@@ -61,7 +63,7 @@ class MCTSNode(object):
         if winner is not None:
             self._win_counts[winner.id] += 1
         else:
-            self._win_counts[MCTSNode.DRAW] +=1 
+            self._win_counts[MCTSNode.DRAW] += 1
         self._num_rollouts += 1
 
     def can_add_child(self):
@@ -76,7 +78,7 @@ class MCTSNode(object):
 
 class MCTSAgent(Player):
     def __init__(self, id, name, num_rounds, temperature):
-        Player.__init__(self,id, name)
+        super().__init__(self, id, name, mark)
         self._num_rounds = num_rounds
         self._temperature = temperature
 
@@ -100,33 +102,32 @@ class MCTSAgent(Player):
 
     def select_move(self, game, game_state):
         # The basic MCTS process is described as below:
-        # 
-        # Selection: 
-        # 
-        # Start from root and select successive child nodes until a leaf node is 
-        # reached. The  root is the current game state and a leaf is any node from which no 
-        # simulation has yet been initated. The selection will let the game tree expand 
+        #
+        # Selection:
+        #
+        # Start from root and select successive child nodes until a leaf node is
+        # reached. The  root is the current game state and a leaf is any node from which no
+        # simulation has yet been initated. The selection will let the game tree expand
         # towards the most promising moves.
-        #  
-        # Expansion: 
-        # Unless leaf node ends the game decisively for either player, create one(or more) 
-        # child nodes and choose one of them. 
-        # 
+        #
+        # Expansion:
+        # Unless leaf node ends the game decisively for either player, create one(or more)
+        # child nodes and choose one of them.
+        #
         # Simulation:
         # Complete one random playout from created node.
-        # 
+        #
         # Backpropagation:
         # Use the result of the rollout to update information in the nodes on the path from
-        # created node to root        
+        # created node to root
         #
 
-        
         root = MCTSNode(game, game_state)
 
         for _ in tqdm(range(self._num_rounds)):
             node = root
 
-            # select: based on a UCT policy                    
+            # select: based on a UCT policy
             while(not node.can_add_child() and (not node.is_terminal())):
                 node = self._select_child(node)
 
@@ -134,8 +135,8 @@ class MCTSAgent(Player):
             if node.can_add_child():
                 node = node.add_random_child()
 
-            # simulate: random rollout policy  
-            winner = self._simulate_random_game(game,node.game_state)
+            # simulate: random rollout policy
+            winner = self.simulate_random_game_for_state(node.game_state)
 
             # backpropagate
             while node is not None:
@@ -153,23 +154,27 @@ class MCTSAgent(Player):
 
         return Move(best_point)
 
-    
-    def _simulate_random_game(self,game,game_state):
-        bots =  [RandomAgent(0, "RandomAgent0"),
-                 RandomAgent(1, "RandomAgent1")]
+    def simulate_random_game_for_state(self,game_state):
+        bots = [RandomAgent(0, "RandomAgent0", "X"),
+                RandomAgent(1, "RandomAgent1", "O")]
 
-         
-        ########################### 
-        #A bug here: The player_in_action should be the random agent 
+        # current board status
+        board = copy.deepcopy(game_state.board)
 
-        #####################
-        game= copy.copy(game)
-        game.working_game_state=game_state
-        game.players=bots
-        
+        # whose 's turn
+        player_in_action = game_state.player_in_action
+
+        if player_in_action == bots[0]:
+            start_player = bots[0]
+        else:
+            start_player = bots[1]
+
+        game = TicTacToeGame(board, bots, start_player)
+
         while not game.is_over():
             move = game.working_game_state.player_in_action.select_move(game, game.working_game_state)
             game.apply_move(move)
-        
+            # game.working_game_state.board.print_board()
         winner = game.get_winner(game.working_game_state)
+
         return winner

@@ -20,16 +20,16 @@ def main():
     use_cuda = torch.cuda.is_available()
     device = torch.device('cuda' if use_cuda else 'cpu')
 
-    board_size = 19
+    board_size = 5
     total_games =100
 
     player_1 = RandomAgent(0, "RandomAgentX","X")
-    player_2 = RandomAgent(1, "RandomAgnetO","O")
+    player_2 = MCTSAgent(1, "MCTSAgentO","O")
     
         
     players = [player_1, player_2]
 
-    start_player = players[1]
+    start_player = players[0]
 
     win_counts = {
         players[0].name: 0,
@@ -43,6 +43,7 @@ def main():
             win_counts[winner.name] += 1
         else:
             win_counts["Draw"] += 1
+            
 
     print("************************************************************************************")
     print("{} plays fisrt".format(start_player.name))
