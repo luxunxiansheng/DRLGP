@@ -26,18 +26,13 @@ class PolicyAgent(Player):
         self._encoder = encoder
         self._board_size = encoder.board_width*encoder.board_height
         self._num_points = self._board_size
-        self._epsilon = 0.1
         self._collector = collector
 
   
     # @pysnooper.snoop()
     def select_move(self, game, game_state):
-        # epsilon greedy
-        if np.random.random() < self._epsilon:
-            point_probs = (np.ones(self._num_points)/self._num_points).reshape(1,self._num_points)
-        else:
-            point_probs = self._predict(game_state).detach().numpy()
-
+        
+        point_probs = self._predict(game_state).detach().numpy()
         point_probs = self._clip_probs(point_probs)
 
         possible_points = np.arange(self._num_points)

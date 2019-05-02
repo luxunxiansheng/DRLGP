@@ -155,9 +155,14 @@ class MCTSAgent(Player):
 
     
     def _simulate_random_game(self,game,game_state):
-        bots =  [RandomAgent(0, "RandomAgent0",    "X"),
-                 RandomAgent(1, "RandomAgent1",    "O")]
+        bots =  [RandomAgent(0, "RandomAgent0"),
+                 RandomAgent(1, "RandomAgent1")]
 
+         
+        ########################### 
+        #A bug here: The player_in_action should be the random agent 
+
+        #####################
         game= copy.copy(game)
         game.working_game_state=game_state
         game.players=bots
