@@ -7,8 +7,6 @@ from common.point import Point
 
 class MinmaxAgent(Player):
     def select_move(self, game, game_state):
-        assert game_state.player_in_action== self
-
         winning_moves = []
         draw_moves = []
         losing_moves = []
