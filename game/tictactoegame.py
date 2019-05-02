@@ -5,11 +5,12 @@ from common.game import Game, GameState
 from common.move import Move
 from common.player import Player
 from common.point import Point
+from common.piece import Piece
 
 
 class TicTacToeGame(Game):
-    def __init__(self, board_size, playerlist, start_player):
-        super().__init__(Board(board_size), playerlist, start_player)
+    def __init__(self, board,playerlist, start_player):
+        super().__init__(board, playerlist, start_player)
     
     def apply_move(self, move):
         self._working_game_state = self.transit(self._working_game_state, move)
@@ -17,15 +18,15 @@ class TicTacToeGame(Game):
     @staticmethod
     def _connect_into_a_line(board, player):
         for col in board.cols:
-            if all(board.get_player_id(Point(row, col)) == player.id for row in board.rows):
+            if all(board.get_piece_at_point(Point(row, col)).owner == player for row in board.rows):
                 return True
         for row in board.rows:
-            if all(board.get_player_id(Point(row, col)) == player.id for col in board.cols):
+            if all(board.get_piece_at_point(Point(row, col)).owner == player for col in board.cols):
                 return True
         # Diagonal RL to LR
-        if all(board.get_player_id(Point(i, i)) == player.id for i in range(1, board.board_size+1)):
+        if all(board.get_piece_at_point(Point(i, i)).owner == player for i in range(1, board.board_size+1)):
             return True
-        if all(board.get_player_id(Point(i, board.board_size+1-i))== player.id for i in range(1, board.board_size+1)):
+        if all(board.get_piece_at_point(Point(i, board.board_size+1-i)).owner== player for i in range(1, board.board_size+1)):
             return True
         return False
     
@@ -33,7 +34,7 @@ class TicTacToeGame(Game):
         if TicTacToeGame._connect_into_a_line(game_state.board, self._players[0]) or TicTacToeGame._connect_into_a_line(game_state.board, self._players[1]):
             return True
 
-        if all(game_state.board.get_player_id(Point(row, col)) is not None
+        if all(game_state.board.get_piece_at_point(Point(row, col)) is not None
                for row in game_state.board.rows
                for col in game_state.board.cols):
             return True
@@ -53,8 +54,9 @@ class TicTacToeGame(Game):
 
     def transit(self, game_state, move):
         new_board = copy.deepcopy(game_state.board)
-        new_board.place(game_state.player_in_action, move.point)
-        return GameState(new_board, self.get_player_after_move(game_state.player_in_action), move)
+        piece= Piece(game_state.player_in_action,move.point)
+        new_board.place_piece(piece)
+        return GameState(new_board,self.get_player_after_move(game_state.player_in_action), move)
 
     @staticmethod
     def winner(board, players):
@@ -68,7 +70,8 @@ class TicTacToeGame(Game):
     
     @staticmethod
     def simulate(board_size,players,start_player):
-        game = TicTacToeGame(board_size, players, start_player)
+        board = Board(board_size)
+        game = TicTacToeGame(board, players, start_player)
         while not game.is_over():
             move = game.working_game_state.player_in_action.select_move(game, game.working_game_state)
             game.apply_move(move)

@@ -13,7 +13,7 @@ from common.board import Board
 from common.move import Move
 from common.point import Point
 from common.oneplaneencoder import OnePlaneEncoder
-from game.tictactoe.tictactoegame import TicTacToeGame
+from game.tictactoegame import TicTacToeGame
 
 
 def main():
@@ -23,11 +23,10 @@ def main():
     board_size = 3
     total_games =300
 
-    player_1 = AlphaBetaAgent(0, "AlphaBetaAgentX")
-    #player_2 = RandomAgent(1, "RandomAgentO")
-    #player_2 = FeedForwardNeuralNetworkAgent(1, "FeedForwardNeuralNetworkAgentO",OnePlaneEncoder(board_size), board_size, torch.load('./checkpoints/ttt3_mlp.pth.tar', map_location=device))
-    player_2 = MCTSAgent(1,"MCTSAgentO",200,0.5)
+    player_1 = RandomAgent(0, "RandomAgentX")
+    player_2 = RandomAgent(1, "RandomAgnetO")
     
+        
     players = [player_1, player_2]
 
     start_player = players[1]
