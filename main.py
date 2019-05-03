@@ -20,11 +20,13 @@ def main():
     use_cuda = torch.cuda.is_available()
     device = torch.device('cuda' if use_cuda else 'cpu')
 
-    board_size = 5
+    board_size = 3
     total_games = 100
 
-    player_1 = RandomAgent(0, "RandomAgentX", "X")
-    player_2 = MCTSAgent(1, "MCTSAgentO", "O", 100, 0.5)
+    #player_1 = RandomAgent(0, "RandomAgentX", "X")
+    #player_1 = AlphaBetaAgent(0,"AlphaBetaAgentX","X") 
+    player_1 = MCTSAgent(0, "MCTSAgentX", "O", 100, 0.4)
+    player_2 = MCTSAgent(1, "MCTSAgentO", "O", 100, 0.4)
 
     players = [player_1, player_2]
 
@@ -37,7 +39,7 @@ def main():
     }
 
     for _ in tqdm(range(0, total_games)):
-        winner = TicTacToeGame.simulate(board_size, players, start_player)
+        winner = TicTacToeGame.run_episode(board_size, players, start_player)
         if winner is not None:
             win_counts[winner.name] += 1
         else:

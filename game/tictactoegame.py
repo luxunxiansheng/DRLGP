@@ -69,7 +69,7 @@ class TicTacToeGame(Game):
         return None
     
     @staticmethod
-    def simulate(board_size,players,start_player):
+    def run_episode(board_size,players,start_player):
         board = Board(board_size)
         game = TicTacToeGame(board, players, start_player)
         while not game.is_over():
