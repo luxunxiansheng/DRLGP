@@ -65,6 +65,6 @@ class Game:
         pass
 
     @staticmethod
-    def simulate(board_size,players,start_player):
+    def run_episode(board_size,players,start_player):
         pass
     
