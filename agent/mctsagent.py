@@ -16,11 +16,11 @@ class MCTSNode(object):
 
     DRAW = -1
 
-    def __init__(self, game, game_state, parent=None, previous_move=None):
+    def __init__(self, game, game_state, parent=None, previous_point=None):
         self._game = game
         self._game_state = game_state
         self._parent = parent
-        self._previous_move = previous_move
+        self._previous_point = previous_point
         self._win_counts = {
             game.players[0].id: 0,
             game.players[1].id: 0,
@@ -36,8 +36,8 @@ class MCTSNode(object):
         return self._game_state
 
     @property
-    def previous_move(self):
-        return self._previous_move
+    def previous_point(self):
+        return self._previous_point
 
     @property
     def num_rollouts(self):
@@ -77,8 +77,8 @@ class MCTSNode(object):
 
 
 class MCTSAgent(Player):
-    def __init__(self, id, name, num_rounds, temperature):
-        super().__init__(self, id, name, mark)
+    def __init__(self, id, name, mark, num_rounds, temperature):
+        super().__init__(id, name, mark)
         self._num_rounds = num_rounds
         self._temperature = temperature
 
@@ -154,7 +154,7 @@ class MCTSAgent(Player):
 
         return Move(best_point)
 
-    def simulate_random_game_for_state(self,game_state):
+    def simulate_random_game_for_state(self, game_state):
         bots = [RandomAgent(0, "RandomAgent0", "X"),
                 RandomAgent(1, "RandomAgent1", "O")]
 
@@ -172,7 +172,8 @@ class MCTSAgent(Player):
         game = TicTacToeGame(board, bots, start_player)
 
         while not game.is_over():
-            move = game.working_game_state.player_in_action.select_move(game, game.working_game_state)
+            move = game.working_game_state.player_in_action.select_move(
+                game, game.working_game_state)
             game.apply_move(move)
             # game.working_game_state.board.print_board()
         winner = game.get_winner(game.working_game_state)
