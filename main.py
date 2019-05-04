@@ -25,8 +25,8 @@ def main():
 
     #player_1 = RandomAgent(0, "RandomAgentX", "X")
     #player_1 = AlphaBetaAgent(0,"AlphaBetaAgentX","X") 
-    player_1 = MCTSAgent(0, "MCTSAgentX", "O", 100, 0.4)
-    player_2 = MCTSAgent(1, "MCTSAgentO", "O", 100, 0.4)
+    player_1 = MCTSAgent(0, "MCTSAgentX", "X", 100, 12.5)
+    player_2 = MCTSAgent(1, "MCTSAgentO", "O", 100, 0.2)
 
     players = [player_1, player_2]
 

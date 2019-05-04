@@ -18,14 +18,9 @@ class Game:
     
     def __init__(self, board, playerlist, start_player):
         self._players = playerlist
-        self._board = board
-        self._working_game_state = GameState(board, start_player, None)
+        self._working_game_state = GameState(board,start_player, None)
 
-    
-    @property
-    def board(self):
-        return self._board
-
+   
     @property
     def working_game_state(self):
         return self._working_game_state

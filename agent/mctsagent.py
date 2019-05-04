@@ -136,7 +136,7 @@ class MCTSAgent(Player):
                 node = node.add_random_child()
 
             # simulate: random rollout policy
-            winner = self.simulate_random_game_for_state(node.game_state)
+            winner = self._simulate_random_game_for_state(node.game_state)
 
             # backpropagate
             while node is not None:
@@ -154,7 +154,7 @@ class MCTSAgent(Player):
 
         return Move(best_point)
 
-    def simulate_random_game_for_state(self, game_state):
+    def _simulate_random_game_for_state(self, game_state):
         bots = [RandomAgent(0, "RandomAgent0", "X"),
                 RandomAgent(1, "RandomAgent1", "O")]
 
@@ -179,3 +179,6 @@ class MCTSAgent(Player):
         winner = game.get_winner(game.working_game_state)
 
         return winner
+
+   
+        
