@@ -9,12 +9,6 @@ from common.piece import Piece
 
 
 class TicTacToeGame(Game):
-    def __init__(self, board,playerlist, start_player):
-        super().__init__(board, playerlist, start_player)
-    
-    def apply_move(self, move):
-        self._working_game_state = self.transit(self._working_game_state, move)
-
     @staticmethod
     def _connect_into_a_line(board, player):
         for col in board.cols:
@@ -46,17 +40,12 @@ class TicTacToeGame(Game):
         else:
             return self._players[0]
 
-    def is_over(self):
-        return self.is_final_state(self._working_game_state)
+    
 
     def get_winner(self, game_state):
         return TicTacToeGame.winner(game_state.board, self._players)
 
-    def transit(self, game_state, move):
-        new_board = copy.deepcopy(game_state.board)
-        piece= Piece(game_state.player_in_action,move.point)
-        new_board.place_piece(piece)
-        return GameState(new_board,self.get_player_after_move(game_state.player_in_action), move)
+
 
     @staticmethod
     def winner(board, players):

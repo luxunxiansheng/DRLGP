@@ -41,16 +41,19 @@ class Game:
         pass
 
     def is_over(self):
-        pass
+        return self.is_final_state(self._working_game_state)
 
     def get_winner(self, game_state):
         pass
 
     def apply_move(self, move):
-        pass
+        self._working_game_state = self.transit(self._working_game_state, move)
 
     def transit(self, game_state, move):
-        pass
+        new_board = copy.deepcopy(game_state.board)
+        piece= Piece(game_state.player_in_action,move.point)
+        new_board.place_piece(piece)
+        return GameState(new_board,self.get_player_after_move(game_state.player_in_action), move)
 
     def get_player_after_move(self, the_player):
         pass
