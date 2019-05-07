@@ -54,7 +54,7 @@ class Board:
 
     def place_piece(self,piece):
         assert self.point_is_on_grid(piece.point)
-        assert self.get_piece_at_point(piece) is None
+        assert self.get_piece_at_point(piece.point) is None
         self._grid[piece.point] = piece    
 
     def point_is_on_grid(self,point):

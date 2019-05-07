@@ -42,7 +42,7 @@ def main():
     }
 
     for _ in tqdm(range(0, total_games)):
-        winner = TicTacToeGame.run_episode(board_size, players, start_player)
+        winner = Connect5Game.run_episode(board_size, players, start_player)
         if winner is not None:
             win_counts[winner.name] += 1
         else:
