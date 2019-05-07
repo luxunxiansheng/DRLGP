@@ -11,26 +11,26 @@ from common.piece import Piece
 class Connect5Game(Game):
     @staticmethod
     def _connect_5_into_a_line(board, player):
-        for row in range(board.rows - 4):
-            for col in range(board.cols):
+        for row in range(1,board.board_size+1-4):
+            for col in range(1,board.board_size):
                 if board.get_piece_at_point(Point(row, col)) is not None and board.get_piece_at_point(Point(row, col)).owner == player and board.get_piece_at_point(Point(row+1, col)) is not None and board.get_piece_at_point(Point(row+1, col)).owner == player and board.get_piece_at_point(Point(row+2, col)) is not None and board.get_piece_at_point(Point(row+2, col)).owner == player and board.get_piece_at_point(Point(row+3, col)) is not None and board.get_piece_at_point(Point(row+3, col)).owner == player and board.get_piece_at_point(Point(row+4, col)) is not None and board.get_piece_at_point(Point(row+4, col)).owner == player:
                        return True
 
         # check horizontal win
-        for row in range(board.rows):
-            for col in range(board.cols-4):
+        for row in range(1,board.board_size):
+            for col in range(1,board.board_size+1-4):
                 if board.get_piece_at_point(Point(row, col)) is not None and board.get_piece_at_point(Point(row, col)).owner == player and board.get_piece_at_point(Point(row, col+1)) is not None and board.get_piece_at_point(Point(row, col+1)).owner == player and board.get_piece_at_point(Point(row, col+2)) is not None and board.get_piece_at_point(Point(row, col+2)).owner == player and board.get_piece_at_point(Point(row, col+3)) is not None and board.get_piece_at_point(Point(row, col+3)).owner == player and board.get_piece_at_point(Point(row, col+4)) is not None and board.get_piece_at_point(Point(row, col+4)).owner == player: 
                     return True
 
         # check / diagonal win
-        for row in range(4,board.rows):
-            for col in range(board.cols-4):
+        for row in range(4,board.board_size+1):
+            for col in range(1,board.board_size+1-4):
                 if board.get_piece_at_point(Point(row, col)) is not None and board.get_piece_at_point(Point(row, col)).owner == player and board.get_piece_at_point(Point(row-1, col+1)) is not None and board.get_piece_at_point(Point(row-1, col+1)).owner == player and board.get_piece_at_point(Point(row-2, col+2)) is not None and board.get_piece_at_point(Point(row-2, col+2)).owner == player and board.get_piece_at_point(Point(row-3, col+3)) is not None and board.get_piece_at_point(Point(row-3, col+3)).owner == player and board.get_piece_at_point(Point(row-4, col+4)) is not None and board.get_piece_at_point(Point(row-4, col+4)).owner == player: 
                     return True  
 
 		# check \ diagnoal win 
-        for row in range(4,board.rows-4):
-            for col in range(board.cols-4):
+        for row in range(1,board.board_size+1-4):
+            for col in range(1,board.board_size+1-4):
                 if board.get_piece_at_point(Point(row, col)) is not None and board.get_piece_at_point(Point(row, col)).owner == player and board.get_piece_at_point(Point(row+1, col+1)) is not None and board.get_piece_at_point(Point(row+1, col+1)).owner == player and board.get_piece_at_point(Point(row+2, col+2)) is not None and board.get_piece_at_point(Point(row+2, col+2)).owner == player and board.get_piece_at_point(Point(row+3, col+3)) is not None and board.get_piece_at_point(Point(row+3, col+3)).owner == player and board.get_piece_at_point(Point(row+4, col+4)) is not None and board.get_piece_at_point(Point(row+4, col+4)).owner == player: 
                     return True  
         return False
