@@ -14,19 +14,22 @@ from common.move import Move
 from common.point import Point
 from common.oneplaneencoder import OnePlaneEncoder
 from game.tictactoegame import TicTacToeGame
-
+from game.connect5game  import Connect5Game
 
 def main():
     use_cuda = torch.cuda.is_available()
     device = torch.device('cuda' if use_cuda else 'cpu')
 
-    board_size = 3
+    board_size =  7 
     total_games = 100
 
     #player_1 = RandomAgent(0, "RandomAgentX", "X")
     #player_1 = AlphaBetaAgent(0,"AlphaBetaAgentX","X") 
-    player_1 = MCTSAgent(0, "MCTSAgentX", "X", 100, 12.5)
-    player_2 = MCTSAgent(1, "MCTSAgentO", "O", 100, 0.2)
+    #player_1 = MCTSAgent(0, "MCTSAgentX", "X", 100, 12.5)
+    #player_2 = MCTSAgent(1, "MCTSAgentO", "O", 100, 0.2)
+
+    player_1  = HumanPlayer(0,"HumanPlayerX","X")
+    player_2  = RandomAgent(1,"RandomAgentO","O")
 
     players = [player_1, player_2]
 
