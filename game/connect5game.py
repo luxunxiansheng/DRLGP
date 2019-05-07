@@ -76,7 +76,7 @@ class Connect5Game(Game):
             move = game.working_game_state.player_in_action.select_move(
                 game, game.working_game_state)
             game.apply_move(move)
-            # game.working_game_state.board.print_board()
-
+            game.working_game_state.board.print_board()
+        
         winner = game.get_winner(game.working_game_state)
         return winner

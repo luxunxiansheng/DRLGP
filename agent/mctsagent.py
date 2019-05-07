@@ -136,7 +136,7 @@ class MCTSAgent(Player):
                 node = node.add_random_child()
 
             # simulate: random rollout policy
-            winner = self._simulate_random_game_for_state(node.game_state)
+            winner = self._simulate_random_game_for_state(game,node.game_state)
 
             # backpropagate
             while node is not None:
@@ -154,10 +154,11 @@ class MCTSAgent(Player):
 
         return Move(best_point)
 
-    def _simulate_random_game_for_state(self, game_state):
+    def _simulate_random_game_for_state(self, game,game_state):
         bots = [RandomAgent(0, "RandomAgent0", "X"),
                 RandomAgent(1, "RandomAgent1", "O")]
 
+        
         # current board status
         board = copy.deepcopy(game_state.board)
 
@@ -168,12 +169,12 @@ class MCTSAgent(Player):
             start_player = bots[0]
         else:
             start_player = bots[1]
-
-        game = TicTacToeGame(board, bots, start_player)
-
+        
+        game = copy.deepcopy(game)
+        game.reset(board, bots, start_player)
+       
         while not game.is_over():
-            move = game.working_game_state.player_in_action.select_move(
-                game, game.working_game_state)
+            move = game.working_game_state.player_in_action.select_move(game, game.working_game_state)
             game.apply_move(move)
             # game.working_game_state.board.print_board()
         winner = game.get_winner(game.working_game_state)

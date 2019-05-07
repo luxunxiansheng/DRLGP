@@ -20,20 +20,18 @@ def main():
     use_cuda = torch.cuda.is_available()
     device = torch.device('cuda' if use_cuda else 'cpu')
 
-    board_size =  7 
+    board_size =  9 
     total_games = 100
 
     #player_1 = RandomAgent(0, "RandomAgentX", "X")
+    #player_1 = HumanPlayer(0, "HumanPlayerX", "X")
     #player_1 = AlphaBetaAgent(0,"AlphaBetaAgentX","X") 
-    #player_1 = MCTSAgent(0, "MCTSAgentX", "X", 100, 12.5)
-    #player_2 = MCTSAgent(1, "MCTSAgentO", "O", 100, 0.2)
-
-    player_1  = HumanPlayer(0,"HumanPlayerX","X")
-    player_2  = RandomAgent(1,"RandomAgentO","O")
+    player_1 = MCTSAgent(0, "MCTSAgentX", "X", 5000, 0.4)
+    player_2 = MCTSAgent(1, "MCTSAgentO", "O", 5000, 0.4)
 
     players = [player_1, player_2]
 
-    start_player = players[0]
+    start_player = players[1]
 
     win_counts = {
         players[0].name: 0,
@@ -43,10 +41,14 @@ def main():
 
     for _ in tqdm(range(0, total_games)):
         winner = Connect5Game.run_episode(board_size, players, start_player)
+        print("Winner is {}".format(winner.name))
+        #input("Press Enter to continue...")
         if winner is not None:
             win_counts[winner.name] += 1
         else:
             win_counts["Draw"] += 1
+        
+        
 
     print("************************************************************************************")
     print("{} plays fisrt".format(start_player.name))
