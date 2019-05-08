@@ -25,7 +25,7 @@ class OnePlaneEncoder(Encoder):
         return self._board_height
 
     def encode(self, game_state):
-        board_matrix = np.zeros(self.shape())
+        board_matrix = np.zeros(self.shape(),dtype=int)
         player_in_action = game_state.player_in_action
         for row in range(self._board_height):
             for col in range(self._board_width):
@@ -51,3 +51,7 @@ class OnePlaneEncoder(Encoder):
 
     def num_points(self):
         return self._board_width*self._board_height
+
+    
+
+
