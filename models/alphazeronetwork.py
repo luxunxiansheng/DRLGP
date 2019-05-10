@@ -3,7 +3,7 @@ import torch.nn as nn
 
 
 class ConvBlock(nn.Module):
-    def __init__(self,input_channels,output_channels,kernal_size,stride):
+    def __init__(self,input_channels,output_channels,kernel_size,stride):
         super().__init__()
         block = [nn.Conv2d(input_channels,output_channels,kernel_size,stride)]
         block += [nn.ReLU()]
