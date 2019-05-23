@@ -9,7 +9,7 @@ from common.gamestate import GameState
 from common.move import Move
 from common.player import Player
 from agent.randomagent import RandomAgent
-from game.tictactoegame import TicTacToeGame
+
 
 
 class MCTSNode(object):
