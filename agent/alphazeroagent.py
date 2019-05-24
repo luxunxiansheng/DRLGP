@@ -63,7 +63,7 @@ class Node:
     def add_child_node(self, branch, child_node):
         self._children_node[branch] = child_node
 
-    def has_child_branch(self, branch):
+    def has_child_node(self, branch):
         return branch in self._children_node
 
     def get_child_node(self, branch):
@@ -94,8 +94,12 @@ class Node:
             p = self.prior_of_branch(branch)
             n = self.visit_count_of_branch(branch)
             return q + Node.temperature*p*np.sqrt(self._total_visit_count)/(n+1)
-
         return max(self.children_branch(), key=score_branch)
+
+    def visit_count(self, branch):
+        if branch in self._children_branch:
+            return self._children_branch[branch].visit_count
+        return 0
 
 
 class AlphaZeroAgent(Player):
@@ -104,36 +108,44 @@ class AlphaZeroAgent(Player):
         self._model = model
         self._num_rounds = num_rounds
 
-    def create_node(self, game_state,parent_node=None):
+    def create_node(self, game_state, parent_branch=None, parent_node=None):
         state_tensor = self._encoder.encode(game_state)
-        estimated_branch_priors, estimated_state_value = self._model(state_tensor)
+        estimated_branch_priors, estimated_state_value = self._model(
+            state_tensor)
         chiildren_branch = {}
         for idx, p in enumerate(estimated_branch_priors):
             point = self._encoder.decode_move_index(idx)
             if game_state.board.is_free_point(point):
                 chiildren_branch[Branch(Move(point), p)] = p
 
-        new_node = Node(game_state, estimated_state_value,
-                        chiildren_branch, parent_node, parent_branch)
+        new_node = Node(game_state, estimated_state_value,chiildren_branch, parent_branch, parent_node)
         if parent_node is not None:
-            parent_node.add_child(parent_branch, new_node)
+            parent_node.add_child_node(parent_branch, new_node)
         return new_node
 
     def select_move(self, game, game_state):
         root = self.create_node(game_state)
         for _ in range(self._num_rounds):
             node = root
+            
+            # select
             next_branch = node.select_branch()
-            while node.has_child_branch(next_branch):
+            while node.has_child_node(next_branch):
                 node = node.get_child_node(next_branch)
                 next_branch = node.select_branch()
 
+            # expand 
             new_state = game.transit(node.game_state, next_branch.move)
-            new_node  = self.create_node(new_state,node)
+            parent_branch = next_branch
+            parent_node = node
+            new_node = self.create_node(new_state, parent_branch, parent_node)
 
-            branch = next_branch
+            # backup 
             value = -1*new_node.game_state_value
+            while parent_node is not None:
+                parent_node.record_visit(parent_branch, value)
+                parent_branch = parent_node.parent_branch
+                parent_node = parent_node.parent_node
+                value = -1 * value
 
-
-
-
+        return max(root.children_branch(), key=root.visit_count)
