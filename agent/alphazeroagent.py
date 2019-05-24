@@ -2,6 +2,7 @@ import copy
 
 import math
 import random
+import numpy as np
 
 from tqdm import tqdm
 
@@ -15,7 +16,7 @@ class Branch:
     def __init__(self, move, prior):
         self._move = move
         self._prior = prior
-        self._taken_count = 0
+        self._visit_count = 0
         self._total_value = 0.0
 
     @property
@@ -31,59 +32,108 @@ class Branch:
         return self._total_value
 
     @property
-    def taken_count(self):
-        return self._taken_count
+    def visit_count(self):
+        return self._visit_count
 
 
 class Node:
-    def __init__(self, game_state, game_state_value, priors, parent_node):
+
+    temperature = 0.5
+
+    def __init__(self, game_state, game_state_value, children_branch, parent_node, parent_branch):
         self._game_state = game_state
         self._game_state_value = game_state_value
         self._parent_node = parent_node
+        self._parent_branch = parent_branch
         self._total_visit_count = 1
-        self._branches = {}
-        for move, prior in priors.items():
-            if game_state.board.is_free_point(move.point):
-                self._branches[move] = Branch(move, prior)
-
-        self._child_nodes = {}
+        self._children_branch = children_branch
+        self._children_node = {}
 
     @property
-    def branches(self):
-        return self._branches
+    def game_state(self):
+        return self._game_state
 
-    def add_child(self, branch, child_node):
-        self._child_nodes[branch] = child_node
+    @property
+    def game_state_value(self):
+        return self._game_state_value
 
-    def has_child(self, branch):
-        return branch in self._child_nodes
+    def children_branch(self):
+        return self._children_branch.keys()
 
-    def expected_value(self, move):
-        branch = self._branches[move]
-        if branch.taken_count == 0:
+    def add_child_node(self, branch, child_node):
+        self._children_node[branch] = child_node
+
+    def has_child_branch(self, branch):
+        return branch in self._children_node
+
+    def get_child_node(self, branch):
+        return self._children_node[branch]
+
+    def expected_value_of_branch(self, branch):
+        branch = self._children_branch[branch]
+        if branch.visit_count == 0:
             return 0.0
-        return branch.total_value/branch.taken_count
+        return branch.total_value/branch.visit_count
 
-    def prior(self, move):
-        return self.branches[move].prior
+    def prior_of_branch(self, branch):
+        return self._children_branch[branch].prior
 
-    def taken_count(self, move):
-        if move in self.branches:
-            return self.branches[move].taken_count
+    def visit_count_of_branch(self, branch):
+        if branch in self._children_branch:
+            return self._children_branch[branch].visit_count
         return 0
-    
-    def score_branch(self,branch):
-        q_value= self.expected_value()
 
-
+    def record_visit(self, branch, value):
+        self._total_visit_count += 1
+        self._children_branch[branch].visit_count += 1
+        self._children_branch[branch].total_value += value
 
     def select_branch(self):
-        
+        def score_branch(branch):
+            q = self.expected_value_of_branch(branch)
+            p = self.prior_of_branch(branch)
+            n = self.visit_count_of_branch(branch)
+            return q + Node.temperature*p*np.sqrt(self._total_visit_count)/(n+1)
 
+        return max(self.children_branch(), key=score_branch)
 
 
 class AlphaZeroAgent(Player):
-    
-    def select_move(self,game,game_state):
+    def __init__(self, encoder, model, num_rounds):
+        self._encoder = encoder
+        self._model = model
+        self._num_rounds = num_rounds
 
-    
+    def create_node(self, game_state,parent_node=None):
+        state_tensor = self._encoder.encode(game_state)
+        estimated_branch_priors, estimated_state_value = self._model(state_tensor)
+        chiildren_branch = {}
+        for idx, p in enumerate(estimated_branch_priors):
+            point = self._encoder.decode_move_index(idx)
+            if game_state.board.is_free_point(point):
+                chiildren_branch[Branch(Move(point), p)] = p
+
+        new_node = Node(game_state, estimated_state_value,
+                        chiildren_branch, parent_node, parent_branch)
+        if parent_node is not None:
+            parent_node.add_child(parent_branch, new_node)
+        return new_node
+
+    def select_move(self, game, game_state):
+        root = self.create_node(game_state)
+        for _ in range(self._num_rounds):
+            node = root
+            next_branch = node.select_branch()
+            while node.has_child_branch(next_branch):
+                node = node.get_child_node(next_branch)
+                next_branch = node.select_branch()
+
+            new_state = game.transit(node.game_state, next_branch.move)
+            new_node  = self.create_node(new_state,node)
+
+            branch = next_branch
+            value = -1*new_node.game_state_value
+
+
+
+
