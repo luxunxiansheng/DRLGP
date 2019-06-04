@@ -49,7 +49,7 @@ class Connect5Network(nn.Module):
         _policy_output_layer = nn.Sequential(Dense(num_points), nn.Softmax())
 
         _value_hidden_layer = nn.Sequential(Dense(512), nn.ReLU())
-        _value_output_layer = nn.Sequential(Dense(1), nn.Tanh)
+        _value_output_layer = nn.Sequential(Dense(1), nn.Tanh())
 
     def forward(self, encoded_boards):
         processed_board = self._conv_layers(encoded_boards)
