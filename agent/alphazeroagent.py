@@ -311,8 +311,8 @@ class AlphaZeroAgent(Player):
 
 
     @classmethod
-    def train(cls, expeience, model,learning_rate, batch_size):
-        
+    def train(cls, expeience, model,learning_rate, batch_size,device):
+        model=model.to(device)
         model.train()
 
         criterion_policy = nn.CrossEntropyLoss()
@@ -320,13 +320,18 @@ class AlphaZeroAgent(Player):
         optimizer = optim.SGD(model.parameters(),lr=learning_rate) 
 
         
-        num_examples = expeience.states.shape[0]
-        model_input = expeience.states
+        states = torch.from_numpy(expeience.states).to(device)
+        visit_counts = torch.from_numpy(expeience.visit_counts).to(device)
+        rewards = torch.from_numpy(expeience.rewards).to(device)
 
-        visit_sums = np.sum(expeience.visit_counts,axis=1).reshape((num_examples, 1))
-        action_policy_target = expeience.visit_counts / visit_sums
+        num_examples = states.shape[0]
+        model_input = states
+        
 
-        value_target = expeience.rewards
+        visit_sums = np.sum(visit_counts,axis=1).reshape((num_examples, 1))
+        action_policy_target = visit_counts / visit_sums
+
+        value_target = rewards
         [action_policy, value] = model(model_input)
 
         loss_policy = criterion_policy(action_policy, action_policy_target)

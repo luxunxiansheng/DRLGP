@@ -25,10 +25,9 @@ def main():
     board_size   =  9 
     round_per_moves =15
    
-
     encoder = MultiplePlaneEncoder(number_of_planes,board_size*board_size)
 
-    model = Connect5Network(number_of_planes,board_size*board_size).to(device)
+    model = Connect5Network(number_of_planes,board_size*board_size)
    
     experience_collector_1 = AlphaZeroExperienceCollector()
     experience_collector_2 = AlphaZeroExperienceCollector()
@@ -55,7 +54,7 @@ def main():
 
     combined_experiences= AlphaZeroExpericenceBuffer.combine_experience([experience_collector_1,experience_collector_2])
     
-    AlphaZeroAgent.train(combined_experiences,model,0.002,2048)
+    AlphaZeroAgent.train(combined_experiences,model,0.002,2048,device)
   
 
 if __name__ == '__main__':
