@@ -319,29 +319,29 @@ class AlphaZeroAgent(Player):
         criterion_value = nn.MSELoss()
         optimizer = optim.SGD(model.parameters(),lr=learning_rate) 
 
+       
+        num_examples = expeience.shape[0]
+       
+       
+        for i in range(int(num_examples / batch_size)):
+            states = torch.from_numpy(expeience.states[i*batch_size:(i+1)*batch_size]).to(device)
+            visit_counts = torch.from_numpy(expeience.visit_counts[i*batch_size:(i+1)*batch_size]).to(device)
+            rewards = torch.from_numpy(expeience.rewards[i*batch_size:(i+1)*batch_size]).to(device)
+
+            visit_sums = np.sum(visit_counts,axis=1).reshape((states.shape[0], 1))
+            action_policy_target = visit_counts / visit_sums
+
+            value_target = rewards
+            [action_policy, value] = model(states)
+
+            loss_policy = criterion_policy(action_policy, action_policy_target)
+            loss_value =  criterion_value(value, value_target)
+
+            optimizer.zero_grad()
+            loss= loss_policy + loss_value
         
-        states = torch.from_numpy(expeience.states).to(device)
-        visit_counts = torch.from_numpy(expeience.visit_counts).to(device)
-        rewards = torch.from_numpy(expeience.rewards).to(device)
-
-        num_examples = states.shape[0]
-        model_input = states
-        
-
-        visit_sums = np.sum(visit_counts,axis=1).reshape((num_examples, 1))
-        action_policy_target = visit_counts / visit_sums
-
-        value_target = rewards
-        [action_policy, value] = model(model_input)
-
-        loss_policy = criterion_policy(action_policy, action_policy_target)
-        loss_value =  criterion_value(value, value_target)
-
-        optimizer.zero_grad()
-        loss= loss_policy + loss_value
-        
-        loss.backward()
-        optimizer.step()
+            loss.backward()
+            optimizer.step()
     
     
         
