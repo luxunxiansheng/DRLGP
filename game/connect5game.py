@@ -73,8 +73,7 @@ class Connect5Game(Game):
         board = Board(board_size)
         game = Connect5Game(board, players, start_player)
         while not game.is_over():
-            move = game.working_game_state.player_in_action.select_move(
-                game, game.working_game_state)
+            move = game.working_game_state.player_in_action.select_move(game, game.working_game_state)
             game.apply_move(move)
             game.working_game_state.board.print_board()
         

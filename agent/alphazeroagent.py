@@ -136,8 +136,9 @@ class MultiplePlaneEncoder(Encoder):
             for row in range(self._board_height):
                 for col in range(self._board_width):
                     point = Point(row+1, col+1)
-                    piece_owner = game_states[plane].board.get_piece_at_point(point).owner
-                    if piece_owner is not None:
+                    piece=  game_states[plane].board.get_piece_at_point(point)
+                    if piece is not None:
+                        piece_owner = piece.owner
                         if piece_owner == player_in_action:
                             board_matrix[plane, row, col] = 1
                         else:
@@ -248,7 +249,8 @@ class Game_State_Memory:
         return list(self._game_states)
 
 class AlphaZeroAgent(Player):
-    def __init__(self, encoder, model, num_rounds, experience_collector=None):
+    def __init__(self, id,name,mark,encoder, model, num_rounds, experience_collector=None):
+        super().__init__(id, name, mark)        
         self._encoder = encoder
         self._model = model
         self._num_rounds = num_rounds
@@ -262,10 +264,7 @@ class AlphaZeroAgent(Player):
     def set_experience_collector(self,experience_collector):
         self._experience_collector = experience_collector
 
-    def create_node(self, game_state, parent_branch=None, parent_node=None):
-        board_matrix = self._encoder.encode(game_state)
-        estimated_branch_priors, estimated_state_value = self._model(
-            board_matrix)
+    def create_node(self, game_state,estimated_branch_priors, estimated_state_value, parent_branch=None, parent_node=None):
         chiildren_branch = {}
         for idx, p in enumerate(estimated_branch_priors):
             point = self._encoder.decode_point_index(idx)
@@ -278,10 +277,13 @@ class AlphaZeroAgent(Player):
         return new_node
 
     def select_move(self, game, game_state):
-        root = self.create_node(game_state)
+        self._game_state_memory.push(game_state)
+        board_matrix = self._encoder.encode(self._game_state_memory.game_states)
+        estimated_branch_priors, estimated_state_value = self._model(board_matrix)
+
+        root = self.create_node(game_state,estimated_branch_priors,estimated_state_value)
         for _ in range(self._num_rounds):
             node = root
-
             # select
             next_branch = node.select_branch()
             while node.has_child_node(next_branch):
@@ -301,9 +303,7 @@ class AlphaZeroAgent(Player):
                 parent_branch = parent_node.parent_branch
                 parent_node = parent_node.parent_node
                 value = -1 * value
-
-        self._game_state_memory.push(game_state)
-        board_matrix = self._encoder.encode(self._game_state_memory.game_states)
+     
         visit_counts = np.array([root.visit_count(self._encoder.decode_point_index(idx)) for idx in range(self._encoder.num_points())])
         self._experience_collector.record_decision(board_matrix, visit_counts)
 

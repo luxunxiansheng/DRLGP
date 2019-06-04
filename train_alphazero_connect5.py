@@ -33,19 +33,18 @@ def main():
     experience_collector_1 = AlphaZeroExperienceCollector()
     experience_collector_2 = AlphaZeroExperienceCollector()
 
-    agent_1 = AlphaZeroAgent(encoder,model,round_per_moves,experience_collector_1)
-    agent_2 = AlphaZeroAgent(encoder,model,round_per_moves,experience_collector_2)
+    agent_1 = AlphaZeroAgent(1,"Agent1","O",encoder,model,round_per_moves,experience_collector_1)
+    agent_2 = AlphaZeroAgent(2,"Agent2","X",encoder,model,round_per_moves,experience_collector_2)
 
     number_of_games = 5    
 
     players = [agent_1,agent_2]
 
-    for _ in tqdm(range(1,number_of_games)):
+    for game_index in tqdm(range(1,number_of_games)):
         experience_collector_1.reset_episode()
         experience_collector_2.reset_episode()        
-
-        start_player = 0 if number_of_games%2== 0 else 1
-        winner=Connect5Game.run_episode(board_size,players,start_player)
+        
+        winner=Connect5Game.run_episode(board_size,players,players[0 if game_index%2== 0 else 1])
 
         if winner == players[0]:
            players[0].experience_collector.complete_episode(reward=1)
@@ -57,7 +56,6 @@ def main():
     combined_experiences= AlphaZeroExpericenceBuffer.combine_experience([experience_collector_1,experience_collector_2])
     
     AlphaZeroAgent.train(combined_experiences,model,0.002,2048)
-
   
 
 if __name__ == '__main__':

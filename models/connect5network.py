@@ -37,7 +37,7 @@ class Connect5Network(nn.Module):
     def __init__(self, input_channels, num_points):
         super().__init__()
 
-        _conv_layers = nn.Sequential(
+        self._conv_layers = nn.Sequential(
             ConvBlock(input_channels, 64, 3, 1),
             ConvBlock(64, 64, 3, 1),
             ConvBlock(64, 64, 3, 1),
@@ -45,11 +45,11 @@ class Connect5Network(nn.Module):
             Dense(512)
         )
 
-        _policy_hidden_layer = nn.Sequential(Dense(512), nn.ReLU())
-        _policy_output_layer = nn.Sequential(Dense(num_points), nn.Softmax())
+        self._policy_hidden_layer = nn.Sequential(Dense(512), nn.ReLU())
+        self._policy_output_layer = nn.Sequential(Dense(num_points), nn.Softmax())
 
-        _value_hidden_layer = nn.Sequential(Dense(512), nn.ReLU())
-        _value_output_layer = nn.Sequential(Dense(1), nn.Tanh())
+        self._value_hidden_layer = nn.Sequential(Dense(512), nn.ReLU())
+        self._value_output_layer = nn.Sequential(Dense(1), nn.Tanh())
 
     def forward(self, encoded_boards):
         processed_board = self._conv_layers(encoded_boards)
