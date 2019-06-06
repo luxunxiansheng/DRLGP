@@ -19,7 +19,8 @@ class ConvBlock(nn.Module):
 
 class Flatten(nn.Module):
     def forward(self, x):
-        x = x.view(x.size()[0], -1)
+        x = x.reshape(1, -1)
+        x = x.squeeze()
         return x
 
 class Dense(nn.Module):
@@ -28,10 +29,11 @@ class Dense(nn.Module):
         self._out_features = out_features
 
     def forward(self, x):
-        in_features = x.size()
-        x = nn.Linear(in_features, self._out_features)
-        return x
+        in_features = x.size()[0]
+        fc = nn.Linear(in_features, self._out_features)
+        x = fc(x)
 
+        return x
 
 class Connect5Network(nn.Module):
     def __init__(self, input_channels, num_points):
@@ -60,6 +62,6 @@ class Connect5Network(nn.Module):
         output_value_hidden = self._value_hidden_layer(processed_board)
         output_value = self._value_output_layer(output_value_hidden)
 
-        return output_policy, output_value
+        return output_policy, output_value.item()
 
 

@@ -249,13 +249,15 @@ class Game_State_Memory:
         return list(self._game_states)
 
 class AlphaZeroAgent(Player):
-    def __init__(self, id,name,mark,encoder, model, num_rounds, experience_collector=None):
+    def __init__(self, id,name,mark,encoder, model, num_rounds, experience_collector=None,device='cpu'):
         super().__init__(id, name, mark)        
         self._encoder = encoder
-        self._model = model
+        self._device= device 
+        self._model = model.to(device)
         self._num_rounds = num_rounds
         self._experience_collector = experience_collector
-        self._game_state_memory= Game_State_Memory(10)
+        self._game_state_memory = Game_State_Memory(10)
+        
 
     @property
     def experience_collector(self):
@@ -279,7 +281,8 @@ class AlphaZeroAgent(Player):
     def select_move(self, game, game_state):
         self._game_state_memory.push(game_state)
         board_matrix = self._encoder.encode(self._game_state_memory.game_states)
-        estimated_branch_priors, estimated_state_value = self._model(board_matrix)
+        model_input  = torch.from_numpy(board_matrix).unsqueeze(0).to(self._device,dtype=torch.float)
+        estimated_branch_priors, estimated_state_value = self._model(model_input)
 
         root = self.create_node(game_state,estimated_branch_priors,estimated_state_value)
         for _ in range(self._num_rounds):
@@ -324,7 +327,7 @@ class AlphaZeroAgent(Player):
        
        
         for i in range(int(num_examples / batch_size)):
-            states = torch.from_numpy(expeience.states[i*batch_size:(i+1)*batch_size]).to(device)
+            states = torch.from_numpy(expeience.states[i*batch_size:(i+1)*batch_size]).to(device,dtype=torch.float)
             visit_counts = torch.from_numpy(expeience.visit_counts[i*batch_size:(i+1)*batch_size]).to(device)
             rewards = torch.from_numpy(expeience.rewards[i*batch_size:(i+1)*batch_size]).to(device)
 
