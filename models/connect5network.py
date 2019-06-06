@@ -23,17 +23,22 @@ class Flatten(nn.Module):
         x = x.squeeze()
         return x
 
-class Dense(nn.Module):
+class DynamicDense(nn.Module):
     def __init__(self, out_features):
         super().__init__()
         self._out_features = out_features
+     
+ 
 
     def forward(self, x):
-        in_features = x.size()[0]
-        fc = nn.Linear(in_features, self._out_features)
-        x = fc(x)
+        if not hasattr(self, '_linear'):
+            input_dim = x.size()[0]
+            device= x.device
+            self._linear = nn.Linear(input_dim, self._out_features).to(device)
+    
+        return self._linear(x)
+        
 
-        return x
 
 class Connect5Network(nn.Module):
     def __init__(self, input_channels, num_points):
@@ -44,14 +49,14 @@ class Connect5Network(nn.Module):
             ConvBlock(64, 64, 3, 1),
             ConvBlock(64, 64, 3, 1),
             Flatten(),
-            Dense(512)
+            DynamicDense(512)
         )
 
-        self._policy_hidden_layer = nn.Sequential(Dense(512), nn.ReLU())
-        self._policy_output_layer = nn.Sequential(Dense(num_points), nn.Softmax())
+        self._policy_hidden_layer = nn.Sequential(DynamicDense(512), nn.ReLU())
+        self._policy_output_layer = nn.Sequential(DynamicDense(num_points), nn.Softmax())
 
-        self._value_hidden_layer = nn.Sequential(Dense(512), nn.ReLU())
-        self._value_output_layer = nn.Sequential(Dense(1), nn.Tanh())
+        self._value_hidden_layer = nn.Sequential(DynamicDense(512), nn.ReLU())
+        self._value_output_layer = nn.Sequential(DynamicDense(1), nn.Tanh())
 
     def forward(self, encoded_boards):
         processed_board = self._conv_layers(encoded_boards)
