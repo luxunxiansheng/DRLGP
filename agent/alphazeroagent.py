@@ -115,7 +115,13 @@ class Node:
             q = self.expected_value_of_branch(point)
             p = self.prior_of_branch(point)
             n = self.visit_count_of_branch(point)
-            return q + Node.temperature*p*np.sqrt(self._total_visit_count)/(n+1)
+            
+            score = (q + Node.temperature * p * np.sqrt(self._total_visit_count) / (n + 1)).item()
+            print(score)
+           
+            return score
+            
+
         return self._children_branch[max(self.children_branch(), key=score_branch)]
 
     def visit_count(self, point):
