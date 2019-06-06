@@ -25,7 +25,7 @@ def main():
     board_size   =  9 
     round_per_moves =15
    
-    encoder = MultiplePlaneEncoder(number_of_planes,board_size*board_size)
+    encoder = MultiplePlaneEncoder(number_of_planes,board_size)
 
     model = Connect5Network(number_of_planes,board_size*board_size)
    
