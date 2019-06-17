@@ -1,4 +1,5 @@
 import copy
+import gc
 import math
 import random
 from collections import deque
@@ -110,24 +111,22 @@ class Node:
         self._children_branch[point].visit_count += 1
         self._children_branch[point].total_value += value
 
-    def select_branch(self):
-        def score_branch(point):
-            q = self.expected_value_of_branch(point)
-            p = self.prior_of_branch(point)
-            n = self.visit_count_of_branch(point)
+   
+    def score_branch(self,point):
+        q = self.expected_value_of_branch(point)
+        p = self.prior_of_branch(point)
+        n = self.visit_count_of_branch(point)
             
-            score = (q + Node.temperature * p * np.sqrt(self._total_visit_count) / (n + 1)).item()
-            print(score)
+        score = (q + Node.temperature * p * np.sqrt(self._total_visit_count) / (n + 1)).item()
+        #print("{:d}-{:d}: q {:.4f} p {:.4f} n {:d} score {:.4f}".format(point.row,point.col,q,p,n,score))
            
-            return score
-            
+        return score 
 
-        return self._children_branch[max(self.children_branch(), key=score_branch)]
+    def select_branch(self):
+        best_point = max(self.children_branch(), key=self.score_branch)
+        return self._children_branch[best_point]
 
-    def visit_count(self, point):
-        if point in self._children_branch:
-            return self._children_branch[point].visit_count
-        return 0
+    
 
 
 class MultiplePlaneEncoder(Encoder):
@@ -298,12 +297,12 @@ class AlphaZeroAgent(Player):
 
     def select_move(self, game, game_state):
         self._game_state_memory.push(game_state) 
-        board_matrix = self._encoder.encode(self._game_state_memory.game_states)
-        model_input  = torch.from_numpy(board_matrix).unsqueeze(0).to(self._device,dtype=torch.float)
+        root_board_matrix = self._encoder.encode(self._game_state_memory.game_states)
+        model_input  = torch.from_numpy(root_board_matrix).unsqueeze(0).to(self._device,dtype=torch.float)
         estimated_branch_priors, estimated_state_value = self.predict(model_input)
         root = self.create_node(game_state,estimated_branch_priors,estimated_state_value)
         
-        for _ in range(self._num_rounds):
+        for _ in tqdm(range(self._num_rounds)):
             node = root
             game_state_memory = copy.deepcopy(self._game_state_memory)
             
@@ -324,6 +323,10 @@ class AlphaZeroAgent(Player):
             temp_board_matrix = self._encoder.encode(game_state_memory.game_states)
             model_input  = torch.from_numpy(temp_board_matrix).unsqueeze(0).to(self._device,dtype=torch.float)
             estimated_branch_priors, estimated_state_value = self.predict(model_input)
+
+            del game_state_memory
+            gc.collect()
+
             new_node = self.create_node(new_state,estimated_branch_priors,estimated_state_value)
 
             # backup
@@ -334,10 +337,10 @@ class AlphaZeroAgent(Player):
                 parent_node = parent_node.parent_node
                 value = -1 * value
      
-        visit_counts = np.array([root.visit_count(self._encoder.decode_point_index(idx)) for idx in range(self._encoder.num_points())])
-        self._experience_collector.record_decision(board_matrix, visit_counts)
+        visit_counts = np.array([root.visit_count_of_branch(self._encoder.decode_point_index(idx)) for idx in range(self._encoder.num_points())])
+        self._experience_collector.record_decision(root_board_matrix, visit_counts)
 
-        return Move(max(root.children_branch(), key=root.visit_count))
+        return Move(max(root.children_branch(), key=root.visit_count_of_branch))
 
 
     
@@ -376,6 +379,3 @@ class AlphaZeroAgent(Player):
         
             loss.backward()
             optimizer.step()
-    
-    
-        
