@@ -52,7 +52,7 @@ class Game:
 
     def transit(self, game_state, move):
         new_board = copy.deepcopy(game_state.board)
-        piece= Piece(game_state.player_in_action,move.point)
+        piece= Piece(game_state.player_in_action.id,move.point)
         new_board.place_piece(piece)
         return GameState(new_board,self.get_player_after_move(game_state.player_in_action), move)
 
