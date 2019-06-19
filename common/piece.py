@@ -2,13 +2,13 @@ from common.point import Point
 
 
 class Piece:
-    def __init__(self,owner, point):
-        self._owner = owner
+    def __init__(self,owner_id, point):
+        self._owner_id = owner_id
         self._point = point
 
     @property
-    def owner(self):
-        return self._owner
+    def owner_id(self):
+        return self._owner_id
 
     @property
     def point(self):

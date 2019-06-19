@@ -160,8 +160,8 @@ class MultiplePlaneEncoder(Encoder):
                     point = Point(row+1, col+1)
                     piece=  game_states[plane].board.get_piece_at_point(point)
                     if piece is not None:
-                        piece_owner = piece.owner
-                        if piece_owner == player_in_action.id:
+                        piece_owner_id = piece.owner_id
+                        if piece_owner_id == player_in_action.id:
                             board_matrix[plane, row, col] = 1
                         else:
                             board_matrix[plane, row, col] = -1
@@ -213,8 +213,11 @@ class AlphaZeroExpericenceBuffer:
     def combine_experience(collectors):
         combined_states = np.concatenate([np.array(c.states) for c in collectors])
         combined_rewards = np.concatenate([np.array(c.rewards) for c in collectors])
-        combined_visit_counts = np.concatenate([np.array(c.visit_count) for c in collectors])
-        return AlphaZeroExpericenceBuffer(combined_states,combined_rewards,combined_visit_counts)
+        combined_visit_counts = np.concatenate([np.array(c.visit_counts) for c in collectors])
+        return AlphaZeroExpericenceBuffer(combined_states, combined_rewards, combined_visit_counts)
+    
+    def size(self):
+        return self._states.shape[0]
 
 
 class AlphaZeroExperienceCollector:
@@ -247,6 +250,10 @@ class AlphaZeroExperienceCollector:
     @property
     def rewards(self):
         return self._rewards
+    
+    @property
+    def states(self):
+        return self._states
 
 class Game_State_Memory:
     def __init__(self, capacity):
@@ -359,7 +366,7 @@ class AlphaZeroAgent(Player):
         criterion_value = nn.MSELoss()
         optimizer = optim.SGD(model.parameters(),lr=learning_rate) 
        
-        num_examples = expeience.shape[0]
+        num_examples = expeience.size()
     
        
         for i in range(int(num_examples / batch_size)):
