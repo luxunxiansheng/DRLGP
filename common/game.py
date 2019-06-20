@@ -16,11 +16,13 @@ class Game:
     """
     def __init__(self, board, playerlist, start_player):
         self._players = playerlist
-        self._working_game_state = GameState(board,start_player, None)
+        self._working_game_state = GameState(board, start_player, None)
+        self._final_winner= None
     
     def reset(self,board,playerlist,start_player):
         self._players=playerlist
-        self._working_game_state = GameState(board,start_player,None)
+        self._working_game_state = GameState(board, start_player, None)
+        self._final_winner= None
 
     @property
     def working_game_state(self):
@@ -59,6 +61,10 @@ class Game:
     def get_player_after_move(self, the_player):
         pass
     
+    @property
+    def final_winner(self):
+        return self._final_winner
+
     @staticmethod
     def winner(board, players):
         pass
