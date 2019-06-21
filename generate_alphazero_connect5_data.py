@@ -27,8 +27,9 @@ def main():
    
     encoder = MultiplePlaneEncoder(number_of_planes,board_size)
 
-    model = Connect5Network(number_of_planes,board_size*board_size)
-   
+    model = Connect5Network(number_of_planes, board_size * board_size)
+    model.load_state_dict(torch.load('./archived_model/old/1.pth'))
+       
     experience_collector_1 = AlphaZeroExperienceCollector()
     experience_collector_2 = AlphaZeroExperienceCollector()
 
