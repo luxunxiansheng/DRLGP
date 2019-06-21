@@ -23,7 +23,7 @@ def main():
    
     number_of_planes = 10
     board_size   =  9 
-    round_per_moves =2
+    round_per_moves =10
    
     encoder = MultiplePlaneEncoder(number_of_planes,board_size)
 
@@ -35,13 +35,15 @@ def main():
     agent_1 = AlphaZeroAgent(1,"Agent1","O",encoder,model,round_per_moves,experience_collector_1,device=the_device)
     agent_2 = AlphaZeroAgent(2,"Agent2","X",encoder,model,round_per_moves,experience_collector_2,device=the_device )
 
-    number_of_games = 20    
+    number_of_games = 10    
 
     players = [agent_1,agent_2]
 
     for game_index in tqdm(range(number_of_games)):
         experience_collector_1.reset_episode()
         experience_collector_2.reset_episode()        
+        agent_1.reset_memory()
+        agent_2.reset_memory()
         
         winner=Connect5Game.run_episode(board_size,players,players[0 if game_index%2== 0 else 1])
 
@@ -54,7 +56,7 @@ def main():
 
     combined_experiences= AlphaZeroExpericenceBuffer.combine_experience([experience_collector_1,experience_collector_2])
     
-    AlphaZeroAgent.train(combined_experiences,model,0.002,2048,the_device)
+    AlphaZeroAgent.train(combined_experiences,model,0.002,32,the_device)
   
 
 if __name__ == '__main__':

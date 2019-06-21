@@ -151,21 +151,16 @@ class MultiplePlaneEncoder(Encoder):
     def board_height(self):
         return self._board_height
 
-    def encode(self, game_states):
+    def encode(self, boards):
         board_matrix = np.zeros(self.shape(),dtype=int)
-        for plane in range(len(game_states)):
-            player_in_action = game_states[plane].player_in_action
+        for plane in range(len(boards)):
             for row in range(self._board_height):
                 for col in range(self._board_width):
                     point = Point(row+1, col+1)
-                    piece=  game_states[plane].board.get_piece_at_point(point)
+                    piece = boards[plane].get_piece_at_point(point)
                     if piece is not None:
-                        piece_owner_id = piece.owner_id
-                        if piece_owner_id == player_in_action.id:
-                            board_matrix[plane, row, col] = 1
-                        else:
-                            board_matrix[plane, row, col] = -1
-        return board_matrix
+                        board_matrix[plane, row, col]= piece.owner_id                    
+        return board_matrix    
 
     def shape(self):
         return   self._num_plane, self._board_height, self._board_width
@@ -285,6 +280,9 @@ class AlphaZeroAgent(Player):
         self._experience_collector = experience_collector
         self._game_state_memory = Game_State_Memory(10)
         
+    
+    def reset_memory(self):
+        self._game_state_memory.clear()
 
     @property
     def experience_collector(self):
@@ -306,26 +304,27 @@ class AlphaZeroAgent(Player):
         return new_node
 
     def select_move(self, game, game_state):
-        self._game_state_memory.push(game_state) 
+        self._game_state_memory.push(game_state.board) 
         root_board_matrix = self._encoder.encode(self._game_state_memory.game_states)
+        print(root_board_matrix)
         model_input  = torch.from_numpy(root_board_matrix).unsqueeze(0).to(self._device,dtype=torch.float)
         estimated_branch_priors, estimated_state_value = self.predict(model_input)
         root = self.create_node(game_state,estimated_branch_priors,estimated_state_value)
         
         for _ in tqdm(range(self._num_rounds)):
             node = root
-            game_state_memory = copy.copy(self._game_state_memory)
+            game_state_memory = copy.deepcopy(self._game_state_memory)
             
             # select
             next_branch = node.select_branch()
             while node.has_child_node(next_branch):
                 node = node.get_child_node(next_branch)
-                game_state_memory.push(node.game_state)
+                game_state_memory.push(node.game_state.board)
                 next_branch = node.select_branch()
 
             # expand
             new_state = game.transit(node.game_state, next_branch.move)
-            game_state_memory.push(new_state)
+            game_state_memory.push(new_state.board)
            
             parent_branch = next_branch
             parent_node = node
@@ -334,8 +333,6 @@ class AlphaZeroAgent(Player):
             model_input  = torch.from_numpy(temp_board_matrix).unsqueeze(0).to(self._device,dtype=torch.float)
             estimated_branch_priors, estimated_state_value = self.predict(model_input)
          
-                      
-
             new_node = self.create_node(new_state,estimated_branch_priors,estimated_state_value)
 
             # backup
