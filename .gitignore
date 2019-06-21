@@ -104,3 +104,6 @@ venv.bak/
 .mypy_cache/
 .vscode/settings.json
 .vscode/settings.json
+
+/connect5data
+/runs

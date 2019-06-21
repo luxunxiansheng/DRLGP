@@ -193,9 +193,9 @@ class AlphaZeroExpericenceBuffer:
         return self._rewards
 
     def serialize(self, path):
-        torch.save({'states': self._states, 'rewards': self._rewards, 'visit_counts': self.visit_counts}, path)
-
-    def deserialize(self, path):
+        torch.save({'states': self._states, 'rewards': self._rewards, 'visit_counts': self._visit_counts}, path)
+    @classmethod
+    def deserialize(cls,path):
         saved = torch.load(path)
         return AlphaZeroExpericenceBuffer(saved['states'], saved['rewards'], saved['visit_counts'])
 
