@@ -23,38 +23,9 @@ def main():
    
     number_of_planes = 10
     board_size   =  9 
-    round_per_moves =1000
-   
-    encoder = MultiplePlaneEncoder(number_of_planes,board_size)
-
     model = Connect5Network(number_of_planes,board_size*board_size)
    
-    experience_collector_1 = AlphaZeroExperienceCollector()
-    experience_collector_2 = AlphaZeroExperienceCollector()
-
-    agent_1 = AlphaZeroAgent(1,"Agent1","O",encoder,model,round_per_moves,experience_collector_1,device=the_device)
-    agent_2 = AlphaZeroAgent(2,"Agent2","X",encoder,model,round_per_moves,experience_collector_2,device=the_device )
-
-    number_of_games = 500    
-
-    players = [agent_1,agent_2]
-
-    for game_index in tqdm(range(number_of_games)):
-        experience_collector_1.reset_episode()
-        experience_collector_2.reset_episode()        
-        agent_1.reset_memory()
-        agent_2.reset_memory()
-        
-        winner=Connect5Game.run_episode(board_size,players,players[0 if game_index%2== 0 else 1])
-
-        if winner == players[0]:
-           players[0].experience_collector.complete_episode(reward=1)
-           players[1].experience_collector.complete_episode(reward=-1) 
-        if winner == players[1]:
-           players[1].experience_collector.complete_episode(reward=1)
-           players[0].experience_collector.complete_episode(reward=-1) 
-
-    combined_experiences= AlphaZeroExpericenceBuffer.combine_experience([experience_collector_1,experience_collector_2])
+    combined_experiences=AlphaZeroExpericenceBuffer.deserialize('./connect5data/1.pth')
     
     AlphaZeroAgent.train(combined_experiences,model,0.002,128,the_device)
   
