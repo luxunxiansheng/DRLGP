@@ -8,7 +8,6 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
 from common.board import Board
@@ -194,8 +193,9 @@ class AlphaZeroExpericenceBuffer:
 
     def serialize(self, path):
         torch.save({'states': self._states, 'rewards': self._rewards, 'visit_counts': self._visit_counts}, path)
+
     @classmethod
-    def deserialize(cls,path):
+    def deserialize(cls, path):
         saved = torch.load(path)
         return AlphaZeroExpericenceBuffer(saved['states'], saved['rewards'], saved['visit_counts'])
 
@@ -268,9 +268,7 @@ class Game_State_Memory:
 
 
 class AlphaZeroAgent(Player):
-    
-    writer=SummaryWriter()
-    
+
     def __init__(self, id, name, mark, encoder, model, num_rounds, experience_collector=None, device='cpu'):
         super().__init__(id, name, mark)
         self._encoder = encoder
@@ -351,7 +349,7 @@ class AlphaZeroAgent(Player):
         return self._model(input_states)
 
     @classmethod
-    def train(cls, expeience, model, learning_rate, batch_size, device):
+    def train(cls, expeience, model, learning_rate, batch_size, device, writer):
         model = model.to(device)
         model.train()
 
@@ -379,8 +377,7 @@ class AlphaZeroAgent(Player):
             optimizer.zero_grad()
             loss = loss_policy + loss_value
 
-
-            AlphaZeroAgent.writer.add_scalar('loss',loss.item(),i)
+            writer.add_scalar('loss', loss.item(), i)
 
             loss.backward()
             optimizer.step()
