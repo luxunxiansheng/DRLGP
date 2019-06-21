@@ -19,8 +19,7 @@ class ConvBlock(nn.Module):
 
 class Flatten(nn.Module):
     def forward(self, x):
-        x = x.reshape(1, -1)
-        x = x.squeeze()
+        x = x.view(x.size()[0],-1)
         return x
 
 class DynamicDense(nn.Module):
@@ -32,7 +31,7 @@ class DynamicDense(nn.Module):
 
     def forward(self, x):
         if not hasattr(self, '_linear'):
-            input_dim = x.size()[0]
+            input_dim = x.size()[1]
             device= x.device
             self._linear = nn.Linear(input_dim, self._out_features).to(device)
     
@@ -67,6 +66,6 @@ class Connect5Network(nn.Module):
         output_value_hidden = self._value_hidden_layer(processed_board)
         output_value = self._value_output_layer(output_value_hidden)
 
-        return output_policy, output_value.item()
+        return output_policy, output_value
 
 

@@ -8,6 +8,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
 from common.board import Board
@@ -37,11 +38,9 @@ class Branch:
     def total_value(self):
         return self._total_value
 
-
     @total_value.setter
     def total_value(self, value):
         self._total_value = value
-
 
     @property
     def visit_count(self):
@@ -50,6 +49,7 @@ class Branch:
     @visit_count.setter
     def visit_count(self, value):
         self._visit_count = value
+
 
 class Node:
 
@@ -111,27 +111,24 @@ class Node:
         self._children_branch[point].visit_count += 1
         self._children_branch[point].total_value += value
 
-   
-    def score_branch(self,point):
+    def score_branch(self, point):
         q = self.expected_value_of_branch(point)
         p = self.prior_of_branch(point)
         n = self.visit_count_of_branch(point)
-            
+
         score = (q + Node.temperature * p * np.sqrt(self._total_visit_count) / (n + 1)).item()
         #print("{:d}-{:d}: q {:.4f} p {:.4f} n {:d} score {:.4f}".format(point.row,point.col,q,p,n,score))
-           
-        return score 
+
+        return score
 
     def select_branch(self):
         best_point = max(self.children_branch(), key=self.score_branch)
         return self._children_branch[best_point]
 
-    
-
 
 class MultiplePlaneEncoder(Encoder):
-    def __init__(self,num_plane,board_size):
-        self._board_size= board_size
+    def __init__(self, num_plane, board_size):
+        self._board_size = board_size
         self._board_width = board_size
         self._board_height = board_size
         self._num_plane = num_plane
@@ -142,7 +139,7 @@ class MultiplePlaneEncoder(Encoder):
     @property
     def num_plane(self):
         return self._num_plane
-        
+
     @property
     def board_width(self):
         return self._board_width
@@ -152,18 +149,18 @@ class MultiplePlaneEncoder(Encoder):
         return self._board_height
 
     def encode(self, boards):
-        board_matrix = np.zeros(self.shape(),dtype=int)
+        board_matrix = np.zeros(self.shape(), dtype=int)
         for plane in range(len(boards)):
             for row in range(self._board_height):
                 for col in range(self._board_width):
                     point = Point(row+1, col+1)
                     piece = boards[plane].get_piece_at_point(point)
                     if piece is not None:
-                        board_matrix[plane, row, col]= piece.owner_id                    
-        return board_matrix    
+                        board_matrix[plane, row, col] = piece.owner_id
+        return board_matrix
 
     def shape(self):
-        return   self._num_plane, self._board_height, self._board_width
+        return self._num_plane, self._board_height, self._board_width
 
     def encode_point(self, point):
         return self._board_width*(point.row-1)+(point.col-1)
@@ -178,7 +175,7 @@ class MultiplePlaneEncoder(Encoder):
 
 
 class AlphaZeroExpericenceBuffer:
-    def __init__(self, states,rewards,visit_counts):
+    def __init__(self, states, rewards, visit_counts):
         self._states = states
         self._rewards = rewards
         self._visit_counts = visit_counts
@@ -186,19 +183,17 @@ class AlphaZeroExpericenceBuffer:
     @property
     def states(self):
         return self._states
-     
 
     @property
     def visit_counts(self):
-        return self._visit_counts 
+        return self._visit_counts
 
     @property
     def rewards(self):
         return self._rewards
 
-
     def serialize(self, path):
-        torch.save({'states': self._states,'rewards': self._rewards,'visit_counts': self.visit_counts}, path)
+        torch.save({'states': self._states, 'rewards': self._rewards, 'visit_counts': self.visit_counts}, path)
 
     def deserialize(self, path):
         saved = torch.load(path)
@@ -210,7 +205,7 @@ class AlphaZeroExpericenceBuffer:
         combined_rewards = np.concatenate([np.array(c.rewards) for c in collectors])
         combined_visit_counts = np.concatenate([np.array(c.visit_counts) for c in collectors])
         return AlphaZeroExpericenceBuffer(combined_states, combined_rewards, combined_visit_counts)
-    
+
     def size(self):
         return self._states.shape[0]
 
@@ -226,7 +221,7 @@ class AlphaZeroExperienceCollector:
     def reset_episode(self):
         self._current_episode_states = []
         self._current_episode_visit_counts = []
-  
+
     def record_decision(self, state, visit_counts):
         self._current_episode_states.append(state)
         self._current_episode_visit_counts.append(visit_counts)
@@ -237,7 +232,7 @@ class AlphaZeroExperienceCollector:
         self._visit_counts += self._current_episode_visit_counts
         self._rewards += [reward for _ in range(num_states)]
         self.reset_episode()
-   
+
     @property
     def visit_counts(self):
         return self._visit_counts
@@ -245,10 +240,11 @@ class AlphaZeroExperienceCollector:
     @property
     def rewards(self):
         return self._rewards
-    
+
     @property
     def states(self):
         return self._states
+
 
 class Game_State_Memory:
     def __init__(self, capacity):
@@ -259,28 +255,31 @@ class Game_State_Memory:
         self._game_states.append(experience)
         if self.size() > self._capacity:
             self._game_states.popleft()
-  
+
     def size(self):
         return len(self._game_states)
 
-    @property 
+    @property
     def game_states(self):
         return list(self._game_states)
-    
+
     def clear(self):
         self._game_states.clear()
 
+
 class AlphaZeroAgent(Player):
-    def __init__(self, id,name,mark,encoder, model, num_rounds, experience_collector=None,device='cpu'):
-        super().__init__(id, name, mark)        
+    
+    writer=SummaryWriter()
+    
+    def __init__(self, id, name, mark, encoder, model, num_rounds, experience_collector=None, device='cpu'):
+        super().__init__(id, name, mark)
         self._encoder = encoder
-        self._device= device 
+        self._device = device
         self._model = model.to(device)
         self._num_rounds = num_rounds
         self._experience_collector = experience_collector
         self._game_state_memory = Game_State_Memory(10)
-        
-    
+
     def reset_memory(self):
         self._game_state_memory.clear()
 
@@ -288,33 +287,32 @@ class AlphaZeroAgent(Player):
     def experience_collector(self):
         return self._experience_collector
 
-    def set_experience_collector(self,experience_collector):
+    def set_experience_collector(self, experience_collector):
         self._experience_collector = experience_collector
 
-    def create_node(self, game_state,estimated_branch_priors, estimated_state_value, parent_branch=None, parent_node=None):
+    def create_node(self, game_state, estimated_branch_priors, estimated_state_value, parent_branch=None, parent_node=None):
         chiildren_branch = {}
         for idx, p in enumerate(estimated_branch_priors):
             point = self._encoder.decode_point_index(idx)
             if game_state.board.is_free_point(point):
                 chiildren_branch[point] = Branch(Move(point), p)
 
-        new_node = Node(game_state, estimated_state_value,chiildren_branch, parent_branch, parent_node)
+        new_node = Node(game_state, estimated_state_value, chiildren_branch, parent_branch, parent_node)
         if parent_node is not None:
             parent_node.add_child_node(parent_branch, new_node)
         return new_node
 
     def select_move(self, game, game_state):
-        self._game_state_memory.push(game_state.board) 
+        self._game_state_memory.push(game_state.board)
         root_board_matrix = self._encoder.encode(self._game_state_memory.game_states)
-        print(root_board_matrix)
-        model_input  = torch.from_numpy(root_board_matrix).unsqueeze(0).to(self._device,dtype=torch.float)
+        model_input = torch.from_numpy(root_board_matrix).unsqueeze(0).to(self._device, dtype=torch.float)
         estimated_branch_priors, estimated_state_value = self.predict(model_input)
-        root = self.create_node(game_state,estimated_branch_priors,estimated_state_value)
-        
+        root = self.create_node(game_state, estimated_branch_priors[0], estimated_state_value[0].item())
+
         for _ in tqdm(range(self._num_rounds)):
             node = root
             game_state_memory = copy.deepcopy(self._game_state_memory)
-            
+
             # select
             next_branch = node.select_branch()
             while node.has_child_node(next_branch):
@@ -325,15 +323,15 @@ class AlphaZeroAgent(Player):
             # expand
             new_state = game.transit(node.game_state, next_branch.move)
             game_state_memory.push(new_state.board)
-           
+
             parent_branch = next_branch
             parent_node = node
 
             temp_board_matrix = self._encoder.encode(game_state_memory.game_states)
-            model_input  = torch.from_numpy(temp_board_matrix).unsqueeze(0).to(self._device,dtype=torch.float)
+            model_input = torch.from_numpy(temp_board_matrix).unsqueeze(0).to(self._device, dtype=torch.float)
             estimated_branch_priors, estimated_state_value = self.predict(model_input)
-         
-            new_node = self.create_node(new_state,estimated_branch_priors,estimated_state_value)
+
+            new_node = self.create_node(new_state, estimated_branch_priors, estimated_state_value)
 
             # backup
             value = -1*new_node.game_state_value
@@ -342,46 +340,47 @@ class AlphaZeroAgent(Player):
                 parent_branch = parent_node.parent_branch
                 parent_node = parent_node.parent_node
                 value = -1 * value
-     
+
         visit_counts = np.array([root.visit_count_of_branch(self._encoder.decode_point_index(idx)) for idx in range(self._encoder.num_points())])
         self._experience_collector.record_decision(root_board_matrix, visit_counts)
 
         return Move(max(root.children_branch(), key=root.visit_count_of_branch))
 
-
-    
-    def predict(self,input_states):
+    def predict(self, input_states):
         self._model.eval()
         return self._model(input_states)
-    
+
     @classmethod
-    def train(cls, expeience, model,learning_rate, batch_size,device):
-        model=model.to(device)
+    def train(cls, expeience, model, learning_rate, batch_size, device):
+        model = model.to(device)
         model.train()
 
-        criterion_policy = nn.CrossEntropyLoss()
+        criterion_policy = nn.KLDivLoss()
         criterion_value = nn.MSELoss()
-        optimizer = optim.SGD(model.parameters(),lr=learning_rate) 
-       
-        num_examples = expeience.size()
-    
-       
-        for i in range(int(num_examples / batch_size)):
-            states = torch.from_numpy(expeience.states[i*batch_size:(i+1)*batch_size]).to(device,dtype=torch.float)
-            visit_counts = torch.from_numpy(expeience.visit_counts[i*batch_size:(i+1)*batch_size]).to(device)
-            rewards = torch.from_numpy(expeience.rewards[i*batch_size:(i+1)*batch_size]).to(device)
+        optimizer = optim.SGD(model.parameters(), lr=learning_rate)
 
-            visit_sums = np.sum(visit_counts,axis=1).reshape((states.shape[0], 1))
-            action_policy_target = visit_counts / visit_sums
+        num_examples = expeience.size()
+
+        for i in range(int(num_examples / batch_size)):
+            states = torch.from_numpy(expeience.states[i*batch_size:(i+1)*batch_size]).to(device, dtype=torch.float)
+            visit_counts = torch.from_numpy(expeience.visit_counts[i*batch_size:(i+1)*batch_size]).to(device)
+            rewards = torch.from_numpy(expeience.rewards[i*batch_size:(i+1)*batch_size]).to(device, dtype=torch.float).unsqueeze(1)
+
+            visit_sums = visit_counts.sum(dim=1).view((states.shape[0], 1))
+            action_policy_target = visit_counts.float() / visit_sums.float()
 
             value_target = rewards
+
             [action_policy, value] = model(states)
 
             loss_policy = criterion_policy(action_policy, action_policy_target)
-            loss_value =  criterion_value(value, value_target)
+            loss_value = criterion_value(value, value_target)
 
             optimizer.zero_grad()
-            loss= loss_policy + loss_value
-        
+            loss = loss_policy + loss_value
+
+
+            AlphaZeroAgent.writer.add_scalar('loss',loss.item(),i)
+
             loss.backward()
             optimizer.step()
