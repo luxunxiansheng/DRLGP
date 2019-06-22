@@ -23,12 +23,13 @@ def main():
    
     number_of_planes = 10
     board_size   =  9 
-    round_per_moves =10
+    round_per_moves =100
    
     encoder = MultiplePlaneEncoder(number_of_planes,board_size)
 
     model = Connect5Network(number_of_planes, board_size * board_size)
     model.load_state_dict(torch.load('./archived_model/old/1.pth'))
+    model.eval()
        
     experience_collector_1 = AlphaZeroExperienceCollector()
     experience_collector_2 = AlphaZeroExperienceCollector()
@@ -36,7 +37,7 @@ def main():
     agent_1 = AlphaZeroAgent(1,"Agent1","O",encoder,model,round_per_moves,experience_collector_1,device=the_device)
     agent_2 = AlphaZeroAgent(2,"Agent2","X",encoder,model,round_per_moves,experience_collector_2,device=the_device )
 
-    number_of_games = 1    
+    number_of_games = 50    
 
     players = [agent_1,agent_2]
 

@@ -25,6 +25,8 @@ def main():
     number_of_planes = 10
     board_size = 9
     model = Connect5Network(number_of_planes, board_size * board_size)
+    model.load_state_dict(torch.load('./archived_model/old/1.pth'))
+    model.train()
 
     combined_experiences = AlphaZeroExpericenceBuffer.deserialize('./connect5data/1.pth')
 
