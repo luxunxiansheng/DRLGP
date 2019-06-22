@@ -345,13 +345,12 @@ class AlphaZeroAgent(Player):
         return Move(max(root.children_branch(), key=root.visit_count_of_branch))
 
     def predict(self, input_states):
-        self._model.eval()
         return self._model(input_states)
 
     @classmethod
     def train(cls, expeience, model, learning_rate, batch_size, device, writer):
         model = model.to(device)
-        model.train()
+        
 
         criterion_policy = nn.KLDivLoss()
         criterion_value = nn.MSELoss()
