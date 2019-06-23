@@ -357,8 +357,10 @@ class AlphaZeroAgent(Player):
         optimizer = optim.SGD(model.parameters(), lr=learning_rate)
 
         num_examples = expeience.size()
+        
+        
 
-        for i in range(int(num_examples / batch_size)):
+        for i in tqdm(range(int(num_examples / batch_size))):
             states = torch.from_numpy(expeience.states[i*batch_size:(i+1)*batch_size]).to(device, dtype=torch.float)
             visit_counts = torch.from_numpy(expeience.visit_counts[i*batch_size:(i+1)*batch_size]).to(device)
             rewards = torch.from_numpy(expeience.rewards[i*batch_size:(i+1)*batch_size]).to(device, dtype=torch.float).unsqueeze(1)
@@ -375,6 +377,8 @@ class AlphaZeroAgent(Player):
 
             optimizer.zero_grad()
             loss = loss_policy + loss_value
+
+            print(loss.item())
 
             writer.add_scalar('loss', loss.item(), i)
 
