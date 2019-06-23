@@ -32,7 +32,7 @@ def main():
 
     writer = SummaryWriter()
 
-    AlphaZeroAgent.train(combined_experiences, model, 0.002, 128, the_device, writer)
+    AlphaZeroAgent.train(combined_experiences, model, 0.002, 32, the_device, writer)
 
     torch.save(model.state_dict(), './archived_model/new/1.pth')
 
