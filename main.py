@@ -26,12 +26,12 @@ def main():
     #player_1 = RandomAgent(0, "RandomAgentX", "X")
     #player_1 = HumanPlayer(0, "HumanPlayerX", "X")
     #player_1 = AlphaBetaAgent(0,"AlphaBetaAgentX","X") 
-    player_1 = MCTSAgent(0, "MCTSAgentX", "X", 5000, 0.4)
-    player_2 = MCTSAgent(1, "MCTSAgentO", "O", 5000, 0.4)
+    player_1 = HumanPlayer(1, "HumanPlayer1", "1")
+    player_2 = HumanPlayer(2, "HumanPlayerX", "2")
 
     players = [player_1, player_2]
 
-    start_player = players[1]
+    start_player = players[0]
 
     win_counts = {
         players[0].name: 0,
