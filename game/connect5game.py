@@ -28,7 +28,7 @@ class Connect5Game(Game):
                     return True
 
         # check horizontal win
-        for row in range(1, board.board_size):
+        for row in range(1, board.board_size+1):
             for col in range(1, board.board_size+1-4):
                 if board.get_piece_at_point(
                         Point(row, col)) is not None and board.get_piece_at_point(
@@ -58,7 +58,7 @@ class Connect5Game(Game):
                         Point(row - 3, col + 3)).owner_id == player.id and board.get_piece_at_point(
                         Point(row - 4, col + 4)) is not None and board.get_piece_at_point(
                         Point(row - 4, col + 4)).owner_id == player.id:
-                   
+                                       
                     return True
 
                 # check \ diagnoal win
