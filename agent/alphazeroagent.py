@@ -295,7 +295,7 @@ class AlphaZeroAgent(Player):
             if game_state.board.is_free_point(point):
                 chiildren_branch[point] = Branch(Move(point), p)
 
-        new_node = Node(game_state, estimated_state_value, chiildren_branch, parent_branch, parent_node)
+        new_node = Node(game_state, estimated_state_value, chiildren_branch,parent_node,parent_branch)
         if parent_node is not None:
             parent_node.add_child_node(parent_branch.move.point, new_node)
         return new_node
@@ -329,15 +329,20 @@ class AlphaZeroAgent(Player):
             model_input = torch.from_numpy(temp_board_matrix).unsqueeze(0).to(self._device, dtype=torch.float)
             estimated_branch_priors, estimated_state_value = self.predict(model_input)
 
-            new_node = self.create_node(new_state, estimated_branch_priors, estimated_state_value,parent_branch,parent_node)
+            new_node = self.create_node(new_state, estimated_branch_priors[0], estimated_state_value[0].item(),parent_branch,parent_node)
 
             
             # backup
             value = -1*new_node.game_state_value
             while parent_node is not None:
+                
+
                 parent_node.record_visit(parent_branch.move.point, value)
                 parent_branch = parent_node.parent_branch
                 parent_node = parent_node.parent_node
+
+
+
                 value = -1 * value
 
         visit_counts = np.array([root.visit_count_of_branch(self._encoder.decode_point_index(idx)) for idx in range(self._encoder.num_points())])
