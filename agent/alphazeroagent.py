@@ -54,7 +54,7 @@ class Node:
 
     temperature = 0.8
 
-    def __init__(self, game_state, game_state_value, children_branch, parent_node, parent_branch):
+    def __init__(self, game_state, game_state_value, children_branch,parent_branch,parent_node):
         self._game_state = game_state
         self._game_state_value = game_state_value
         self._parent_node = parent_node
@@ -110,6 +110,18 @@ class Node:
         self._children_branch[point].visit_count += 1
         self._children_branch[point].total_value += value
 
+    
+    
+    def score_root_node_branch(self, point):
+        q = self.expected_value_of_branch(point)
+        p = self.prior_of_branch(point)
+        n = self.visit_count_of_branch(point)
+
+        score = (q + Node.temperature * p * np.sqrt(self._total_visit_count) / (n + 1)).item()
+        #print("{:d}-{:d}: q {:.4f} p {:.4f} n {:d} score {:.4f}".format(point.row,point.col,q,p,n,score))
+
+        return score
+    
     def score_branch(self, point):
         q = self.expected_value_of_branch(point)
         p = self.prior_of_branch(point)
@@ -120,9 +132,19 @@ class Node:
 
         return score
 
-    def select_branch(self):
-        best_point = max(self.children_branch(), key=self.score_branch)
-        return self._children_branch[best_point]
+    def select_branch(self, is_root=False):
+        points = [point for point in self.children_branch()] 
+        Qs = [self.expected_value_of_branch(point) for point in self.children_branch()]
+        Ps = [self.prior_of_branch(point) for point in self.children_branch()]
+        Ns = [self.visit_count_of_branch(point) for point in self.children_branch() ] 
+        
+        if is_root:
+            noises = np.random.dirichlet([0.03] * len(self.children_branch()))
+            Ps= [0.75*p+0.25*noise for p, noise in zip(Ps,noises)]
+           
+        scores=[(q + Node.temperature * p * np.sqrt(self._total_visit_count) / (n + 1)).item() for  q,p,n in zip(Qs,Ps,Ns)]
+        best_point_index = np.argmax(scores)
+        return self._children_branch[points[best_point_index]]
 
 
 class MultiplePlaneEncoder(Encoder):
@@ -295,7 +317,7 @@ class AlphaZeroAgent(Player):
             if game_state.board.is_free_point(point):
                 chiildren_branch[point] = Branch(Move(point), p)
 
-        new_node = Node(game_state, estimated_state_value, chiildren_branch,parent_node,parent_branch)
+        new_node = Node(game_state, estimated_state_value, chiildren_branch,parent_branch,parent_node)
         if parent_node is not None:
             parent_node.add_child_node(parent_branch.move.point, new_node)
         return new_node
@@ -312,7 +334,7 @@ class AlphaZeroAgent(Player):
             game_state_memory = copy.deepcopy(self._game_state_memory)
 
             # select
-            next_branch = node.select_branch()
+            next_branch = node.select_branch(True)
             while node.has_child_node(next_branch.move.point):
                 node = node.get_child_node(next_branch.move.point)
                 game_state_memory.push(node.game_state.board)
@@ -330,19 +352,13 @@ class AlphaZeroAgent(Player):
             estimated_branch_priors, estimated_state_value = self.predict(model_input)
 
             new_node = self.create_node(new_state, estimated_branch_priors[0], estimated_state_value[0].item(),parent_branch,parent_node)
-
             
             # backup
             value = -1*new_node.game_state_value
             while parent_node is not None:
-                
-
                 parent_node.record_visit(parent_branch.move.point, value)
                 parent_branch = parent_node.parent_branch
                 parent_node = parent_node.parent_node
-
-
-
                 value = -1 * value
 
         visit_counts = np.array([root.visit_count_of_branch(self._encoder.decode_point_index(idx)) for idx in range(self._encoder.num_points())])

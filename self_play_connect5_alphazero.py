@@ -23,7 +23,7 @@ def main():
    
     number_of_planes = 10
     board_size   =  9 
-    round_per_moves =1000
+    round_per_moves =200
    
     encoder = MultiplePlaneEncoder(number_of_planes,board_size)
 
@@ -37,7 +37,7 @@ def main():
     agent_1 = AlphaZeroAgent(1,"Agent1","O",encoder,model,round_per_moves,experience_collector_1,device=the_device)
     agent_2 = AlphaZeroAgent(2,"Agent2","X",encoder,model,round_per_moves,experience_collector_2,device=the_device )
 
-    number_of_games = 5000    
+    number_of_games = 1000    
 
     players = [agent_1,agent_2]
 
