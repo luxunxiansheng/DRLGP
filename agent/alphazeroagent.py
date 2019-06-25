@@ -122,15 +122,7 @@ class Node:
 
         return score
     
-    def score_branch(self, point):
-        q = self.expected_value_of_branch(point)
-        p = self.prior_of_branch(point)
-        n = self.visit_count_of_branch(point)
-
-        score = (q + Node.temperature * p * np.sqrt(self._total_visit_count) / (n + 1)).item()
-        #print("{:d}-{:d}: q {:.4f} p {:.4f} n {:d} score {:.4f}".format(point.row,point.col,q,p,n,score))
-
-        return score
+   
 
     def select_branch(self, is_root=False):
         points = [point for point in self.children_branch()] 
