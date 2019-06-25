@@ -52,7 +52,7 @@ class Branch:
 
 class Node:
 
-    temperature = 0.5
+    temperature = 0.8
 
     def __init__(self, game_state, game_state_value, children_branch, parent_node, parent_branch):
         self._game_state = game_state
@@ -297,7 +297,7 @@ class AlphaZeroAgent(Player):
 
         new_node = Node(game_state, estimated_state_value, chiildren_branch, parent_branch, parent_node)
         if parent_node is not None:
-            parent_node.add_child_node(parent_branch, new_node)
+            parent_node.add_child_node(parent_branch.move.point, new_node)
         return new_node
 
     def select_move(self, game, game_state):
@@ -313,8 +313,8 @@ class AlphaZeroAgent(Player):
 
             # select
             next_branch = node.select_branch()
-            while node.has_child_node(next_branch):
-                node = node.get_child_node(next_branch)
+            while node.has_child_node(next_branch.move.point):
+                node = node.get_child_node(next_branch.move.point)
                 game_state_memory.push(node.game_state.board)
                 next_branch = node.select_branch()
 
@@ -329,8 +329,9 @@ class AlphaZeroAgent(Player):
             model_input = torch.from_numpy(temp_board_matrix).unsqueeze(0).to(self._device, dtype=torch.float)
             estimated_branch_priors, estimated_state_value = self.predict(model_input)
 
-            new_node = self.create_node(new_state, estimated_branch_priors, estimated_state_value)
+            new_node = self.create_node(new_state, estimated_branch_priors, estimated_state_value,parent_branch,parent_node)
 
+            
             # backup
             value = -1*new_node.game_state_value
             while parent_node is not None:
