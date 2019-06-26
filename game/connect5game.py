@@ -91,6 +91,7 @@ class Connect5Game(Game):
         if all(game_state.board.get_piece_at_point(Point(row, col)) is not None
                for row in game_state.board.rows
                for col in game_state.board.cols):
+            self._final_winner= None
             return True
 
         return False
@@ -121,6 +122,7 @@ class Connect5Game(Game):
         while not game.is_over():
             move = game.working_game_state.player_in_action.select_move(game, game.working_game_state)
             game.apply_move(move)
+            game.working_game_state.board.print_board()
             
         game.working_game_state.board.print_board()
         print(game.final_winner.id)

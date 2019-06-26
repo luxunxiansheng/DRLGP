@@ -58,7 +58,7 @@ class Connect5Network(nn.Module):
             nn.BatchNorm2d(1),
             nn.LeakyReLU()
         )
-        conv_value_size = self._get_conv_val_size(body_out_shape)
+        conv_value_size = self._get_conv_value_size(body_out_shape)
         self._value_out = nn.Sequential(
             nn.Linear(conv_value_size, 20),
             nn.LeakyReLU(),
@@ -78,11 +78,11 @@ class Connect5Network(nn.Module):
         )
 
     def _get_conv_value_size(self, shape):
-        output = self.conv_value(torch.zeros(1, *shape))
+        output = self._conv_value(torch.zeros(1, *shape))
         return int(np.prod(output.size()))
 
     def _get_conv_policy_size(self, shape):
-        output = self.conv_policy(torch.zeros(1, *shape))
+        output = self._conv_policy(torch.zeros(1, *shape))
         return int(np.prod(output.size()))
 
     def forward(self, x):
