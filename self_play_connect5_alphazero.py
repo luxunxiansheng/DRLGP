@@ -27,7 +27,8 @@ def main():
    
     encoder = MultiplePlaneEncoder(number_of_planes,board_size)
 
-    model = Connect5Network(number_of_planes, board_size * board_size)
+    input_shape=[number_of_planes,board_size,board_size] 
+    model = Connect5Network(input_shape, board_size * board_size)
     model.load_state_dict(torch.load('./archived_model/old/1.pth'))
     model.eval()
        
