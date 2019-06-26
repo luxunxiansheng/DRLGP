@@ -23,14 +23,14 @@ def main():
    
     number_of_planes = 10
     board_size   =  9 
-    round_per_moves =500
+    round_per_moves =100
    
     encoder = MultiplePlaneEncoder(number_of_planes,board_size)
 
-    input_shape=[number_of_planes,board_size,board_size] 
+    input_shape=(number_of_planes,board_size,board_size) 
     model = Connect5Network(input_shape, board_size * board_size)
-    model.load_state_dict(torch.load('./archived_model/old/1.pth'))
-    model.eval()
+    #model.load_state_dict(torch.load('./archived_model/old/1.pth'))
+    #model.eval()
        
     experience_collector_1 = AlphaZeroExperienceCollector()
     experience_collector_2 = AlphaZeroExperienceCollector()
