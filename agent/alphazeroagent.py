@@ -52,9 +52,9 @@ class Branch:
 
 
 class Node:
-
+    
     temperature = 0.8
-
+    
     def __init__(self, game_state, game_state_value, children_branch, parent_branch, parent_node):
         self._game_state = game_state
         self._game_state_value = game_state_value
@@ -112,6 +112,9 @@ class Node:
         self._children_branch[point].total_value += value
 
     def select_branch(self, is_root=False):
+        if not self.children_branch():
+            return None
+        
         points = [point for point in self.children_branch()]
         Qs = [self.expected_value_of_branch(point) for point in self.children_branch()]
         Ps = [self.prior_of_branch(point) for point in self.children_branch()]
@@ -314,26 +317,32 @@ class AlphaZeroAgent(Player):
 
             # select
             next_branch = node.select_branch(True)
-            while node.has_child_node(next_branch.move.point):
+            assert next_branch is not None
+
+            while next_branch is not None and node.has_child_node(next_branch.move.point):
                 node = node.get_child_node(next_branch.move.point)
                 game_state_memory.push(node.game_state.board)
                 next_branch = node.select_branch()
 
-            # expand
-            new_state = game.transit(node.game_state, next_branch.move)
-            game_state_memory.push(new_state.board)
+            if next_branch is not None:               
+                # expand
+                new_state = game.transit(node.game_state, next_branch.move)
+                game_state_memory.push(new_state.board)
 
-            parent_branch = next_branch
-            parent_node = node
+                parent_branch = next_branch
+                parent_node = node
 
-            temp_board_matrix = self._encoder.encode(game_state_memory.game_states)
-            model_input = torch.from_numpy(temp_board_matrix).unsqueeze(0).to(self._device, dtype=torch.float)
-            estimated_branch_priors, estimated_state_value = self.predict(model_input)
-
-            new_node = self.create_node(new_state, estimated_branch_priors[0], estimated_state_value[0].item(), parent_branch, parent_node)
-
+                temp_board_matrix = self._encoder.encode(game_state_memory.game_states)
+                model_input = torch.from_numpy(temp_board_matrix).unsqueeze(0).to(self._device, dtype=torch.float)
+                estimated_branch_priors, estimated_state_value = self.predict(model_input)
+                node = self.create_node(new_state, estimated_branch_priors[0], estimated_state_value[0].item(), parent_branch, parent_node)
+            else:
+                parent_branch = node.parent_branch
+                parent_node = node.parent_node
+                
             # backup
-            value = -1*new_node.game_state_value
+            value = -1 * node.game_state_value
+                        
             while parent_node is not None:
                 parent_node.record_visit(parent_branch.move.point, value)
                 parent_branch = parent_node.parent_branch
