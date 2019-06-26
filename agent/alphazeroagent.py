@@ -7,6 +7,7 @@ from collections import deque
 import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import torch.optim as optim
 from tqdm import tqdm
 
@@ -54,7 +55,7 @@ class Node:
 
     temperature = 0.8
 
-    def __init__(self, game_state, game_state_value, children_branch,parent_branch,parent_node):
+    def __init__(self, game_state, game_state_value, children_branch, parent_branch, parent_node):
         self._game_state = game_state
         self._game_state_value = game_state_value
         self._parent_node = parent_node
@@ -110,31 +111,17 @@ class Node:
         self._children_branch[point].visit_count += 1
         self._children_branch[point].total_value += value
 
-    
-    
-    def score_root_node_branch(self, point):
-        q = self.expected_value_of_branch(point)
-        p = self.prior_of_branch(point)
-        n = self.visit_count_of_branch(point)
-
-        score = (q + Node.temperature * p * np.sqrt(self._total_visit_count) / (n + 1)).item()
-        #print("{:d}-{:d}: q {:.4f} p {:.4f} n {:d} score {:.4f}".format(point.row,point.col,q,p,n,score))
-
-        return score
-    
-   
-
     def select_branch(self, is_root=False):
-        points = [point for point in self.children_branch()] 
+        points = [point for point in self.children_branch()]
         Qs = [self.expected_value_of_branch(point) for point in self.children_branch()]
         Ps = [self.prior_of_branch(point) for point in self.children_branch()]
-        Ns = [self.visit_count_of_branch(point) for point in self.children_branch() ] 
-        
+        Ns = [self.visit_count_of_branch(point) for point in self.children_branch()]
+
         if is_root:
             noises = np.random.dirichlet([0.03] * len(self.children_branch()))
-            Ps= [0.75*p+0.25*noise for p, noise in zip(Ps,noises)]
-           
-        scores=[(q + Node.temperature * p * np.sqrt(self._total_visit_count) / (n + 1)).item() for  q,p,n in zip(Qs,Ps,Ns)]
+            Ps = [0.75*p+0.25*noise for p, noise in zip(Ps, noises)]
+
+        scores = [(q + Node.temperature * p * np.sqrt(self._total_visit_count) / (n + 1)).item() for q, p, n in zip(Qs, Ps, Ns)]
         best_point_index = np.argmax(scores)
         return self._children_branch[points[best_point_index]]
 
@@ -309,7 +296,7 @@ class AlphaZeroAgent(Player):
             if game_state.board.is_free_point(point):
                 chiildren_branch[point] = Branch(Move(point), p)
 
-        new_node = Node(game_state, estimated_state_value, chiildren_branch,parent_branch,parent_node)
+        new_node = Node(game_state, estimated_state_value, chiildren_branch, parent_branch, parent_node)
         if parent_node is not None:
             parent_node.add_child_node(parent_branch.move.point, new_node)
         return new_node
@@ -343,8 +330,8 @@ class AlphaZeroAgent(Player):
             model_input = torch.from_numpy(temp_board_matrix).unsqueeze(0).to(self._device, dtype=torch.float)
             estimated_branch_priors, estimated_state_value = self.predict(model_input)
 
-            new_node = self.create_node(new_state, estimated_branch_priors[0], estimated_state_value[0].item(),parent_branch,parent_node)
-            
+            new_node = self.create_node(new_state, estimated_branch_priors[0], estimated_state_value[0].item(), parent_branch, parent_node)
+
             # backup
             value = -1*new_node.game_state_value
             while parent_node is not None:
@@ -364,15 +351,10 @@ class AlphaZeroAgent(Player):
     @classmethod
     def train(cls, expeience, model, learning_rate, batch_size, device, writer):
         model = model.to(device)
-        
 
-        criterion_policy = nn.KLDivLoss()
-        criterion_value = nn.MSELoss()
         optimizer = optim.SGD(model.parameters(), lr=learning_rate)
 
         num_examples = expeience.size()
-        
-        
 
         for i in tqdm(range(int(num_examples / batch_size))):
             states = torch.from_numpy(expeience.states[i*batch_size:(i+1)*batch_size]).to(device, dtype=torch.float)
@@ -386,15 +368,16 @@ class AlphaZeroAgent(Player):
 
             [action_policy, value] = model(states)
 
-            loss_policy = criterion_policy(action_policy, action_policy_target)
-            loss_value = criterion_value(value, value_target)
+            loss_policy = -F.log_softmax(action_policy, dim=1) * action_policy_target
+            loss_policy = loss_policy.sum(dim=1).mean()
+            
+            loss_value = F.mse_loss(value.sequeeze(-1),value_target)
+            loss = loss_policy + loss_value                  
+            print(loss.item())
+            writer.add_scalar('loss', loss.item(), i)
+            writer.add_scalar('loss_value', loss_value.item(), i)
+            writer.add_scalar('loss_policy', loss_policy.item(), i)  
 
             optimizer.zero_grad()
-            loss = loss_policy + loss_value
-
-            print(loss.item())
-
-            writer.add_scalar('loss', loss.item(), i)
-
             loss.backward()
             optimizer.step()
