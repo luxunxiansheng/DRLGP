@@ -39,6 +39,11 @@ class Board:
     @classmethod
     def get_column_indicator_index(cls, char):
         return Board.alphabet.index(char)
+  
+    @classmethod
+    def get_column_indicator(cls, index):
+        return Board.alphabet[index]
+
 
     @property
     def board_size(self):

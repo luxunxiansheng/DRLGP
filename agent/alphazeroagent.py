@@ -350,7 +350,8 @@ class AlphaZeroAgent(Player):
                 value = -1 * value
 
         visit_counts = np.array([root.visit_count_of_branch(self._encoder.decode_point_index(idx)) for idx in range(self._encoder.num_points())])
-        self._experience_collector.record_decision(root_board_matrix, visit_counts)
+        if self._experience_collector is not None:
+            self._experience_collector.record_decision(root_board_matrix, visit_counts)
 
         return Move(max(root.children_branch(), key=root.visit_count_of_branch))
 

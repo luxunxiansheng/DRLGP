@@ -25,4 +25,7 @@ class Player(object):
         if not isinstance(other,Player):
             return NotImplemented
         
-        return self.id == other.id 
+        return self.id == other.id
+        
+    def diagnostics(self):
+        return 'OK'

@@ -27,7 +27,7 @@ class Game:
         self._is_selfplay = is_self_play
 
     @property
-    def is_self_play(self):
+    def is_selfplay(self):
         return self._is_selfplay
 
     @property
