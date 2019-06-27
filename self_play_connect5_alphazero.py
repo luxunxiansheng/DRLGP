@@ -48,7 +48,7 @@ def main():
         agent_1.reset_memory()
         agent_2.reset_memory()
         
-        winner=Connect5Game.run_episode(board_size,players,players[0 if game_index%2== 0 else 1])
+        winner=Connect5Game.run_episode(board_size,players,players[0 if game_index%2== 0 else 1],True)
 
         if winner == players[0]:
            players[0].experience_collector.complete_episode(reward=1)
