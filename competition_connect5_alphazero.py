@@ -58,7 +58,7 @@ def main():
         agent_old.reset_memory()
         agent_new.reset_memory()
         
-        winner=Connect5Game.run_episode(board_size,players,players[0 if game_index%2== 0 else 1])
+        winner=Connect5Game.run_episode(board_size,players,players[0 if game_index%2== 0 else 1],is_self_play=False)
 
         
         if winner is not None:

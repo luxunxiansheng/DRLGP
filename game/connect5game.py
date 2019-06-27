@@ -109,22 +109,20 @@ class Connect5Game(Game):
     def winner(board, players):
         if Connect5Game._connect_5_into_a_line(board, players[0]):
             return players[0]
-
         if Connect5Game._connect_5_into_a_line(board, players[1]):
             return players[1]
-
         return None
 
     @staticmethod
-    def run_episode(board_size, players, start_player):
+    def run_episode(board_size, players, start_player,is_self_play):
         board = Board(board_size)
-        game = Connect5Game(board, players, start_player)
+        game = Connect5Game(board, players,start_player,is_self_play)
         while not game.is_over():
             move = game.working_game_state.player_in_action.select_move(game, game.working_game_state)
             game.apply_move(move)
             # game.working_game_state.board.print_board()
             
-        game.working_game_state.board.print_board()
-        print(game.final_winner.id)
+        #game.working_game_state.board.print_board()
+        print(game.final_winner.id if game.final_winner is not None else 'draw')
 
         return game.final_winner

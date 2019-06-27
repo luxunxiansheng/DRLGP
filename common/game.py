@@ -14,15 +14,21 @@ class Game:
     """
     A abstract class about Game. Essentially, it contains a player list and a current working state. 
     """
-    def __init__(self, board, playerlist, start_player):
+    def __init__(self, board, playerlist, start_player,is_self_play):
         self._players = playerlist
         self._working_game_state = GameState(board, start_player, None)
-        self._final_winner= None
+        self._final_winner = None
+        self._is_selfplay  = is_self_play
     
-    def reset(self,board,playerlist,start_player):
+    def reset(self,board,playerlist,start_player,is_self_play):
         self._players=playerlist
         self._working_game_state = GameState(board, start_player, None)
-        self._final_winner= None
+        self._final_winner = None
+        self._is_selfplay = is_self_play
+
+    @property
+    def is_self_play(self):
+        return self._is_selfplay
 
     @property
     def working_game_state(self):

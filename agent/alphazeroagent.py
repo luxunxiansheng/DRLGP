@@ -111,7 +111,7 @@ class Node:
         self._children_branch[point].visit_count += 1
         self._children_branch[point].total_value += value
 
-    def select_branch(self, is_root=False):
+    def select_branch(self, is_root=False,is_selfplay=True):
         if not self.children_branch():
             return None
         
@@ -120,7 +120,7 @@ class Node:
         Ps = [self.prior_of_branch(point) for point in self.children_branch()]
         Ns = [self.visit_count_of_branch(point) for point in self.children_branch()]
 
-        if is_root:
+        if is_root and is_selfplay:
             noises = np.random.dirichlet([0.03] * len(self.children_branch()))
             Ps = [0.75*p+0.25*noise for p, noise in zip(Ps, noises)]
 
@@ -316,13 +316,13 @@ class AlphaZeroAgent(Player):
             game_state_memory = copy.deepcopy(self._game_state_memory)
 
             # select
-            next_branch = node.select_branch(True)
+            next_branch = node.select_branch(is_root=True,is_selfplay=game.is_selfplay)
             assert next_branch is not None
 
             while next_branch is not None and node.has_child_node(next_branch.move.point):
                 node = node.get_child_node(next_branch.move.point)
                 game_state_memory.push(node.game_state.board)
-                next_branch = node.select_branch()
+                next_branch = node.select_branch(is_root=False,is_selfplay=game.is_selfplay)
 
             if next_branch is not None:               
                 # expand
