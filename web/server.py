@@ -39,7 +39,8 @@ def get_web_app():
     def select_move(bot_name):
         historic_jboard_positions=[point_from_coords([move][0]) for move in (request.json)['moves']]
         historic_moves=[Move(Point(board_size+1-historic_jboard_position.row,historic_jboard_position.col)) for historic_jboard_position in historic_jboard_positions]
-        game = Connect5Game(board, players,start_player,False)
+        game = Connect5Game(board, players, start_player, False)
+        bot_agent.reset_memory()
         for move in historic_moves:
             if isinstance(game.working_game_state.player_in_action,AlphaZeroAgent): 
                 game.working_game_state.player_in_action.store_game_state(game.working_game_state)
