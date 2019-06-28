@@ -3,7 +3,7 @@ class Player(object):
         self._id = id
         self._name = name
         self._mark = mark
-
+        self._diagnostics_info =''
            
     @property
     def id(self):
@@ -26,6 +26,10 @@ class Player(object):
             return NotImplemented
         
         return self.id == other.id
-        
+    @property    
     def diagnostics(self):
-        return 'OK'
+        return self._diagnostics_info
+
+    @diagnostics.setter
+    def diagnostics(self, info):
+        self._diagnostics_info = info      

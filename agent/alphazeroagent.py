@@ -281,10 +281,15 @@ class AlphaZeroAgent(Player):
         self._num_rounds = num_rounds
         self._experience_collector = experience_collector
         self._game_state_memory = Game_State_Memory(10)
+        
 
     def reset_memory(self):
         self._game_state_memory.clear()
 
+    def store_game_state(self,game_state):
+        self._game_state_memory.push(game_state.board)
+    
+    
     @property
     def experience_collector(self):
         return self._experience_collector
@@ -303,9 +308,10 @@ class AlphaZeroAgent(Player):
         if parent_node is not None:
             parent_node.add_child_node(parent_branch.move.point, new_node)
         return new_node
+      
 
     def select_move(self, game, game_state):
-        self._game_state_memory.push(game_state.board)
+        self.store_game_state(game_state)
         root_board_matrix = self._encoder.encode(self._game_state_memory.game_states)
         model_input = torch.from_numpy(root_board_matrix).unsqueeze(0).to(self._device, dtype=torch.float)
         estimated_branch_priors, estimated_state_value = self.predict(model_input)
