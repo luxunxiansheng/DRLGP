@@ -59,11 +59,10 @@ def main():
         agent_new.reset_memory()
         
         winner=Connect5Game.run_episode(board_size,players,players[0 if game_index%2== 0 else 1],is_self_play=False)
-
         
         if winner is not None:
             win_counts[winner.id] += 1
-        
+       
         
     if win_counts[agent_new.id] / number_of_games > 0.6:
        torch.save(model_new.state_dict(), './archived_model/old/1.pth')
