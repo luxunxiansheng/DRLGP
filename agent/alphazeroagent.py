@@ -387,7 +387,7 @@ class AlphaZeroAgent(Player):
             loss_policy = -F.log_softmax(action_policy, dim=1) * action_policy_target
             loss_policy = loss_policy.sum(dim=1).mean()
             
-            loss_value = F.mse_loss(value.sequeeze(-1),value_target)
+            loss_value = F.mse_loss(value,value_target)
             loss = loss_policy + loss_value                  
             print(loss.item())
             writer.add_scalar('loss', loss.item(), i)
