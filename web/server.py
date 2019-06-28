@@ -22,8 +22,12 @@ from game.connect5game import Connect5Game
 def coords_from_point(point):
     return '%s%d' % (Board.get_column_indicator(point.col-1), point.row)
 
+def point_from_coords(text):
+        col_name = text[0]
+        row = int(text[1])
+        return Point(row, Board.get_column_indicator_index(col_name)+1)
 
-def get_web_app(bot_map):
+def get_web_app():
     """Create a flask application for serving bot moves.
     Returns: Flask application instance
     """
@@ -33,23 +37,29 @@ def get_web_app(bot_map):
 
     @app.route('/select-move/<bot_name>', methods=['POST'])
     def select_move(bot_name):
-        content = request.json
-        jboard_postion = HumanPlayer.point_from_coords(content['move'][0])
-        move = Move(Point(jboard_postion.col,board_size+1-jboard_postion.row))
-        game.apply_move(move)
-
-        bot_agent = bot_map[bot_name]
+        historic_jboard_positions=[point_from_coords([move][0]) for move in (request.json)['moves']]
+        historic_moves=[Move(Point(board_size+1-historic_jboard_position.row,historic_jboard_position.col)) for historic_jboard_position in historic_jboard_positions]
+        game = Connect5Game(board, players,start_player,False)
+        for move in historic_moves:
+            if isinstance(game.working_game_state.player_in_action,AlphaZeroAgent): 
+                game.working_game_state.player_in_action.store_game_state(game.working_game_state)
+            game.apply_move(move)
+  
         bot_move = bot_agent.select_move(game, game.working_game_state)
         game.apply_move(bot_move)
-   
+        game.working_game_state.board.print_board()
         jboard_postion=Point(board_size+1-bot_move.point.row,bot_move.point.col) 
         bot_move_str = coords_from_point(jboard_postion)
+ 
+        over = True if game.is_over() else False
+       
         return jsonify({
             'bot_move': bot_move_str,
-            'diagnostics': bot_agent.diagnostics()
-        })
+            'over'    : over,
+            'diagnostics': bot_agent.diagnostics
+            })
 
-    return app
+    return app     
 
 
 torch.manual_seed(1)
@@ -67,7 +77,6 @@ model_new = Connect5Network(input_shape, board_size * board_size)
 # model_new.load_state_dict(torch.load('./archived_model/new/1.pth'))
 model_new.eval()
 
-
 bot_agent = AlphaZeroAgent(2, "Agent_New", "2", encoder, model_new, round_per_moves, None, device=the_device)
 human_agent = HumanPlayer(1, "HumanPlayerX", "1")
 
@@ -75,8 +84,6 @@ players = [bot_agent, human_agent]
 start_player = human_agent
 
 board = Board(board_size)
-game = Connect5Game(board, players, start_player, False)
 
-
-web_app = get_web_app({'alphazero': bot_agent})
+web_app = get_web_app()
 web_app.run()

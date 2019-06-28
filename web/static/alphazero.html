@@ -112,8 +112,9 @@ var player = JGO.BLACK; // next player
 var ko = false, lastMove = false; // ko coordinate and last move coordinate
 var lastHover = false, lastX = -1, lastY = -1; // hover helper vars
 var record = [];
-var colnames = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J', 'K', 'L', 'M', 'N'];
+var colnames = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I','J', 'K', 'L', 'M', 'N'];
 var waitingForBot = false;
+var is_over=false;
 
 function resetGame(ev) {
     jrecord.jboard.clear();
@@ -121,6 +122,7 @@ function resetGame(ev) {
     jrecord.info = {};
     record = [];
     waitingForBot = false;
+    is_over=false;
     ev.preventDefault();
 }
 
@@ -186,6 +188,14 @@ function stopWaiting(botmove) {
 jsetup.setOptions({stars: {points:5}});
 jsetup.create('board', function(canvas) {
   canvas.addListener('click', function(coord, ev) {
+    if (is_over){
+        
+        alert('Game Over!')
+        
+        return;     
+    }
+    
+    
     if (waitingForBot) {
         return;
     }
@@ -216,7 +226,7 @@ jsetup.create('board', function(canvas) {
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({'move': record}),
+        body: JSON.stringify({'moves': record}),
     }).then(function(response) {
         if (!waitingForBot) {
             console.log('Got response but not waiting for one');
@@ -225,8 +235,13 @@ jsetup.create('board', function(canvas) {
         response.json().then(function(data) {
             var botCoord = stringToCoords(data.bot_move);
             applyMove(JGO.WHITE, botCoord);
-            
             stopWaiting(data.bot_move);
+
+            if(data.over){
+              is_over = true 
+            }
+
+            
         });
     }).catch(function(error) {
         console.log(error);
