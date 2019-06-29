@@ -365,17 +365,21 @@ class AlphaZeroAgent(Player):
         return self._model(input_states)
 
     @classmethod
-    def train(cls, expeience, model, learning_rate, batch_size, device, writer):
+    def train(cls, experience, model, learning_rate, batch_size, device, writer):
         model = model.to(device)
+        model.train()
 
         optimizer = optim.SGD(model.parameters(), lr=learning_rate)
 
-        num_examples = expeience.size()
+        epochs= 100000
 
-        for i in tqdm(range(int(num_examples / batch_size))):
-            states = torch.from_numpy(expeience.states[i*batch_size:(i+1)*batch_size]).to(device, dtype=torch.float)
-            visit_counts = torch.from_numpy(expeience.visit_counts[i*batch_size:(i+1)*batch_size]).to(device)
-            rewards = torch.from_numpy(expeience.rewards[i*batch_size:(i+1)*batch_size]).to(device, dtype=torch.float).unsqueeze(1)
+        for i in tqdm(range(epochs)):
+            
+            states,rewards,visit_counts = zip(*random.sample(list(zip(experience.states,experience.rewards,experience.visit_counts)),batch_size))  
+           
+            states = torch.from_numpy(np.array(states)).to(device, dtype=torch.float)
+            rewards = torch.from_numpy(np.array(rewards)).to(device,dtype=torch.float)
+            visit_counts = torch.from_numpy(np.array(visit_counts)).to(device, dtype=torch.float)
 
             visit_sums = visit_counts.sum(dim=1).view((states.shape[0], 1))
             action_policy_target = visit_counts.float() / visit_sums.float()
@@ -387,9 +391,10 @@ class AlphaZeroAgent(Player):
             loss_policy = -F.log_softmax(action_policy, dim=1) * action_policy_target
             loss_policy = loss_policy.sum(dim=1).mean()
             
-            loss_value = F.mse_loss(value,value_target)
+            loss_value = F.mse_loss(value.squeeze(),value_target)
+            
             loss = loss_policy + loss_value                  
-            print(loss.item())
+            #print(loss.item())
             writer.add_scalar('loss', loss.item(), i)
             writer.add_scalar('loss_value', loss_value.item(), i)
             writer.add_scalar('loss_policy', loss_policy.item(), i)  
@@ -397,3 +402,35 @@ class AlphaZeroAgent(Player):
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
+
+    @classmethod
+    def eval(cls, experience, model, device,epoch):
+        model = model.to(device)
+        model.eval()
+             
+        with torch.no_grad():
+            states,rewards,visit_counts = zip(*random.sample(list(zip(experience.states,experience.rewards,experience.visit_counts)),batch_size))  
+            states = torch.from_numpy(np.array(states)).to(device, dtype=torch.float)
+            rewards = torch.from_numpy(np.array(rewards)).to(device,dtype=torch.float)
+            visit_counts = torch.from_numpy(np.array(visit_counts)).to(device, dtype=torch.float)
+
+            visit_sums = visit_counts.sum(dim=1).view((states.shape[0], 1))
+            action_policy_target = visit_counts.float() / visit_sums.float()
+
+            value_target = rewards
+
+            [action_policy, value] = model(states)
+
+            loss_policy = -F.log_softmax(action_policy, dim=1) * action_policy_target
+            loss_policy = loss_policy.sum(dim=1).mean()
+            
+            loss_value = F.mse_loss(value.squeeze(),value_target)
+            
+            loss = loss_policy + loss_value                          
+
+            #print(loss.item())
+            writer.add_scalar('test_loss', loss.item(),epoch)
+            writer.add_scalar('test_loss_value', loss_value.item(), epoch)
+            writer.add_scalar('test_loss_policy', loss_policy.item(), epoch)  
+
+
