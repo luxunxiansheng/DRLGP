@@ -213,6 +213,7 @@ class AlphaZeroExpericenceBuffer:
     def size(self):
         return self._states.shape[0]
 
+    
 
 class AlphaZeroExperienceCollector:
     def __init__(self):
@@ -364,73 +365,99 @@ class AlphaZeroAgent(Player):
     def predict(self, input_states):
         return self._model(input_states)
 
+    
+    
     @classmethod
     def train(cls, experience, model, learning_rate, batch_size, device, writer):
-        model = model.to(device)
-        model.train()
+        epochs=20000
+        optimizer = optim.SGD(model.parameters(), lr=learning_rate,momentum=0.1)
 
-        optimizer = optim.SGD(model.parameters(), lr=learning_rate)
-
-        epochs= 100000
-
+        combined = list(zip(experience.states, experience.rewards, experience.visit_counts))
+        random.shuffle(combined)
+        trainning_set,validating_set=np.split(np.asarray(combined),[int(0.7 * len(combined))])
+   
         for i in tqdm(range(epochs)):
+            AlphaZeroAgent.train_batch(trainning_set.tolist(), model, optimizer, batch_size, device, i, writer)
             
-            states,rewards,visit_counts = zip(*random.sample(list(zip(experience.states,experience.rewards,experience.visit_counts)),batch_size))  
-           
-            states = torch.from_numpy(np.array(states)).to(device, dtype=torch.float)
-            rewards = torch.from_numpy(np.array(rewards)).to(device,dtype=torch.float)
-            visit_counts = torch.from_numpy(np.array(visit_counts)).to(device, dtype=torch.float)
+            if i%50 ==0:
+                AlphaZeroAgent.eval(validating_set.tolist(), model,batch_size,device,i,writer)
 
-            visit_sums = visit_counts.sum(dim=1).view((states.shape[0], 1))
-            action_policy_target = visit_counts.float() / visit_sums.float()
-
-            value_target = rewards
-
-            [action_policy, value] = model(states)
-
-            loss_policy = -F.log_softmax(action_policy, dim=1) * action_policy_target
-            loss_policy = loss_policy.sum(dim=1).mean()
             
-            loss_value = F.mse_loss(value.squeeze(),value_target)
-            
-            loss = loss_policy + loss_value                  
-            #print(loss.item())
-            writer.add_scalar('loss', loss.item(), i)
-            writer.add_scalar('loss_value', loss_value.item(), i)
-            writer.add_scalar('loss_policy', loss_policy.item(), i)  
-
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-
+    
     @classmethod
-    def eval(cls, experience, model, device,epoch):
+    def train_batch(cls, experience, model, optimizer,batch_size,device, epoch, writer):
+        model.to(device)
+        model.train()
+        
+        states,rewards,visit_counts = zip(*random.sample(experience,batch_size))  
+           
+        states = torch.from_numpy(np.array(states)).to(device, dtype=torch.float)
+        rewards = torch.from_numpy(np.array(rewards)).to(device,dtype=torch.float)
+        visit_counts = torch.from_numpy(np.array(visit_counts)).to(device, dtype=torch.float)
+
+        visit_sums = visit_counts.sum(dim=1).view((states.shape[0], 1))
+        action_policy_target = visit_counts.float() / visit_sums.float()
+
+        value_target = rewards
+
+        [action_policy, value] = model(states)
+
+        loss_policy = -F.log_softmax(action_policy, dim=1) * action_policy_target
+        loss_policy = loss_policy.sum(dim=1).mean()
+            
+        loss_value = F.mse_loss(value.squeeze(),value_target)
+            
+        loss = loss_policy + loss_value                  
+        #print(loss.item())
+        writer.add_scalar('loss', loss.item(),epoch)
+        writer.add_scalar('loss_value', loss_value.item(), epoch)
+        writer.add_scalar('loss_policy', loss_policy.item(), epoch)  
+
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+    
+    
+    @classmethod
+    def eval(cls, experience, model,batch_size, device,epoch,writer):
         model = model.to(device)
         model.eval()
-             
+
+        
+        experience_states, experience_rewards, experience_visit_counts = zip(*experience)
+        experience_states = np.array(experience_states)
+        experience_rewards = np.array(experience_rewards)
+        experience_visit_counts = np.array(experience_visit_counts)
+        
+        num_examples = experience_states.shape[0]
+
+        loss = 0
+        loss_policy = 0
+        loss_value = 0
+          
         with torch.no_grad():
-            states,rewards,visit_counts = zip(*random.sample(list(zip(experience.states,experience.rewards,experience.visit_counts)),batch_size))  
-            states = torch.from_numpy(np.array(states)).to(device, dtype=torch.float)
-            rewards = torch.from_numpy(np.array(rewards)).to(device,dtype=torch.float)
-            visit_counts = torch.from_numpy(np.array(visit_counts)).to(device, dtype=torch.float)
+            for i in tqdm(range(int(num_examples / batch_size))):
 
-            visit_sums = visit_counts.sum(dim=1).view((states.shape[0], 1))
-            action_policy_target = visit_counts.float() / visit_sums.float()
+                states = torch.from_numpy(experience_states[i * batch_size:(i + 1) * batch_size]).to(device, dtype=torch.float)
+                rewards = torch.from_numpy(experience_rewards[i * batch_size:(i + 1) * batch_size]).to(device, dtype=torch.float)
+                visit_counts = torch.from_numpy(experience_visit_counts[i * batch_size:(i + 1) * batch_size]).to(device, dtype=torch.float)
+           
+                visit_sums = visit_counts.sum(dim=1).view((states.shape[0], 1))
+                action_policy_target = visit_counts.float() / visit_sums.float()
 
-            value_target = rewards
+                value_target = rewards
 
-            [action_policy, value] = model(states)
+                [action_policy, value] = model(states)
 
-            loss_policy = -F.log_softmax(action_policy, dim=1) * action_policy_target
-            loss_policy = loss_policy.sum(dim=1).mean()
+                loss_policy += (-F.log_softmax(action_policy, dim=1) * action_policy_target).sum(dim=1).mean().item()
             
-            loss_value = F.mse_loss(value.squeeze(),value_target)
+                loss_value += F.mse_loss(value.squeeze(),value_target).item()
             
-            loss = loss_policy + loss_value                          
+                loss += (loss_policy + loss_value)                          
 
-            #print(loss.item())
-            writer.add_scalar('test_loss', loss.item(),epoch)
-            writer.add_scalar('test_loss_value', loss_value.item(), epoch)
-            writer.add_scalar('test_loss_policy', loss_policy.item(), epoch)  
+                #print(loss.item())
+        writer.add_scalar('test_loss', loss/num_examples,epoch)
+        writer.add_scalar('test_loss_value', loss_value/num_examples, epoch)
+        writer.add_scalar('test_loss_policy', loss_policy/num_examples, epoch)  
 
 
