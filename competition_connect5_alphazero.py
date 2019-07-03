@@ -65,12 +65,13 @@ def main():
         if winner is not None:
             win_counts[winner.id] += 1
        
-        
+    print('New model:old Model {}:{}'.format(win_counts[agent_new.id],win_counts[agent_old.id]))
+
     if win_counts[agent_new.id] / number_of_games > 0.6:
        torch.save(model_new.state_dict(), './archived_model/old/1.pth')
-       print('New model defeat the old one. It Works!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-    else:
-       print('New model failed to defeat the old one.Re-train needed!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+      
+   
+       
       
     
     

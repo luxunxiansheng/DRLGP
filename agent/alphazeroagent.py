@@ -369,7 +369,7 @@ class AlphaZeroAgent(Player):
     
     @classmethod
     def train(cls, experience, model, learning_rate, batch_size, device, writer):
-        epochs=20000
+        epochs=10000
         optimizer = optim.SGD(model.parameters(), lr=learning_rate,momentum=0.1)
 
         combined = list(zip(experience.states, experience.rewards, experience.visit_counts))
@@ -379,7 +379,7 @@ class AlphaZeroAgent(Player):
         for i in tqdm(range(epochs)):
             AlphaZeroAgent.train_batch(trainning_set.tolist(), model, optimizer, batch_size, device, i, writer)
             
-            if i%50 ==0:
+            if i%20 ==0:
                 AlphaZeroAgent.eval(validating_set.tolist(), model,batch_size,device,i,writer)
 
             
