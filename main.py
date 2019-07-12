@@ -17,9 +17,9 @@ from common.utils import Utils
 from game.connect5game import Connect5Game
 
 
-def collect_data(experience_collector_1, experience_collector_2, agent_1, agent_2, board_size, players, game_index, experience_buffer):
-    experience_collector_1.reset_episode()
-    experience_collector_2.reset_episode()
+def collect_data(agent_1, agent_2, board_size, players, game_index, experience_buffer):
+    agent_1.experience_collector.reset_episode()
+    agent_2.experience_collector.reset_episode()
     agent_1.reset_memory()
     agent_2.reset_memory()
 
@@ -32,20 +32,20 @@ def collect_data(experience_collector_1, experience_collector_2, agent_1, agent_
         players[1].experience_collector.complete_episode(reward=1)
         players[0].experience_collector.complete_episode(reward=-1)
 
-    experience_buffer.combine_experience([experience_collector_1, experience_collector_2])
+    experience_buffer.combine_experience([agent_1.experience_collector, agent_2.experience_collector])
 
 
-def train(experience, game_index,model,optimizer,batch_size,epochs,device,writer):
+def train(experience, game_index, model, optimizer, batch_size, epochs, device, writer):
     model.to(device)
     model.train()
-    
-    batch_data =  random.sample(experience.data,batch_size)
-    
+
+    batch_data = random.sample(experience.data, batch_size)
+
     for i in tqdm(range(epochs)):
-        states,rewards,visit_counts = zip(*batch_data)  
-           
+        states, rewards, visit_counts = zip(*batch_data)
+
         states = torch.from_numpy(np.array(list(states))).to(device, dtype=torch.float)
-        rewards = torch.from_numpy(np.array(list(rewards))).to(device,dtype=torch.float)
+        rewards = torch.from_numpy(np.array(list(rewards))).to(device, dtype=torch.float)
         visit_counts = torch.from_numpy(np.array(list(visit_counts))).to(device, dtype=torch.float)
 
         visit_sums = visit_counts.sum(dim=1).view((states.shape[0], 1))
@@ -57,20 +57,19 @@ def train(experience, game_index,model,optimizer,batch_size,epochs,device,writer
 
         loss_policy = -F.log_softmax(action_policy, dim=1) * action_policy_target
         loss_policy = loss_policy.sum(dim=1).mean()
-            
-        loss_value = F.mse_loss(value.squeeze(),value_target)
-            
-        loss = loss_policy + loss_value                  
-        #print(loss.item())
-        writer.add_scalar('loss', loss.item(),game_index)
+
+        loss_value = F.mse_loss(value.squeeze(), value_target)
+
+        loss = loss_policy + loss_value
+        # print(loss.item())
+        writer.add_scalar('loss', loss.item(), game_index)
         writer.add_scalar('loss_value', loss_value.item(), game_index)
-        writer.add_scalar('loss_policy', loss_policy.item(), game_index)  
+        writer.add_scalar('loss_policy', loss_policy.item(), game_index)
 
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        
- 
+
 
 def main():
     cfg = Utils.config()
@@ -80,13 +79,15 @@ def main():
 
     number_of_planes = cfg['GAME'].getint('number_of_planes')
     board_size = cfg['GAME'].getint('board_size')
-    round_per_moves = cfg['GAME'].getint('round_per_moves')
+
     number_of_games = cfg['TRAIN'].getint('number_of_games')
     buffer_size = cfg['TRAIN'].getint('buffer_size')
     learning_rate = cfg['TRAIN'].getfloat('learning_rate')
     batch_size = cfg['TRAIN'].getint('batch_size')
     momentum_ = cfg['TRAIN'].getfloat('momentum')
-    epochs = cfg['TRAIN'].getfloat('epochs')
+    epochs = cfg['TRAIN'].getint('epochs')
+
+    round_per_moves = cfg['MCTS'].getint('round_per_moves')
 
     encoder = MultiplePlaneEncoder(number_of_planes, board_size)
 
@@ -94,7 +95,6 @@ def main():
 
     input_shape = (number_of_planes, board_size, board_size)
     model = Connect5Network(input_shape, board_size * board_size)
- 
 
     experience_collector_1 = AlphaZeroExperienceCollector()
     experience_collector_2 = AlphaZeroExperienceCollector()
@@ -105,17 +105,15 @@ def main():
 
     experience_buffer = AlphaZeroExpericenceBuffer(buffer_size)
 
-    optimizer = optim.SGD(model.parameters(), lr=learning_rate,momentum=momentum_)
+    optimizer = optim.SGD(model.parameters(), lr=learning_rate, momentum=momentum_)
 
     for game_index in tqdm(range(1, number_of_games)):
 
         # collect data via self-playing
-        collect_data(experience_collector_1, experience_collector_2, agent_1, agent_2, board_size, players, game_index, experience_buffer)
+        collect_data(agent_1, agent_2, board_size, players, game_index, experience_buffer)
 
         # update the policy with SGD
-        train(experience_buffer,game_index,model,optimizer,batch_size,epochs,the_device, writer)
-
-
+        train(experience_buffer, game_index, model, optimizer, batch_size, epochs, the_device, writer)
 
 
 if __name__ == '__main__':
