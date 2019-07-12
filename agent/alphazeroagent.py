@@ -178,40 +178,23 @@ class MultiplePlaneEncoder(Encoder):
 
 
 class AlphaZeroExpericenceBuffer:
-    def __init__(self, states, rewards, visit_counts):
-        self._states = states
-        self._rewards = rewards
-        self._visit_counts = visit_counts
+    def __init__(self,compacity):
+        self._data = deque(maxlen=compacity)
 
-    @property
-    def states(self):
-        return self._states
+    @property 
+    def data(self):
+        return self._data
 
-    @property
-    def visit_counts(self):
-        return self._visit_counts
-
-    @property
-    def rewards(self):
-        return self._rewards
-
-    def serialize(self, path):
-        torch.save({'states': self._states, 'rewards': self._rewards, 'visit_counts': self._visit_counts}, path)
-
-    @classmethod
-    def deserialize(cls, path):
-        saved = torch.load(path)
-        return AlphaZeroExpericenceBuffer(saved['states'], saved['rewards'], saved['visit_counts'])
-
-    @staticmethod
-    def combine_experience(collectors):
+    def combine_experience(self,collectors):
         combined_states = np.concatenate([np.array(c.states) for c in collectors])
         combined_rewards = np.concatenate([np.array(c.rewards) for c in collectors])
         combined_visit_counts = np.concatenate([np.array(c.visit_counts) for c in collectors])
-        return AlphaZeroExpericenceBuffer(combined_states, combined_rewards, combined_visit_counts)
+
+        zipped_data= zip(combined_states,combined_rewards,combined_visit_counts)
+        self._data.extend(zipped_data)
 
     def size(self):
-        return self._states.shape[0]
+        return len(self._data)
 
     
 
@@ -367,55 +350,7 @@ class AlphaZeroAgent(Player):
 
     
     
-    @classmethod
-    def train(cls, experience, model, learning_rate, batch_size, device, writer):
-        epochs=10000
-        optimizer = optim.SGD(model.parameters(), lr=learning_rate,momentum=0.1)
-
-        combined = list(zip(experience.states, experience.rewards, experience.visit_counts))
-        random.shuffle(combined)
-        trainning_set,validating_set=np.split(np.asarray(combined),[int(0.7 * len(combined))])
-   
-        for i in tqdm(range(epochs)):
-            AlphaZeroAgent.train_batch(trainning_set.tolist(), model, optimizer, batch_size, device, i, writer)
-            
-            if i%20 ==0:
-                AlphaZeroAgent.eval(validating_set.tolist(), model,batch_size,device,i,writer)
-
-            
     
-    @classmethod
-    def train_batch(cls, experience, model, optimizer,batch_size,device, epoch, writer):
-        model.to(device)
-        model.train()
-        
-        states,rewards,visit_counts = zip(*random.sample(experience,batch_size))  
-           
-        states = torch.from_numpy(np.array(states)).to(device, dtype=torch.float)
-        rewards = torch.from_numpy(np.array(rewards)).to(device,dtype=torch.float)
-        visit_counts = torch.from_numpy(np.array(visit_counts)).to(device, dtype=torch.float)
-
-        visit_sums = visit_counts.sum(dim=1).view((states.shape[0], 1))
-        action_policy_target = visit_counts.float() / visit_sums.float()
-
-        value_target = rewards
-
-        [action_policy, value] = model(states)
-
-        loss_policy = -F.log_softmax(action_policy, dim=1) * action_policy_target
-        loss_policy = loss_policy.sum(dim=1).mean()
-            
-        loss_value = F.mse_loss(value.squeeze(),value_target)
-            
-        loss = loss_policy + loss_value                  
-        #print(loss.item())
-        writer.add_scalar('loss', loss.item(),epoch)
-        writer.add_scalar('loss_value', loss_value.item(), epoch)
-        writer.add_scalar('loss_policy', loss_policy.item(), epoch)  
-
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
     
     
     @classmethod

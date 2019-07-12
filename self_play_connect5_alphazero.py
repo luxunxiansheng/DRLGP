@@ -23,7 +23,7 @@ def main():
    
     number_of_planes = 10
     board_size   =  9 
-    round_per_moves =100
+    round_per_moves =300
    
     encoder = MultiplePlaneEncoder(number_of_planes,board_size)
 

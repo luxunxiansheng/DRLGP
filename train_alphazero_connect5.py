@@ -31,7 +31,7 @@ def main():
     #model.load_state_dict(torch.load('./archived_model/old/1.pth'))
     
 
-    combined_experiences = AlphaZeroExpericenceBuffer.deserialize('./connect5data/1.pth')
+    combined_experiences = AlphaZeroExpericenceBuffer.deserialize('./connect5data/1000.pth')
 
     writer = SummaryWriter()
 
