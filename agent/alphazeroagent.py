@@ -271,7 +271,7 @@ class AlphaZeroAgent(Player):
         self._experience_collector.reset_episode() 
    
         
-
+    
     def store_game_state(self,game_state):
         self._game_state_memory.push(game_state.board)
     
