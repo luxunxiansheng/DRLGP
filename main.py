@@ -32,6 +32,8 @@ def collect_data(agent_1, agent_2, board_size, players, game_index, experience_b
 
     experience_buffer.combine_experience([agent_1.experience_collector, agent_2.experience_collector])
 
+    print('Experience buffer is {}'.format(experience_buffer.size()))
+
 
 def improve_policy(experience, game_index, model, optimizer, batch_size, epochs, kl_threshold,device, writer):
    
