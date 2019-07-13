@@ -265,10 +265,12 @@ class AlphaZeroAgent(Player):
         self._num_rounds = num_rounds
         self._experience_collector = experience_collector
         self._game_state_memory = Game_State_Memory(10)
-        
 
-    def reset_memory(self):
+    def reset(self):
         self._game_state_memory.clear()
+        self._experience_collector.reset_episode() 
+   
+        
 
     def store_game_state(self,game_state):
         self._game_state_memory.push(game_state.board)

@@ -18,11 +18,9 @@ from game.connect5game import Connect5Game
 
 
 def collect_data(agent_1, agent_2, board_size, players, game_index, experience_buffer):
-    agent_1.experience_collector.reset_episode()
-    agent_2.experience_collector.reset_episode()
-    agent_1.reset_memory()
-    agent_2.reset_memory()
-
+    agent_1.reset()
+    agent_2.reset()
+    
     winner = Connect5Game.run_episode(board_size, players, players[0 if game_index % 2 == 0 else 1], True)
 
     if winner == players[0]:
@@ -35,9 +33,13 @@ def collect_data(agent_1, agent_2, board_size, players, game_index, experience_b
     experience_buffer.combine_experience([agent_1.experience_collector, agent_2.experience_collector])
 
 
-def train(experience, game_index, model, optimizer, batch_size, epochs, device, writer):
+def improve_policy(experience, game_index, model, optimizer, batch_size, epochs, kl_threshold,device, writer):
+      
+    
     model.to(device)
     model.train()
+    
+
 
     batch_data = random.sample(experience.data, batch_size)
 
@@ -47,30 +49,40 @@ def train(experience, game_index, model, optimizer, batch_size, epochs, device, 
         states = torch.from_numpy(np.array(list(states))).to(device, dtype=torch.float)
         rewards = torch.from_numpy(np.array(list(rewards))).to(device, dtype=torch.float)
         visit_counts = torch.from_numpy(np.array(list(visit_counts))).to(device, dtype=torch.float)
-
+   
+        
         visit_sums = visit_counts.sum(dim=1).view((states.shape[0], 1))
         action_policy_target = visit_counts.float() / visit_sums.float()
-
         value_target = rewards
 
         [action_policy, value] = model(states)
 
-        loss_policy = -F.log_softmax(action_policy, dim=1) * action_policy_target
+        log_policy = F.log_softmax(action_policy, dim=1)
+        loss_policy = - log_policy * action_policy_target
         loss_policy = loss_policy.sum(dim=1).mean()
 
         loss_value = F.mse_loss(value.squeeze(), value_target)
 
         loss = loss_policy + loss_value
-        # print(loss.item())
+        
+        entroy = -torch.mean(torch.sum(log_policy*torch.exp(log_policy),dim=1))
+
         writer.add_scalar('loss', loss.item(), game_index)
         writer.add_scalar('loss_value', loss_value.item(), game_index)
         writer.add_scalar('loss_policy', loss_policy.item(), game_index)
+        writer.add_scalar('entroy', entroy.item(), game_index)
 
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
 
-
+        [updated_action_policy, updated_value] = model(states)
+        kl = np.mean(np.sum(action_policy * (np.log(action_policy + 1e-10)-np.log(updated_action_policy+1e-10)),axis=1))
+        
+        if kl > kl_threshold * 4:
+            break 
+        
+        
 def main():
     cfg = Utils.config()
 
@@ -86,6 +98,7 @@ def main():
     batch_size = cfg['TRAIN'].getint('batch_size')
     momentum_ = cfg['TRAIN'].getfloat('momentum')
     epochs = cfg['TRAIN'].getint('epochs')
+    kl_threshold = cfg['TRAIN'].getfloat('kl_threshold')
 
     round_per_moves = cfg['MCTS'].getint('round_per_moves')
 
@@ -112,8 +125,9 @@ def main():
         # collect data via self-playing
         collect_data(agent_1, agent_2, board_size, players, game_index, experience_buffer)
 
-        # update the policy with SGD
-        train(experience_buffer, game_index, model, optimizer, batch_size, epochs, the_device, writer)
+        if experience_buffer.size > batch_size:
+           # update the policy with SGD
+           improve_policy(experience_buffer, game_index, model, optimizer, batch_size, epochs,kl_threshold,the_device, writer)
 
 
 if __name__ == '__main__':
