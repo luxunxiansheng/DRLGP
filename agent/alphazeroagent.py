@@ -350,51 +350,6 @@ class AlphaZeroAgent(Player):
     def predict(self, input_states):
         return self._model(input_states)
 
-    
-    
-    
-    
-    
-    @classmethod
-    def eval(cls, experience, model,batch_size, device,epoch,writer):
-        model = model.to(device)
-        model.eval()
-
         
-        experience_states, experience_rewards, experience_visit_counts = zip(*experience)
-        experience_states = np.array(experience_states)
-        experience_rewards = np.array(experience_rewards)
-        experience_visit_counts = np.array(experience_visit_counts)
-        
-        num_examples = experience_states.shape[0]
-
-        loss = 0
-        loss_policy = 0
-        loss_value = 0
-          
-        with torch.no_grad():
-            for i in tqdm(range(int(num_examples / batch_size))):
-
-                states = torch.from_numpy(experience_states[i * batch_size:(i + 1) * batch_size]).to(device, dtype=torch.float)
-                rewards = torch.from_numpy(experience_rewards[i * batch_size:(i + 1) * batch_size]).to(device, dtype=torch.float)
-                visit_counts = torch.from_numpy(experience_visit_counts[i * batch_size:(i + 1) * batch_size]).to(device, dtype=torch.float)
-           
-                visit_sums = visit_counts.sum(dim=1).view((states.shape[0], 1))
-                action_policy_target = visit_counts.float() / visit_sums.float()
-
-                value_target = rewards
-
-                [action_policy, value] = model(states)
-
-                loss_policy += (-F.log_softmax(action_policy, dim=1) * action_policy_target).sum(dim=1).mean().item()
-            
-                loss_value += F.mse_loss(value.squeeze(),value_target).item()
-            
-                loss += (loss_policy + loss_value)                          
-
-                #print(loss.item())
-        writer.add_scalar('test_loss', loss/num_examples,epoch)
-        writer.add_scalar('test_loss_value', loss_value/num_examples, epoch)
-        writer.add_scalar('test_loss_policy', loss_policy/num_examples, epoch)  
-
+    
 

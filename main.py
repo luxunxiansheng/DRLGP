@@ -34,12 +34,11 @@ def collect_data(agent_1, agent_2, board_size, players, game_index, experience_b
 
 
 def improve_policy(experience, game_index, model, optimizer, batch_size, epochs, kl_threshold,device, writer):
-      
+   
     
     model.to(device)
     model.train()
-    
-
+   
 
     batch_data = random.sample(experience.data, batch_size)
 
@@ -65,7 +64,8 @@ def improve_policy(experience, game_index, model, optimizer, batch_size, epochs,
 
         loss = loss_policy + loss_value
         
-        entroy = -torch.mean(torch.sum(log_policy*torch.exp(log_policy),dim=1))
+        with torch.no_grad():
+            entroy = -torch.mean(torch.sum(log_policy*torch.exp(log_policy),dim=1))
 
         writer.add_scalar('loss', loss.item(), game_index)
         writer.add_scalar('loss_value', loss_value.item(), game_index)
@@ -76,10 +76,12 @@ def improve_policy(experience, game_index, model, optimizer, batch_size, epochs,
         loss.backward()
         optimizer.step()
 
+               
         [updated_action_policy, updated_value] = model(states)
-        kl = np.mean(np.sum(action_policy * (np.log(action_policy + 1e-10)-np.log(updated_action_policy+1e-10)),axis=1))
-        
-        if kl > kl_threshold * 4:
+        kl = F.kl_div(action_policy, updated_action_policy)
+       
+         
+        if kl.item() > kl_threshold * 4:
             break 
         
         
@@ -125,7 +127,7 @@ def main():
         # collect data via self-playing
         collect_data(agent_1, agent_2, board_size, players, game_index, experience_buffer)
 
-        if experience_buffer.size > batch_size:
+        if experience_buffer.size() > batch_size:
            # update the policy with SGD
            improve_policy(experience_buffer, game_index, model, optimizer, batch_size, epochs,kl_threshold,the_device, writer)
 
