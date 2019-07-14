@@ -50,16 +50,14 @@ def improve_policy(experience, game_index, model, optimizer, batch_size, epochs,
         states = torch.from_numpy(np.array(list(states))).to(device, dtype=torch.float)
         rewards = torch.from_numpy(np.array(list(rewards))).to(device, dtype=torch.float)
         visit_counts = torch.from_numpy(np.array(list(visit_counts))).to(device, dtype=torch.float)
-   
         
-        visit_sums = visit_counts.sum(dim=1).view((states.shape[0], 1))
-        action_policy_target = visit_counts.float() / visit_sums.float()
+        action_policy_target = F.softmax(visit_counts,dim=1)
         value_target = rewards
 
         [action_policy, value] = model(states)
 
-        log_policy = F.log_softmax(action_policy, dim=1)
-        loss_policy = - log_policy * action_policy_target
+        log_action_policy = torch.log(action_policy)
+        loss_policy = - log_action_policy * action_policy_target
         loss_policy = loss_policy.sum(dim=1).mean()
 
         loss_value = F.mse_loss(value.squeeze(), value_target)
@@ -67,7 +65,7 @@ def improve_policy(experience, game_index, model, optimizer, batch_size, epochs,
         loss = loss_policy + loss_value
         
         with torch.no_grad():
-            entroy = -torch.mean(torch.sum(log_policy*F.softmax(action_policy,dim=1),dim=1))
+            entroy = -torch.mean(torch.sum(log_action_policy*action_policy,dim=1))
 
         writer.add_scalar('loss', loss.item(), game_index)
         writer.add_scalar('loss_value', loss_value.item(), game_index)
@@ -79,7 +77,7 @@ def improve_policy(experience, game_index, model, optimizer, batch_size, epochs,
         optimizer.step()
 
                
-        [updated_action_policy, updated_value] = model(states)
+        [updated_action_policy, _] = model(states)
         kl = F.kl_div(action_policy, updated_action_policy)
        
          
@@ -107,6 +105,7 @@ def evaluate_plicy(board_size,model,encoder,evaluate_number_of_games,basic_mcts_
     return win_counts[az_agent.id]/evaluate_number_of_games
         
 def main():
+            
     cfg = Utils.config()
     number_of_planes = cfg['GAME'].getint('number_of_planes')
     board_size = cfg['GAME'].getint('board_size')

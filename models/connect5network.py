@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 NUM_FILTERS = 64
 
@@ -98,4 +99,5 @@ class Connect5Network(nn.Module):
         
         policy = self._conv_policy(v)
         policy = self._policy_out(policy.view(batch_size, -1))
+        policy = F.softmax(policy,dim=1)
         return policy, value
