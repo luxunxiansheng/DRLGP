@@ -20,11 +20,15 @@ from common.point import Point
 
 
 class Branch:
-    def __init__(self, move, prior):
+    def __init__(self, parent_node,move,prior):
         self._move = move
-        self._prior = prior
-        self._visit_count = 0
         self._total_value = 0.0
+        
+        self._prior = prior
+        self._visit_counts = 0
+
+        self._parent_node  = parent_node
+        self._child_node = None
 
     @property
     def move(self):
@@ -43,24 +47,36 @@ class Branch:
         self._total_value = value
 
     @property
-    def visit_count(self):
-        return self._visit_count
+    def visit_counts(self):
+        return self._visit_counts
 
-    @visit_count.setter
-    def visit_count(self, value):
-        self._visit_count = value
+    @visit_counts.setter
+    def visit_counts(self, value):
+        self._visit_counts = value
 
+    @property
+    def parent_node(self):
+        return self._parent_node
+
+    @property
+    def child_node(self):
+        return self._child_node    
+   
+    @child_node.setter
+    def child_node(self, node):
+        self._child_node = node
+        
+    
 
 class Node:
-      
-    def __init__(self, game_state, game_state_value, children_branch, parent_branch, parent_node,temperature=0.8):
+    def __init__(self, game_state, game_state_value,parent_branch,temperature=0.8):
         self._game_state = game_state
         self._game_state_value = game_state_value
-        self._parent_node = parent_node
+        self._total_visit_counts = 1
+
         self._parent_branch = parent_branch
-        self._total_visit_count = 1
-        self._children_branch = children_branch
-        self._children_node = {}
+        self._children_branch = None
+       
         self._temperature = temperature
 
     @property
@@ -72,10 +88,6 @@ class Node:
         return self._parent_branch
 
     @property
-    def parent_node(self):
-        return self._parent_node
-
-    @property
     def game_state_value(self):
         return self._game_state_value
     
@@ -83,52 +95,51 @@ class Node:
     def temperature(self):
         return self._temperature
 
+
+    @property
     def children_branch(self):
         return self._children_branch.keys()
 
-    def add_child_node(self, point, child_node):
-        self._children_node[point] = child_node
-
-    def has_child_node(self, point):
-        return point in self._children_node
-
-    def get_child_node(self, point):
-        return self._children_node[point]
+    @children_branch.setter
+    def children_branch(self, value):
+        self._children_branch = value   
 
     def expected_value_of_branch(self, point):
         branch = self._children_branch[point]
-        if branch.visit_count == 0:
+        if branch.visit_counts == 0:
             return 0.0
-        return branch.total_value/branch.visit_count
+        return branch.total_value/branch.visit_counts
 
     def prior_of_branch(self, point):
         return self._children_branch[point].prior
 
-    def visit_count_of_branch(self, point):
+    def visit_counts_of_branch(self, point):
         if point in self._children_branch:
-            return self._children_branch[point].visit_count
+            return self._children_branch[point].visit_counts
         return 0
+       
 
     def record_visit(self, point, value):
-        self._total_visit_count += 1
-        self._children_branch[point].visit_count += 1
+        self._total_visit_counts += 1
+        self._children_branch[point].visit_counts += 1
         self._children_branch[point].total_value += value
 
     def select_branch(self, is_root=False,is_selfplay=True):
-        if not self.children_branch():
+        if not self.children_branch:    # no free points to move 
             return None
-        
-        points = [point for point in self.children_branch()]
-        Qs = [self.expected_value_of_branch(point) for point in self.children_branch()]
-        Ps = [self.prior_of_branch(point) for point in self.children_branch()]
-        Ns = [self.visit_count_of_branch(point) for point in self.children_branch()]
+                
+        Qs = [self.expected_value_of_branch(point) for point in self.children_branch]
+        Ps = [self.prior_of_branch(point) for point in self.children_branch]
+        Ns = [self.visit_counts_of_branch(point) for point in self.children_branch]
 
         if is_root and is_selfplay:
-            noises = np.random.dirichlet([0.03] * len(self.children_branch()))
+            noises = np.random.dirichlet([0.03] * len(self.children_branch))
             Ps = [0.75*p+0.25*noise for p, noise in zip(Ps, noises)]
 
-        scores = [(q + self._temperature * p * np.sqrt(self._total_visit_count) / (n + 1)).item() for q, p, n in zip(Qs, Ps, Ns)]
+        scores = [(q + self._temperature * p * np.sqrt(self._total_visit_counts) / (n + 1)).item() for q, p, n in zip(Qs, Ps, Ns)]
         best_point_index = np.argmax(scores)
+
+        points = list(self.children_branch)
         return self._children_branch[points[best_point_index]]
 
 
@@ -198,8 +209,7 @@ class AlphaZeroExpericenceBuffer:
 
     def size(self):
         return len(self._data)
-
-    
+   
 
 class AlphaZeroExperienceCollector:
     def __init__(self):
@@ -259,7 +269,6 @@ class Game_State_Memory:
 
 
 class AlphaZeroAgent(Player):
-
     def __init__(self, id, name, mark, encoder, model, num_rounds,temperature,experience_collector=None, device='cpu'):
         super().__init__(id, name, mark)
         self._encoder = encoder
@@ -274,13 +283,10 @@ class AlphaZeroAgent(Player):
         self._game_state_memory.clear()
         if self._experience_collector is not None:
             self._experience_collector.reset_episode() 
-   
-        
     
     def store_game_state(self,game_state):
         self._game_state_memory.push(game_state.board)
-    
-    
+   
     @property
     def experience_collector(self):
         return self._experience_collector
@@ -288,25 +294,26 @@ class AlphaZeroAgent(Player):
     @property
     def temperature(self):
         return self._temperature
-    
 
     def set_experience_collector(self, experience_collector):
         self._experience_collector = experience_collector
 
-    def create_node(self, game_state, estimated_branch_priors, estimated_state_value,parent_branch=None, parent_node=None):
+    def create_node(self, game_state, estimated_branch_priors,estimated_state_value,parent_branch=None):
+       
+        new_node = Node(game_state, estimated_state_value,parent_branch,self._temperature)
+               
         chiildren_branch = {}
         for idx, p in enumerate(estimated_branch_priors):
             point = self._encoder.decode_point_index(idx)
             if game_state.board.is_free_point(point):
-                chiildren_branch[point] = Branch(Move(point), p)
-
-        new_node = Node(game_state, estimated_state_value, chiildren_branch, parent_branch, parent_node,self._temperature)
-        if parent_node is not None:
-            parent_node.add_child_node(parent_branch.move.point, new_node)
+                chiildren_branch[point] = Branch(new_node,Move(point), p)
+        
+        new_node.children_branch= chiildren_branch
+                
         return new_node
       
 
-    def select_move(self, game, game_state):
+    def select_move(self, game, game_state):  # it is guaranteed that it is not the final game state anyway
         self.store_game_state(game_state)
         root_board_matrix = self._encoder.encode(self._game_state_memory.game_states)
         model_input = torch.from_numpy(root_board_matrix).unsqueeze(0).to(self._device, dtype=torch.float)
@@ -321,41 +328,35 @@ class AlphaZeroAgent(Player):
             next_branch = node.select_branch(is_root=True,is_selfplay=game.is_selfplay)
             assert next_branch is not None
 
-            while next_branch is not None and node.has_child_node(next_branch.move.point):
-                node = node.get_child_node(next_branch.move.point)
-                game_state_memory.push(node.game_state.board)
-                next_branch = node.select_branch(is_root=False,is_selfplay=game.is_selfplay)
-
-            if next_branch is not None:               
-                # expand
-                new_state = game.look_ahead_next_move(node.game_state, next_branch.move)
-                game_state_memory.push(new_state.board)
-
-                parent_branch = next_branch
-                parent_node = node
-
-                temp_board_matrix = self._encoder.encode(game_state_memory.game_states)
-                model_input = torch.from_numpy(temp_board_matrix).unsqueeze(0).to(self._device, dtype=torch.float)
-                estimated_branch_priors, estimated_state_value = self.predict(model_input)
-                node = self.create_node(new_state, estimated_branch_priors[0], estimated_state_value[0].item(),parent_branch, parent_node)
-            else:
-                parent_branch = node.parent_branch
-                parent_node = node.parent_node
-                
+            while next_branch is not None:
+                if next_branch.child_node is not None:
+                    node = next_branch.child_node
+                    game_state_memory.push(node.game_state.board)
+                    next_branch = node.select_branch(is_root=False, is_selfplay=game.is_selfplay)    
+                else:
+                    # expand
+                    new_state = game.look_ahead_next_move(node.game_state, next_branch.move)
+                    temp_board_matrix = self._encoder.encode(game_state_memory.game_states)
+                    model_input = torch.from_numpy(temp_board_matrix).unsqueeze(0).to(self._device, dtype=torch.float)
+                    estimated_branch_priors, estimated_state_value = self.predict(model_input)
+                    node = self.create_node(new_state, estimated_branch_priors[0], estimated_state_value[0].item(), next_branch)
+                    game_state_memory.push(node.game_state.board)
+                    next_branch = None
+                   
             # backup
             value = -1 * node.game_state_value
                         
-            while parent_node is not None:
-                parent_node.record_visit(parent_branch.move.point, value)
-                parent_branch = parent_node.parent_branch
-                parent_node = parent_node.parent_node
+            while parent_branch is not None:
+                parent_branch.parent_node.record_visit(parent_branch.move.point, value)
+                parent_branch = parent_branch.parent_node.parent_branch
                 value = -1 * value
 
-        visit_counts = np.array([root.visit_count_of_branch(self._encoder.decode_point_index(idx)) for idx in range(self._encoder.num_points())])
+        visit_counts = np.array([root.visit_counts_of_branch(self._encoder.decode_point_index(idx)) for idx in range(self._encoder.num_points())])
+        
         if self._experience_collector is not None:
             self._experience_collector.record_decision(root_board_matrix, visit_counts)
 
-        return Move(max(root.children_branch(), key=root.visit_count_of_branch))
+        return Move(max(root.children_branch, key=root.visit_counts_of_branch))
 
     def predict(self, input_states):
         return self._model(input_states)
