@@ -260,8 +260,8 @@ class AlphaZeroAgent(Player):
     def __init__(self, id, name, mark, encoder, model, num_rounds, experience_collector=None, device='cpu'):
         super().__init__(id, name, mark)
         self._encoder = encoder
-        self._device = device
-        self._model = model.to(device)
+        self._device =  device
+        self._model =   model
         self._num_rounds = num_rounds
         self._experience_collector = experience_collector
         self._game_state_memory = Game_State_Memory(10)
