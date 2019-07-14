@@ -52,10 +52,8 @@ class Branch:
 
 
 class Node:
-    
-    temperature = 0.8
-    
-    def __init__(self, game_state, game_state_value, children_branch, parent_branch, parent_node):
+      
+    def __init__(self, game_state, game_state_value, children_branch, parent_branch, parent_node,temperature=0.8):
         self._game_state = game_state
         self._game_state_value = game_state_value
         self._parent_node = parent_node
@@ -63,6 +61,7 @@ class Node:
         self._total_visit_count = 1
         self._children_branch = children_branch
         self._children_node = {}
+        self._temperature = temperature
 
     @property
     def game_state(self):
@@ -79,6 +78,10 @@ class Node:
     @property
     def game_state_value(self):
         return self._game_state_value
+    
+    @property
+    def temperature(self):
+        return self._temperature
 
     def children_branch(self):
         return self._children_branch.keys()
@@ -124,7 +127,7 @@ class Node:
             noises = np.random.dirichlet([0.03] * len(self.children_branch()))
             Ps = [0.75*p+0.25*noise for p, noise in zip(Ps, noises)]
 
-        scores = [(q + Node.temperature * p * np.sqrt(self._total_visit_count) / (n + 1)).item() for q, p, n in zip(Qs, Ps, Ns)]
+        scores = [(q + self._temperature * p * np.sqrt(self._total_visit_count) / (n + 1)).item() for q, p, n in zip(Qs, Ps, Ns)]
         best_point_index = np.argmax(scores)
         return self._children_branch[points[best_point_index]]
 
@@ -257,7 +260,7 @@ class Game_State_Memory:
 
 class AlphaZeroAgent(Player):
 
-    def __init__(self, id, name, mark, encoder, model, num_rounds, experience_collector=None, device='cpu'):
+    def __init__(self, id, name, mark, encoder, model, num_rounds,temperature,experience_collector=None, device='cpu'):
         super().__init__(id, name, mark)
         self._encoder = encoder
         self._device =  device
@@ -265,6 +268,7 @@ class AlphaZeroAgent(Player):
         self._num_rounds = num_rounds
         self._experience_collector = experience_collector
         self._game_state_memory = Game_State_Memory(10)
+        self._temperature = temperature
 
     def reset(self):
         self._game_state_memory.clear()
@@ -281,17 +285,22 @@ class AlphaZeroAgent(Player):
     def experience_collector(self):
         return self._experience_collector
 
+    @property
+    def temperature(self):
+        return self._temperature
+    
+
     def set_experience_collector(self, experience_collector):
         self._experience_collector = experience_collector
 
-    def create_node(self, game_state, estimated_branch_priors, estimated_state_value, parent_branch=None, parent_node=None):
+    def create_node(self, game_state, estimated_branch_priors, estimated_state_value,parent_branch=None, parent_node=None):
         chiildren_branch = {}
         for idx, p in enumerate(estimated_branch_priors):
             point = self._encoder.decode_point_index(idx)
             if game_state.board.is_free_point(point):
                 chiildren_branch[point] = Branch(Move(point), p)
 
-        new_node = Node(game_state, estimated_state_value, chiildren_branch, parent_branch, parent_node)
+        new_node = Node(game_state, estimated_state_value, chiildren_branch, parent_branch, parent_node,self._temperature)
         if parent_node is not None:
             parent_node.add_child_node(parent_branch.move.point, new_node)
         return new_node
@@ -328,7 +337,7 @@ class AlphaZeroAgent(Player):
                 temp_board_matrix = self._encoder.encode(game_state_memory.game_states)
                 model_input = torch.from_numpy(temp_board_matrix).unsqueeze(0).to(self._device, dtype=torch.float)
                 estimated_branch_priors, estimated_state_value = self.predict(model_input)
-                node = self.create_node(new_state, estimated_branch_priors[0], estimated_state_value[0].item(), parent_branch, parent_node)
+                node = self.create_node(new_state, estimated_branch_priors[0], estimated_state_value[0].item(),parent_branch, parent_node)
             else:
                 parent_branch = node.parent_branch
                 parent_node = node.parent_node

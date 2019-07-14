@@ -87,18 +87,16 @@ def improve_policy(experience, game_index, model, optimizer, batch_size, epochs,
             break 
 
 
-def evaluate_plicy(board_size,model,encoder,basic_mcts_round_per_moves,az_mcts_round_per_moves,basic_mcts_temperature,the_device):
+def evaluate_plicy(board_size,model,encoder,evaluate_number_of_games,basic_mcts_round_per_moves,az_mcts_round_per_moves,basic_mcts_temperature,az_mcts_temperature,the_device):
     mcts_agent = MCTSAgent(0,"MCTSAgent","O",basic_mcts_round_per_moves,basic_mcts_temperature)
-    az_agent   = AlphaZeroAgent(1, "AZAent", "X", encoder, model, az_mcts_round_per_moves,device=the_device)
-
-    number_of_games = 100    
+    az_agent   = AlphaZeroAgent(1, "AZAent", "X", encoder, model, az_mcts_round_per_moves,az_mcts_temperature,device=the_device)
     
     win_counts = {
         mcts_agent.id: 0,
         az_agent.id: 0,
     }
 
-    for game_index in tqdm(range(number_of_games)):
+    for game_index in tqdm(range(evaluate_number_of_games)):
         az_agent.reset()
         players = [mcts_agent, az_agent]
         winner=Connect5Game.run_episode(board_size,players,players[0 if game_index%2== 0 else 1],is_self_play=False)
@@ -106,14 +104,20 @@ def evaluate_plicy(board_size,model,encoder,basic_mcts_round_per_moves,az_mcts_r
         if winner is not None:
             win_counts[winner.id] += 1
         
-    return win_counts[az_agent.id]/number_of_games
+    return win_counts[az_agent.id]/evaluate_number_of_games
         
 def main():
     cfg = Utils.config()
     number_of_planes = cfg['GAME'].getint('number_of_planes')
     board_size = cfg['GAME'].getint('board_size')
 
-    number_of_games = cfg['TRAIN'].getint('number_of_games')
+    az_mcts_round_per_moves = cfg['AZ_MCTS'].getint('round_per_moves')
+    az_mcts_temperature  = cfg['AZ_MCTS'].getfloat('temperature')
+
+    basic_mcts_temperature = cfg['BASIC_MCTS'].getfloat('temperature')
+    basic_mcts_round_per_moves = cfg['BASIC_MCTS'].getint('round_per_moves')
+
+    train_number_of_games = cfg['TRAIN'].getint('number_of_games')
     buffer_size = cfg['TRAIN'].getint('buffer_size')
     learning_rate = cfg['TRAIN'].getfloat('learning_rate')
     batch_size = cfg['TRAIN'].getint('batch_size')
@@ -122,10 +126,11 @@ def main():
     kl_threshold = cfg['TRAIN'].getfloat('kl_threshold')
     check_frequence = cfg['TRAIN'].getint('check_frequence')
     resume = cfg['TRAIN'].getboolean('resume')
+    current_model_file = cfg['TRAIN'].get('current_model_file')
+    best_model_file = cfg['TRAIN'].get('best_model_file')
 
-    az_mcts_round_per_moves = cfg['AZ_MCTS'].getint('round_per_moves')
+    evaluate_number_of_games=cfg['EVALUATE'].getint('number_of_games')
 
-    basic_mcts_temperature= cfg['BASIC_MCTS'].getfloat('round_per_moves')
     
     use_cuda = torch.cuda.is_available()
     the_device = torch.device('cuda' if use_cuda else 'cpu')
@@ -139,12 +144,12 @@ def main():
     model = Connect5Network(input_shape, board_size * board_size)
     
     if resume:
-        model.load_state_dict(torch.load('./current_policy.model')) 
+        model.load_state_dict(torch.load(current_model_file)) 
     
     model.to(the_device)
     
-    agent_1 = AlphaZeroAgent(1, "Agent1", "O", encoder, model, az_mcts_round_per_moves, experience_collector_1, device=the_device)
-    agent_2 = AlphaZeroAgent(2, "Agent2", "X", encoder, model, az_mcts_round_per_moves, experience_collector_2, device=the_device)
+    agent_1 = AlphaZeroAgent(1, "Agent1", "O", encoder, model, az_mcts_round_per_moves,az_mcts_temperature, experience_collector_1, device=the_device)
+    agent_2 = AlphaZeroAgent(2, "Agent2", "X", encoder, model, az_mcts_round_per_moves,az_mcts_temperature, experience_collector_2, device=the_device)
    
     experience_buffer = AlphaZeroExpericenceBuffer(buffer_size)
    
@@ -156,7 +161,7 @@ def main():
     basic_mcts_round_per_moves= az_mcts_round_per_moves
 
 
-    for game_index in tqdm(range(1, number_of_games)):
+    for game_index in tqdm(range(1, train_number_of_games)):
 
         # collect data via self-playing
         collect_data(agent_1, agent_2, board_size,game_index, experience_buffer)
@@ -168,16 +173,16 @@ def main():
 
         if game_index % check_frequence == 0:
             print("current self-play batch: {}".format(game_index+1))
-            win_ratio = evaluate_plicy(board_size,model,encoder,basic_mcts_round_per_moves,az_mcts_round_per_moves,basic_mcts_temperature,the_device)
-            torch.save(model.state_dict(), './current_policy.model')
+            win_ratio = evaluate_plicy(board_size,model,encoder,evaluate_number_of_games,basic_mcts_round_per_moves,az_mcts_round_per_moves,basic_mcts_temperature,az_mcts_temperature,the_device)
+            torch.save(model.state_dict(), current_model_file)
                       
             if win_ratio > best_win_ratio:
                 print("New best policy!!!!!!!!")
                 best_win_ratio = win_ratio
                 # update the best_policy
-                torch.save(model.state_dict(),'./best_policy.model')
-                if (best_win_ratio == 1.0 and basic_mcts_round_per_moves < 5000):
-                    basic_mcts_round_per_moves *= 2
+                torch.save(model.state_dict(),best_model_file)
+                if (best_win_ratio == 1.0 and basic_mcts_round_per_moves < 6000):
+                    basic_mcts_round_per_moves += 1000
                     best_win_ratio = 0.0 
 
 
