@@ -14,13 +14,13 @@ class Game:
     """
     A abstract class about Game. Essentially, it contains a player list and a current working state. 
     """
-    def __init__(self, board, playerlist, start_player,is_self_play):
+    def __init__(self, board, playerlist, start_player,is_self_play=False):
         self._players = playerlist
         self._working_game_state = GameState(board, start_player, None)
         self._final_winner = None
         self._is_selfplay  = is_self_play
     
-    def reset(self,board,playerlist,start_player,is_self_play):
+    def reset(self,board,playerlist,start_player,is_self_play=False):
         self._players=playerlist
         self._working_game_state = GameState(board, start_player, None)
         self._final_winner = None
@@ -56,9 +56,9 @@ class Game:
         pass
 
     def apply_move(self, move):
-        self._working_game_state = self.transit(self._working_game_state, move)
+        self._working_game_state = self.look_ahead_next_move(self._working_game_state, move)
 
-    def transit(self, game_state, move):
+    def look_ahead_next_move(self, game_state, move):
         new_board = copy.deepcopy(game_state.board)
         piece= Piece(game_state.player_in_action.id,move.point)
         new_board.place_piece(piece)

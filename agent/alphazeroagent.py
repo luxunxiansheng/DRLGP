@@ -268,7 +268,8 @@ class AlphaZeroAgent(Player):
 
     def reset(self):
         self._game_state_memory.clear()
-        self._experience_collector.reset_episode() 
+        if self._experience_collector is not None:
+            self._experience_collector.reset_episode() 
    
         
     
@@ -318,7 +319,7 @@ class AlphaZeroAgent(Player):
 
             if next_branch is not None:               
                 # expand
-                new_state = game.transit(node.game_state, next_branch.move)
+                new_state = game.look_ahead_next_move(node.game_state, next_branch.move)
                 game_state_memory.push(new_state.board)
 
                 parent_branch = next_branch

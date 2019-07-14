@@ -13,7 +13,7 @@ class MinmaxAgent(Player):
 
         for possible_point in game_state.board.get_legal_points():
             possible_move = Move(possible_point)
-            next_state = game.transit(game_state, possible_move)
+            next_state = game.look_ahead_next_move(game_state, possible_move)
             our_best_outcome = self.minmax(game, next_state)
 
             # We set the player_0 as the  maximizer, the best score is 1.0
@@ -55,7 +55,7 @@ class MinmaxAgent(Player):
             max_value = -2.0
             for possible_point in game_state.board.get_legal_points():
                 possible_move = Move(possible_point)
-                next_game_state = game.transit(game_state, possible_move)
+                next_game_state = game.look_ahead_next_move(game_state, possible_move)
                 the_value = self.minmax(game, next_game_state)
                 max_value = max(max_value, the_value)
             return max_value
@@ -64,7 +64,7 @@ class MinmaxAgent(Player):
             min_value = 2.0
             for possible_point in game_state.board.get_legal_points():
                 possible_move = Move(possible_point)
-                next_game_state = game.transit(game_state, possible_move)
+                next_game_state = game.look_ahead_next_move(game_state, possible_move)
                 the_value = self.minmax(game, next_game_state)
                 min_value = min(min_value,the_value)
             return min_value

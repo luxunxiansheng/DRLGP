@@ -54,7 +54,7 @@ class MCTSNode(object):
     def add_random_child(self):
         index = random.randint(0, len(self._unvisited_points)-1)
         new_point = self._unvisited_points.pop(index)
-        new_game_state = self._game.transit(self._game_state, Move(new_point))
+        new_game_state = self._game.look_ahead_next_move(self._game_state, Move(new_point))
         new_node = MCTSNode(self._game, new_game_state, self, new_point)
         self._children.append(new_node)
         return new_node
@@ -165,7 +165,7 @@ class MCTSAgent(Player):
         # whose 's turn
         player_in_action = game_state.player_in_action
 
-        if player_in_action == bots[0]:
+        if player_in_action.id == bots[0].id:
             start_player = bots[0]
         else:
             start_player = bots[1]
@@ -176,7 +176,7 @@ class MCTSAgent(Player):
         while not game.is_over():
             move = game.working_game_state.player_in_action.select_move(game, game.working_game_state)
             game.apply_move(move)
-            # game.working_game_state.board.print_board()
+            #game.working_game_state.board.print_board()
         winner = game.get_winner(game.working_game_state)
 
         return winner
