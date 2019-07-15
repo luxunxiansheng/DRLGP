@@ -27,16 +27,17 @@ def collect_data(agent_1, agent_2, board_size,number_of_planes,game_index,experi
     
     winner = Connect5Game.run_episode(board_size,players, players[0 if game_index % 2 == 0 else 1], number_of_planes,True)
 
-    if winner == players[0]:
-        players[0].experience_collector.complete_episode(reward=1)
-        players[1].experience_collector.complete_episode(reward=-1)
-    if winner == players[1]:
-        players[1].experience_collector.complete_episode(reward=1)
-        players[0].experience_collector.complete_episode(reward=-1)
+    if winner is not None:
+        if winner == players[0]:
+            players[0].experience_collector.complete_episode(reward=1)
+            players[1].experience_collector.complete_episode(reward=-1)
+        if winner == players[1]:
+            players[1].experience_collector.complete_episode(reward=1)
+            players[0].experience_collector.complete_episode(reward=-1)
 
-    experience_buffer.combine_experience([agent_1.experience_collector, agent_2.experience_collector])
+        experience_buffer.combine_experience([agent_1.experience_collector, agent_2.experience_collector])
 
-    print('Experience buffer is {}'.format(experience_buffer.size()))
+        print('Experience buffer is {}'.format(experience_buffer.size()))
 
 
 def improve_policy(experience, game_index, model, optimizer, batch_size, epochs, kl_threshold,device, writer):
