@@ -19,13 +19,13 @@ from common.utils import Utils
 from game.connect5game import Connect5Game
 
 
-def collect_data(agent_1, agent_2, board_size,game_index, experience_buffer):
+def collect_data(agent_1, agent_2, board_size,number_of_planes,game_index,experience_buffer):
     agent_1.reset()
     agent_2.reset()
 
     players=[agent_1,agent_2]
     
-    winner = Connect5Game.run_episode(board_size, players, players[0 if game_index % 2 == 0 else 1], True)
+    winner = Connect5Game.run_episode(board_size,players, players[0 if game_index % 2 == 0 else 1], number_of_planes,True)
 
     if winner == players[0]:
         players[0].experience_collector.complete_episode(reward=1)
@@ -132,7 +132,7 @@ def main():
 
     
     use_cuda = torch.cuda.is_available()
-    the_device = torch.device('cuda' if use_cuda else 'cpu')
+    the_device = torch.device('cuda:3' if use_cuda else 'cpu')
     
 
     experience_collector_1 = AlphaZeroExperienceCollector()
@@ -164,7 +164,7 @@ def main():
     for game_index in tqdm(range(1, train_number_of_games)):
 
         # collect data via self-playing
-        collect_data(agent_1, agent_2, board_size,game_index, experience_buffer)
+        collect_data(agent_1, agent_2, board_size,number_of_planes,game_index, experience_buffer)
 
         if experience_buffer.size() > batch_size:
            # update the policy with SGD

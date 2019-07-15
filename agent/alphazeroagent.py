@@ -291,7 +291,7 @@ class AlphaZeroAgent(Player):
       
 
     def select_move(self, game, game_state):  # it is guaranteed that it is not the final game state anyway
-        game.state_cache.store_game_state(game_state)
+        game.state_cache.push(game_state.board)
         root_board_matrix = self._encoder.encode( game.state_cache.game_states)
         model_input = torch.from_numpy(root_board_matrix).unsqueeze(0).to(self._device, dtype=torch.float)
         estimated_branch_priors, estimated_state_value = self.predict(model_input)
