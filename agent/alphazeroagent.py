@@ -247,25 +247,6 @@ class AlphaZeroExperienceCollector:
         return self._states
 
 
-class Game_State_Memory:
-    def __init__(self, capacity):
-        self._capacity = capacity
-        self._game_states = deque()
-
-    def push(self, experience):
-        self._game_states.append(experience)
-        if self.size() > self._capacity:
-            self._game_states.popleft()
-
-    def size(self):
-        return len(self._game_states)
-
-    @property
-    def game_states(self):
-        return list(self._game_states)
-
-    def clear(self):
-        self._game_states.clear()
 
 
 class AlphaZeroAgent(Player):
@@ -276,16 +257,12 @@ class AlphaZeroAgent(Player):
         self._model =   model
         self._num_rounds = num_rounds
         self._experience_collector = experience_collector
-        self._game_state_memory = Game_State_Memory(10)
         self._temperature = temperature
 
     def reset(self):
-        self._game_state_memory.clear()
         if self._experience_collector is not None:
             self._experience_collector.reset_episode() 
-    
-    def store_game_state(self,game_state):
-        self._game_state_memory.push(game_state.board)
+       
    
     @property
     def experience_collector(self):
@@ -314,15 +291,15 @@ class AlphaZeroAgent(Player):
       
 
     def select_move(self, game, game_state):  # it is guaranteed that it is not the final game state anyway
-        self.store_game_state(game_state)
-        root_board_matrix = self._encoder.encode(self._game_state_memory.game_states)
+        game.state_cache.store_game_state(game_state)
+        root_board_matrix = self._encoder.encode( game.state_cache.game_states)
         model_input = torch.from_numpy(root_board_matrix).unsqueeze(0).to(self._device, dtype=torch.float)
         estimated_branch_priors, estimated_state_value = self.predict(model_input)
         root = self.create_node(game_state, estimated_branch_priors[0], estimated_state_value[0].item())
 
         for _ in tqdm(range(self._num_rounds)):
             node = root
-            game_state_memory = copy.deepcopy(self._game_state_memory)
+            game_state_memory = copy.deepcopy(game.state_cache)
 
             # select
             next_branch = node.select_branch(is_root=True,is_selfplay=game.is_selfplay)

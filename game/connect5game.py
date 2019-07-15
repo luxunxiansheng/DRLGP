@@ -116,7 +116,8 @@ class Connect5Game(Game):
     @staticmethod
     def run_episode(board_size, players, start_player,is_self_play):
         board = Board(board_size)
-        game = Connect5Game(board, players,start_player,is_self_play)
+        game = Connect5Game(board, players, start_player, is_self_play)
+        
         while not game.is_over():
             move = game.working_game_state.player_in_action.select_move(game, game.working_game_state)
             game.apply_move(move)

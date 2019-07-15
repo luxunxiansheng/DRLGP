@@ -138,6 +138,7 @@ def main():
     experience_collector_1 = AlphaZeroExperienceCollector()
     experience_collector_2 = AlphaZeroExperienceCollector()
     encoder = MultiplePlaneEncoder(number_of_planes, board_size)
+    
 
     input_shape = (number_of_planes, board_size, board_size)
     model = Connect5Network(input_shape, board_size * board_size)
