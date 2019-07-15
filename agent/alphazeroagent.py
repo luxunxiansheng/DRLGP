@@ -336,19 +336,21 @@ class AlphaZeroAgent(Player):
                 else:
                     # expand
                     new_state = game.look_ahead_next_move(node.game_state, next_branch.move)
+                    game_state_memory.push(node.game_state.board)
                     temp_board_matrix = self._encoder.encode(game_state_memory.game_states)
                     model_input = torch.from_numpy(temp_board_matrix).unsqueeze(0).to(self._device, dtype=torch.float)
                     estimated_branch_priors, estimated_state_value = self.predict(model_input)
                     node = self.create_node(new_state, estimated_branch_priors[0], estimated_state_value[0].item(), next_branch)
-                    game_state_memory.push(node.game_state.board)
                     next_branch = None
                    
             # backup
             value = -1 * node.game_state_value
-                        
+
+            parent_branch = node.parent_branch            
             while parent_branch is not None:
-                parent_branch.parent_node.record_visit(parent_branch.move.point, value)
-                parent_branch = parent_branch.parent_node.parent_branch
+                parent_node = parent_branch.parent_node
+                parent_node.record_visit(parent_branch.move.point, value)
+                parent_branch = parent_node.parent_branch
                 value = -1 * value
 
         visit_counts = np.array([root.visit_counts_of_branch(self._encoder.decode_point_index(idx)) for idx in range(self._encoder.num_points())])
