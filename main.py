@@ -85,7 +85,7 @@ def improve_policy(experience, game_index, model, optimizer, batch_size, epochs,
             break 
 
 
-def evaluate_plicy(board_size,model,encoder,evaluate_number_of_games,basic_mcts_round_per_moves,az_mcts_round_per_moves,basic_mcts_temperature,az_mcts_temperature,the_device):
+def evaluate_plicy(board_size,number_of_planes,model,encoder,evaluate_number_of_games,basic_mcts_round_per_moves,az_mcts_round_per_moves,basic_mcts_temperature,az_mcts_temperature,the_device):
     mcts_agent = MCTSAgent(0,"MCTSAgent","O",basic_mcts_round_per_moves,basic_mcts_temperature)
     az_agent   = AlphaZeroAgent(1, "AZAent", "X", encoder, model, az_mcts_round_per_moves,az_mcts_temperature,device=the_device)
     
@@ -97,7 +97,7 @@ def evaluate_plicy(board_size,model,encoder,evaluate_number_of_games,basic_mcts_
     for game_index in tqdm(range(evaluate_number_of_games)):
         az_agent.reset()
         players = [mcts_agent, az_agent]
-        winner=Connect5Game.run_episode(board_size,players,players[0 if game_index%2== 0 else 1],is_self_play=False)
+        winner=Connect5Game.run_episode(board_size,players,players[0 if game_index%2== 0 else 1],number_of_planes,is_self_play=False)
         
         if winner is not None:
             win_counts[winner.id] += 1
@@ -173,7 +173,7 @@ def main():
 
         if game_index % check_frequence == 0:
             print("current self-play batch: {}".format(game_index+1))
-            win_ratio = evaluate_plicy(board_size,model,encoder,evaluate_number_of_games,basic_mcts_round_per_moves,az_mcts_round_per_moves,basic_mcts_temperature,az_mcts_temperature,the_device)
+            win_ratio = evaluate_plicy(board_size,number_of_planes,model,encoder,evaluate_number_of_games,basic_mcts_round_per_moves,az_mcts_round_per_moves,basic_mcts_temperature,az_mcts_temperature,the_device)
             torch.save(model.state_dict(), current_model_file)
                       
             if win_ratio > best_win_ratio:
