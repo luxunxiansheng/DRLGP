@@ -125,7 +125,7 @@ def main():
     kl_threshold = cfg['TRAIN'].getfloat('kl_threshold')
     check_frequence = cfg['TRAIN'].getint('check_frequence')
     resume = cfg['TRAIN'].getboolean('resume')
-    current_model_file = cfg['TRAIN'].get('current_model_file')
+    current_model_file = cfg['TRAIN'].get('curent_model_file')
     best_model_file = cfg['TRAIN'].get('best_model_file')
 
     evaluate_number_of_games=cfg['EVALUATE'].getint('number_of_games')
@@ -148,8 +148,8 @@ def main():
     
     model.to(the_device)
     
-    agent_1 = AlphaZeroAgent(1, "Agent1", "O", encoder, model, az_mcts_round_per_moves,az_mcts_temperature, experience_collector_1, device=the_device)
-    agent_2 = AlphaZeroAgent(2, "Agent2", "X", encoder, model, az_mcts_round_per_moves,az_mcts_temperature, experience_collector_2, device=the_device)
+    agent_1 = AlphaZeroAgent(0, "Agent1", "O", encoder, model, az_mcts_round_per_moves,az_mcts_temperature, experience_collector_1, device=the_device)
+    agent_2 = AlphaZeroAgent(1, "Agent2", "X", encoder, model, az_mcts_round_per_moves,az_mcts_temperature, experience_collector_2, device=the_device)
    
     experience_buffer = AlphaZeroExpericenceBuffer(buffer_size)
    
