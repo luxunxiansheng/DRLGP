@@ -108,4 +108,4 @@ venv.bak/
 /connect5data
 /runs
 /archived_model
-archived_model/new/1.pth
+checkpoints/

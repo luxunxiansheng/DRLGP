@@ -173,8 +173,10 @@ def main():
            
 
         if game_index % check_frequence == 0:
-            print("current self-play batch: {}".format(game_index+1))
-            win_ratio = evaluate_plicy(board_size,number_of_planes,model,encoder,evaluate_number_of_games,basic_mcts_round_per_moves,az_mcts_round_per_moves,basic_mcts_temperature,az_mcts_temperature,the_device)
+            win_ratio = evaluate_plicy(board_size, number_of_planes, model, encoder, evaluate_number_of_games, basic_mcts_round_per_moves, az_mcts_round_per_moves, basic_mcts_temperature, az_mcts_temperature, the_device)
+            
+            print("current self-play batch:{} and win win ratio is:{0:.1f} ".format(game_index,win_ratio))
+
             torch.save(model.state_dict(), current_model_file)
                       
             if win_ratio > best_win_ratio:
