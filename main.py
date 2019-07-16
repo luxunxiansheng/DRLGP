@@ -76,8 +76,6 @@ def improve_policy(experience, game_index, model, optimizer, batch_size, epochs,
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-
-               
         [updated_action_policy, _] = model(states)
         kl = F.kl_div(action_policy, updated_action_policy)
        

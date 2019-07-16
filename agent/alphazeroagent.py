@@ -94,8 +94,8 @@ class Node:
     @property
     def temperature(self):
         return self._temperature
-
-
+    
+    
     @property
     def children_branch(self):
         return self._children_branch.keys()
@@ -141,7 +141,7 @@ class Node:
 
         points = list(self.children_branch)
         return self._children_branch[points[best_point_index]]
-
+        
 
 class MultiplePlaneEncoder(Encoder):
     def __init__(self, num_plane, board_size):
@@ -247,8 +247,6 @@ class AlphaZeroExperienceCollector:
         return self._states
 
 
-
-
 class AlphaZeroAgent(Player):
     def __init__(self, id, name, mark, encoder, model, num_rounds,temperature,experience_collector=None, device='cpu'):
         super().__init__(id, name, mark)
@@ -305,6 +303,7 @@ class AlphaZeroAgent(Player):
             next_branch = node.select_branch(is_root=True,is_selfplay=game.is_selfplay)
             assert next_branch is not None
 
+            # search the tree until the game end node or a new node           
             while next_branch is not None:
                 if next_branch.child_node is not None:
                     node = next_branch.child_node
@@ -319,10 +318,15 @@ class AlphaZeroAgent(Player):
                     estimated_branch_priors, estimated_state_value = self.predict(model_input)
                     node = self.create_node(new_state, estimated_branch_priors[0], estimated_state_value[0].item(), next_branch)
                     next_branch = None
-                   
-            # backup
-            value = -1 * node.game_state_value
 
+
+            #backup
+            value = 0
+            if game.is_final_state(node.game_state):
+                value = -1
+            else:
+                value = -1 * node.game_state_value
+                
             parent_branch = node.parent_branch            
             while parent_branch is not None:
                 parent_node = parent_branch.parent_node
