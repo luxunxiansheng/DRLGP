@@ -44,7 +44,8 @@ def improve_policy(experience, game_index, model, optimizer, batch_size, epochs,
     model.train()
    
     batch_data = random.sample(experience.data, batch_size)
-
+   
+    
     for i in tqdm(range(epochs)):
         states, rewards, visit_counts = zip(*batch_data)
 
@@ -74,14 +75,16 @@ def improve_policy(experience, game_index, model, optimizer, batch_size, epochs,
         writer.add_scalar('entroy', entroy.item(), game_index)
 
         optimizer.zero_grad()
+       
+        
         loss.backward()
         optimizer.step()
         [updated_action_policy, _] = model(states)
-        kl = F.kl_div(action_policy, updated_action_policy)
-       
-         
-        if kl.item() > kl_threshold * 4:
-            break 
+        kl = F.kl_div(action_policy, updated_action_policy).item()
+                
+        if kl> kl_threshold * 4:
+            break
+      
 
 
 def evaluate_plicy(board_size,number_of_planes,model,encoder,evaluate_number_of_games,basic_mcts_round_per_moves,az_mcts_round_per_moves,basic_mcts_temperature,az_mcts_temperature,the_device):
@@ -126,7 +129,8 @@ def main():
     resume = cfg['TRAIN'].getboolean('resume')
     current_model_file = cfg['TRAIN'].get('curent_model_file')
     best_model_file = cfg['TRAIN'].get('best_model_file')
-    cuda= cfg['TRAIN'].get('cuda')
+    cuda = cfg['TRAIN'].get('cuda')
+    l2_const = cfg['TRAIN'].getfloat('l2_const')
 
     evaluate_number_of_games=cfg['EVALUATE'].getint('number_of_games')
 
@@ -153,8 +157,8 @@ def main():
    
     experience_buffer = AlphaZeroExpericenceBuffer(buffer_size)
    
-    optimizer = optim.SGD(model.parameters(), lr=learning_rate, momentum=momentum_)
-
+    optimizer = optim.Adam(model.parameters(),lr = learning_rate, weight_decay=l2_const)
+    
     writer = SummaryWriter()
     
     best_win_ratio = 0
@@ -168,7 +172,7 @@ def main():
 
         if experience_buffer.size() > batch_size:
            # update the policy with SGD
-           improve_policy(experience_buffer, game_index, model, optimizer, batch_size, epochs, kl_threshold, the_device, writer)
+           improve_policy(experience_buffer, game_index, model, optimizer,batch_size, epochs, kl_threshold, the_device, writer)
            
 
         if game_index % check_frequence == 0:
