@@ -109,3 +109,4 @@ venv.bak/
 /runs
 /archived_model
 checkpoints/
+checkpoints2/

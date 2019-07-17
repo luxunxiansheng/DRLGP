@@ -126,12 +126,13 @@ def main():
     resume = cfg['TRAIN'].getboolean('resume')
     current_model_file = cfg['TRAIN'].get('curent_model_file')
     best_model_file = cfg['TRAIN'].get('best_model_file')
+    cuda= cfg['TRAIN'].get('cuda')
 
     evaluate_number_of_games=cfg['EVALUATE'].getint('number_of_games')
 
     
     use_cuda = torch.cuda.is_available()
-    the_device = torch.device('cuda:3' if use_cuda else 'cpu')
+    the_device = torch.device( cuda  if use_cuda else 'cpu')
     
 
     experience_collector_1 = AlphaZeroExperienceCollector()
