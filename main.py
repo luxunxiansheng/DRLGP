@@ -72,7 +72,7 @@ def improve_policy(experience, game_index, model, optimizer, batch_size, epochs,
         writer.add_scalar('loss', loss.item(), game_index)
         writer.add_scalar('loss_value', loss_value.item(), game_index)
         writer.add_scalar('loss_policy', loss_policy.item(), game_index)
-        writer.add_scalar('entroy', entroy.item(), game_index)
+        writer.add_scalar('entropy', entroy.item(), game_index)
 
         optimizer.zero_grad()
        
