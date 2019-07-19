@@ -109,5 +109,4 @@ venv.bak/
 /runs
 /archived_model
 checkpoints/
-checkpoints2/
-connect5data/
+
