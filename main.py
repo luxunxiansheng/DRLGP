@@ -37,7 +37,7 @@ def collect_data(agent_1, agent_2, board_size,number_of_planes,game_index,experi
 
         experience_buffer.combine_experience([agent_1.experience_collector, agent_2.experience_collector])
 
-        print('Experience buffer is {}'.format(experience_buffer.size()))
+        
 
 
 def improve_policy(experience, game_index, model, optimizer, batch_size, epochs, kl_threshold,device, writer):
@@ -162,7 +162,7 @@ def main():
     writer = SummaryWriter()
     
     best_win_ratio = 0
-    basic_mcts_round_per_moves= az_mcts_round_per_moves
+    
 
 
     for game_index in tqdm(range(1, train_number_of_games)):
