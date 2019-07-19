@@ -75,6 +75,8 @@ class Node:
         self._total_visit_counts = 1
 
         self._parent_branch = parent_branch
+       
+
         self._children_branch = None
        
         self._temperature = temperature
@@ -275,7 +277,7 @@ class AlphaZeroAgent(Player):
 
     def create_node(self, game_state, estimated_branch_priors,estimated_state_value,parent_branch=None):
        
-        new_node = Node(game_state, estimated_state_value,parent_branch,self._temperature)
+        new_node = Node(game_state, estimated_state_value, parent_branch, self._temperature)
                
         chiildren_branch = {}
         for idx, p in enumerate(estimated_branch_priors):
@@ -283,7 +285,10 @@ class AlphaZeroAgent(Player):
             if game_state.board.is_free_point(point):
                 chiildren_branch[point] = Branch(new_node,Move(point), p)
         
-        new_node.children_branch= chiildren_branch
+        new_node.children_branch = chiildren_branch
+        
+        if parent_branch is not None:
+            parent_branch.child_node=new_node
                 
         return new_node
       
@@ -303,12 +308,15 @@ class AlphaZeroAgent(Player):
             next_branch = node.select_branch(is_root=True,is_selfplay=game.is_selfplay)
             assert next_branch is not None
 
+            branch_deepth=0
+
             # search the tree until the game end node or a new node           
             while next_branch is not None:
                 if next_branch.child_node is not None:
                     node = next_branch.child_node
                     game_state_memory.push(node.game_state.board)
-                    next_branch = node.select_branch(is_root=False, is_selfplay=game.is_selfplay)    
+                    next_branch = node.select_branch(is_root=False, is_selfplay=game.is_selfplay)
+                    branch_deepth += 1
                 else:
                     # expand
                     new_state = game.look_ahead_next_move(node.game_state, next_branch.move)
@@ -318,14 +326,10 @@ class AlphaZeroAgent(Player):
                     estimated_branch_priors, estimated_state_value = self.predict(model_input)
                     node = self.create_node(new_state, estimated_branch_priors[0], estimated_state_value[0].item(), next_branch)
                     next_branch = None
+                     
 
-
-            #backup
-            value = 0
-            if game.is_final_state(node.game_state):
-                value = -1
-            else:
-                value = -1 * node.game_state_value
+           
+            value = -1 * node.game_state_value
                 
             parent_branch = node.parent_branch            
             while parent_branch is not None:
