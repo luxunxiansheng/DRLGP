@@ -307,8 +307,7 @@ class AlphaZeroAgent(Player):
             # select
             next_branch = node.select_branch(is_root=True,is_selfplay=game.is_selfplay)
             assert next_branch is not None
-
-            branch_deepth=0
+         
 
             # search the tree until the game end node or a new node           
             while next_branch is not None:
@@ -316,7 +315,7 @@ class AlphaZeroAgent(Player):
                     node = next_branch.child_node
                     game_state_memory.push(node.game_state.board)
                     next_branch = node.select_branch(is_root=False, is_selfplay=game.is_selfplay)
-                    branch_deepth += 1
+
                 else:
                     # expand
                     new_state = game.look_ahead_next_move(node.game_state, next_branch.move)
@@ -325,7 +324,7 @@ class AlphaZeroAgent(Player):
                     model_input = torch.from_numpy(temp_board_matrix).unsqueeze(0).to(self._device, dtype=torch.float)
                     estimated_branch_priors, estimated_state_value = self.predict(model_input)
                     node = self.create_node(new_state, estimated_branch_priors[0], estimated_state_value[0].item(), next_branch)
-                    next_branch = None
+                    break
                      
 
            

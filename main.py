@@ -1,3 +1,4 @@
+import os
 import random
 
 import numpy as np
@@ -131,10 +132,13 @@ def main():
     best_model_file = cfg['TRAIN'].get('best_model_file')
     cuda = cfg['TRAIN'].get('cuda')
     l2_const = cfg['TRAIN'].getfloat('l2_const')
-
-    evaluate_number_of_games=cfg['EVALUATE'].getint('number_of_games')
-
     
+    evaluate_number_of_games = cfg['EVALUATE'].getint('number_of_games')
+    
+
+    os.makedirs(os.path.dirname(current_model_file), exist_ok=True)
+    os.makedirs(os.path.dirname(best_model_file), exist_ok=True)
+
     use_cuda = torch.cuda.is_available()
     the_device = torch.device( cuda  if use_cuda else 'cpu')
     
@@ -146,7 +150,8 @@ def main():
 
     input_shape = (number_of_planes, board_size, board_size)
     model = Connect5Network(input_shape, board_size * board_size)
-    
+        
+    # Be aware this is not the first time to run this program
     if resume:
         model.load_state_dict(torch.load(current_model_file)) 
     
@@ -163,8 +168,6 @@ def main():
     
     best_win_ratio = 0
     
-
-
     for game_index in tqdm(range(1, train_number_of_games)):
 
         # collect data via self-playing
