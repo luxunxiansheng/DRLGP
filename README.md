@@ -5,7 +5,9 @@ Deep Reinforcement Learning Game Playground
 # Table of Contents
 * [Introduction](#Introduction) 
 * [Basic Algorithms](#BasicAlgorithms)
+* [Implementation notes](#Implementation notes)
 * [Usage](#Usage)
+* [References](#References)
 * [License](#License)
 
 ## Introduction
@@ -46,12 +48,42 @@ Alpha–beta pruning is a search algorithm that seeks to decrease the number of 
 In computer science, Monte Carlo tree search (MCTS) is a heuristic search algorithm for some kinds of decision processes, most notably those employed in game play. MCTS has been used for decades in computer Go programs.It has been used in other board games like chess and shogi,games with incomplete information such as bridge and poker,as well as in real-time video games (such as Total War: Rome II's implementation in the high level campaign AI.
 
 
+4. UCT 
+
+5. ResNet
+
+
+## Implementation notes 
+
+1.  pytorch 1.0+
+
+
 ## Usage
+  1.  To run the train pipeline, modify the config.ini to setup your favoriate parameters
+      and then launch the entry point in the root folder:
+    
+       ```
+        python   main.py
+       
+       ```
+
+
+
+## References
+[1] [Silver et al. “Mastering Chess and Shogi by Self-Play with a General Reinforcement Learning Algorithm.”](https://arxiv.org/pdf/1712.01815.pdf)
+
+[2] [Silver et al. “Mastering the game of go without human knowledge.” Nature 550.7676 (2017): 354–359.](https://www.gwern.net/docs/rl/2017-silver.pdf)
+
+[3] [Max Pumperla and Kevin Ferguson."Deep Learning and the Game of Go"](https://www.manning.com/books/deep-learning-and-the-game-of-go)
+
+[4] [Maxim Lapan."Deep Reinforcement Learning Hands-On"](https://www.packtpub.com/big-data-and-business-intelligence/deep-reinforcement-learning-hands)
+
+[5] [宋俊潇,AlphaZero实战：从零学下五子棋](https://zhuanlan.zhihu.com/p/32089487)
+
+
 
 
 ## License
 [MIT](https://choosealicense.com/licenses/mit/)
 
 
-## Some Notes
-1. [A best tutorial on Cross Entroy](https://rdipietro.github.io/friendly-intro-to-cross-entropy-loss/)
