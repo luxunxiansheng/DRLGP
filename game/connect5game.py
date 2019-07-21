@@ -121,9 +121,9 @@ class Connect5Game(Game):
         while not game.is_over():
             move = game.working_game_state.player_in_action.select_move(game, game.working_game_state)
             game.apply_move(move)
-            game.working_game_state.board.print_board()
+            #game.working_game_state.board.print_board()
             
-        #game.working_game_state.board.print_board()
-        #print(game.final_winner.id if game.final_winner is not None else 'draw')
+        game.working_game_state.board.print_board()
+        print('winner is {}'.format(game.final_winner.id if game.final_winner is not None else 'draw'))
 
         return game.final_winner

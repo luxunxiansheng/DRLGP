@@ -105,6 +105,7 @@ def evaluate_plicy(board_size,number_of_planes,model,encoder,evaluate_number_of_
         if winner is not None:
             win_counts[winner.id] += 1
         
+    print('mcts wins {} in {}'.format(win_counts[mcts_agent.id],evaluate_number_of_games))
     return win_counts[az_agent.id]/evaluate_number_of_games
         
 def main():
