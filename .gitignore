@@ -111,3 +111,4 @@ venv.bak/
 checkpoints/
 
 checkpoints2/current_policy.model
+checkpoints-debug/current_policy.model

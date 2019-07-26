@@ -1,5 +1,6 @@
 import os
 import random
+import logging
 
 import numpy as np
 import torch
@@ -111,6 +112,8 @@ def evaluate_plicy(board_size,number_of_planes,model,encoder,evaluate_number_of_
 def main():
             
     cfg = Utils.config()
+    logger = logging.getLogger(__name__)
+
     number_of_planes = cfg['GAME'].getint('number_of_planes')
     board_size = cfg['GAME'].getint('board_size')
 
@@ -182,7 +185,7 @@ def main():
         if game_index % check_frequence == 0:
             win_ratio = evaluate_plicy(board_size, number_of_planes, model, encoder, evaluate_number_of_games, basic_mcts_round_per_moves, az_mcts_round_per_moves, basic_mcts_temperature, az_mcts_temperature, the_device)
             
-            print("current self-play batch:{} and win win ratio is:{}".format(game_index,win_ratio))
+            logger.debug("current self-play batch:{} and win win ratio is:{}".format(game_index,win_ratio))
 
             torch.save(model.state_dict(), current_model_file)
                       

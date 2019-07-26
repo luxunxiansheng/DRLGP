@@ -3,6 +3,7 @@ import gc
 import math
 import random
 from collections import deque
+import logging
 
 import numpy as np
 import torch
@@ -17,6 +18,8 @@ from common.gamestate import GameState
 from common.move import Move
 from common.player import Player
 from common.point import Point
+
+
 
 
 class Branch:
@@ -258,6 +261,7 @@ class AlphaZeroAgent(Player):
         self._num_rounds = num_rounds
         self._experience_collector = experience_collector
         self._temperature = temperature
+        self._logger= logging.getLogger('AlphaZeroAgent'+name)
 
     def reset(self):
         if self._experience_collector is not None:
@@ -307,7 +311,6 @@ class AlphaZeroAgent(Player):
             # select
             next_branch = node.select_branch(is_root=True,is_selfplay=game.is_selfplay)
             assert next_branch is not None
-         
 
             # search the tree until the game end node or a new node           
             while next_branch is not None:

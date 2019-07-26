@@ -61,47 +61,6 @@ class Utils(object):
         config.read(os.path.join(Path(__file__).parents[1], config_file))
         return config
 
-    # Taken from https://stackoverflow.com/a/600612/119527
-    @staticmethod
-    def mkdir_p(path):
-        try:
-            os.makedirs(path)
-        except OSError as exc:  # Python >2.5
-            if exc.errno == errno.EEXIST and os.path.isdir(path):
-                pass
-            else:
-                raise
+   
 
-    @staticmethod
-    def safe_open_w(path):
-        ''' Open "path" for writing, creating any parent directories as needed.'''
-        Utilis.mkdir_p(os.path.dirname(path))
-        return open(path, 'w')
-
-    @staticmethod
-    def save_checkpoint(checkpoint, is_best, agentname, checkpointpathname='checkpoint'):
-        checkpoint_file_path = os.path.join(Path(__file__).parents[1], checkpointpathname, agentname)
-        Utilis.mkdir_p(checkpoint_file_path)
-
-        checkfile = os.path.join(checkpoint_file_path, 'checkpoint.pth.tar')
-
-        torch.save(checkpoint, checkfile)
-        if is_best:
-            best_file = os.path.join(checkpoint_file_path, 'model_best.pth.tar')
-            shutil.copyfile(checkfile, best_file)
-
-    @staticmethod
-    def load_checkpoint(agentname, checkpointpathname='checkpoint'):
-        checkpoint_file = os.path.join(Path(__file__).parents[1], checkpointpathname, agentname, 'checkpoint.pth.tar')
-        if os.path.isfile(checkpoint_file):
-            return torch.load(checkpoint_file)
-        else:
-            return None
-
-    @staticmethod
-    def load_best_checkpoint(agentname, checkpointpathname='checkpoint'):
-        model_best_file = os.path.join(Path(__file__).parents[1], checkpointpathname, agentname, 'model_best.pth.tar')
-        if os.path.isfile(model_best_file):
-            return torch.load(model_best_file)
-        else:
-            return None
+   
