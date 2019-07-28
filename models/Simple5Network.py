@@ -6,11 +6,11 @@ NUM_FILTERS = 64
 
 
 class ConvBlock(nn.Module):
-    def __init__(self, input_channels, output_channels, kernel_size=3, stride=1):
+    def __init__(self, input_channels, output_channels, kernel_size=3, padding=1):
         super().__init__()
 
         self._conv = nn.Sequential(ConvBlock.layer_init(
-            nn.Conv2d(input_channels, output_channels, kernel_size, stride)),
+            nn.Conv2d(input_channels, output_channels, kernel_size, padding)),
             nn.ReLU()
         )
 
