@@ -25,10 +25,6 @@ class ConvBlock(nn.Module):
         return layer
 
 
-
-
-
-
 class Simple5Network(nn.Module):
     def __init__(self, input_shape, num_points):
         super().__init__()
@@ -45,8 +41,7 @@ class Simple5Network(nn.Module):
                
         self._policy_hidden_layer = nn.Sequential(nn.Linear(conv_2_out_size,512),nn.ReLU())
         self._policy_output_layer = nn.Sequential(nn.Linear(512,num_points), nn.Softmax(dim=1))
-     
-        
+           
      
 
     def forward(self, encoded_boards):
