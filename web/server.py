@@ -6,7 +6,7 @@ sys.path.insert(0, os.path.abspath('.'))
 import torch
 import torch.nn as nn
 from flask import Flask, jsonify, request
-from models.connect5network import Connect5Network
+from models.connect5network import ResNet8Network
 
 from agent.alphazeroagent import (AlphaZeroAgent, AlphaZeroExpericenceBuffer,
                                   AlphaZeroExperienceCollector,
@@ -73,7 +73,7 @@ round_per_moves = 100
 encoder = MultiplePlaneEncoder(number_of_planes, board_size)
 
 input_shape = (number_of_planes, board_size, board_size)
-model_new = Connect5Network(input_shape, board_size * board_size)
+model_new = ResNet8Network(input_shape, board_size * board_size)
 # model_new.load_state_dict(torch.load('./archived_model/new/1.pth'))
 model_new.eval()
 

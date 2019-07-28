@@ -7,7 +7,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-from models.connect5network import Connect5Network
+from models.ResNet8Network import ResNet8Network
+from models.Simple5Network import Simple5Network
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
@@ -114,6 +115,9 @@ def main():
     cfg = Utils.config()
     logger = logging.getLogger(__name__)
 
+
+    model_name = cfg['MODELS'].get('net')
+
     number_of_planes = cfg['GAME'].getint('number_of_planes')
     board_size = cfg['GAME'].getint('board_size')
 
@@ -153,7 +157,9 @@ def main():
     
 
     input_shape = (number_of_planes, board_size, board_size)
-    model = Connect5Network(input_shape, board_size * board_size)
+
+    
+    model = ResNet8Network(input_shape, board_size * board_size) if model_name == 'ResNet8Network' else Simple5Network(input_shape, board_size * board_size)
         
     # Be aware this is not the first time to run this program
     if resume:
