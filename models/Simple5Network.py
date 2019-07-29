@@ -10,7 +10,7 @@ class ConvBlock(nn.Module):
         super().__init__()
 
         self._conv = nn.Sequential(ConvBlock.layer_init(
-            nn.Conv2d(input_channels, output_channels, kernel_size, padding)),
+            nn.Conv2d(input_channels, output_channels, kernel_size=kernel_size, padding=padding)),
             nn.ReLU()
         )
 

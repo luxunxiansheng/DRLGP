@@ -10,7 +10,8 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-            "debugOptions": ["DebugStdLib"]
+            "debugOptions": ["DebugStdLib"],
+            "args": ["--checkpoint_dir","./checkpoint_debug"]
         },
         {
             "name": "Python: Remote Attach",

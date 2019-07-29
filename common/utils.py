@@ -43,6 +43,7 @@ from pathlib import Path
 import numpy as np
 import torch
 import torch.nn as nn
+from torch.optim import SGD, Adadelta, Adagrad, Adam, RMSprop
 
 
 class Utils(object):
@@ -61,6 +62,40 @@ class Utils(object):
         config.read(os.path.join(Path(__file__).parents[1], config_file))
         return config
 
-   
+  
+    @staticmethod
+    def lr_schedule(lr, lr_factor, epoch_now, lr_epochs):
+        """
+        Learning rate schedule with respect to epoch
+        lr: float, initial learning rate
+        lr_factor: float, decreasing factor every epoch_lr
+        epoch_now: int, the current epoch
+        lr_epochs: list of int, decreasing every epoch in lr_epochs
+        return: lr, float, scheduled learning rate.
+        """
+        count = 0
+        for epoch in lr_epochs:
+            if epoch_now >= epoch:
+                count += 1
+                continue
+            break
 
-   
+        return lr * np.power(lr_factor, count)
+
+    @staticmethod
+    def get_norm(norm_type, num_features, num_groups=32, eps=1e-5):
+        if norm_type == 'BatchNorm':
+            return nn.BatchNorm2d(num_features, eps=eps)
+        elif norm_type == "GroupNorm":
+            return nn.GroupNorm(num_groups, num_features, eps=eps)
+        elif norm_type == "InstanceNorm":
+            return nn.InstanceNorm2d(num_features, eps=eps,affine=True, track_running_stats=True)
+        else:
+            raise Exception('Unknown Norm Function : {}'.format(norm_type))
+
+    @staticmethod
+    def get_optimizer(params, cfg):
+        if cfg['TRAIN'].get('optimizer')=='Adam':
+            return Adam(params, lr=cfg['TRAIN.OPTIMIZER.ADAM'].getfloat('learning_rate'), weight_decay=cfg['TRAIN.OPTIMIZER.ADAM'].getfloat('weight_decay'))
+        else:
+            raise Exception('Unknown optimizer : {}'.format(cfg['TRAIN'].get('optimizer')))
