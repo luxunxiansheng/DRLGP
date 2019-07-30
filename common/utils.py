@@ -55,11 +55,10 @@ class Utils(object):
         return np.argmax(memory_available)
 
     @staticmethod
-    def config():
+    def config(cfg_path):
         # parser config
-        config_file = "config.ini"
         config = ConfigParser()
-        config.read(os.path.join(Path(__file__).parents[1], config_file))
+        config.read(cfg_path)
         return config
 
   

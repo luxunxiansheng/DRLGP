@@ -24,16 +24,16 @@ from game.connect5game import Connect5Game
 
 
 class Trainer(object):
-    def __init__(self, args, cfg, logger):
+    def __init__(self, args,logger):
 
-        self._logger = logger
-
-        gpu_ids = list(map(int, args.gpu_ids.split(',')))
-        num_devices = torch.cuda.device_count()
-        if num_devices < len(gpu_ids):
-            raise Exception('#available gpu : {} < --device_ids : {}'.format(num_devices, len(gpu_ids)))
-        cuda = 'cuda:' + str(gpu_ids[0])
-
+        self._logger = logger   
+        
+        config_name = args.config
+        
+        # hardcode the config path just for convinence. 
+        cfg = Utils.config("./config/" + config_name)
+        
+        
         self._number_of_planes = cfg['GAME'].getint('number_of_planes')
         self._board_size = cfg['GAME'].getint('board_size')
 
@@ -52,9 +52,9 @@ class Trainer(object):
         self._kl_threshold = cfg['TRAIN'].getfloat('kl_threshold')
         self._check_frequence = cfg['TRAIN'].getint('check_frequence')
 
-        checkpoint_dir = args.checkpoint_dir
-        self._current_model_file = checkpoint_dir + '/' + cfg['TRAIN'].get('curent_model_file')
-        self._best_model_file = checkpoint_dir + '/' + cfg['TRAIN'].get('best_model_file')
+        
+        self._current_model_file = './checkpoints/'+config_name.split('.')[0]+'/current.model'
+        self._best_model_file    = './checkpoints/'+config_name.split('.')[0]+'/best.model'
 
         self._evaluate_number_of_games = cfg['EVALUATE'].getint('number_of_games')
 
@@ -62,6 +62,12 @@ class Trainer(object):
         os.makedirs(os.path.dirname(self._best_model_file), exist_ok=True)
 
         use_cuda = torch.cuda.is_available()
+
+        gpu_ids = list(map(int, args.gpu_ids.split(',')))
+        num_devices = torch.cuda.device_count()
+        if num_devices < len(gpu_ids):
+            raise Exception('#available gpu : {} < --device_ids : {}'.format(num_devices, len(gpu_ids)))
+        cuda = 'cuda:' + str(gpu_ids[0])
         self._device = torch.device(cuda if use_cuda else 'cpu')
 
         experience_collector_1 = AlphaZeroExperienceCollector()
@@ -87,7 +93,7 @@ class Trainer(object):
 
         self._optimizer = Utils.get_optimizer(self._model.parameters(), cfg)
 
-        self._writer = SummaryWriter()
+        self._writer = SummaryWriter(log_dir='./runs/'+config_name.split('.')[0])
 
     def _collect_data(self, game_index):
         self._agent_1.reset()
@@ -112,7 +118,7 @@ class Trainer(object):
 
         batch_data = random.sample(self._experience_buffer.data, self._batch_size)
 
-        for i in tqdm(range(self._epochs)):
+        for _ in range(self._epochs):
             states, rewards, visit_counts = zip(*batch_data)
 
             states = torch.from_numpy(np.array(list(states))).to(self._device, dtype=torch.float)
@@ -167,7 +173,7 @@ class Trainer(object):
             if winner is not None:
                 win_counts[winner.id] += 1
 
-        print('mcts:az_agent---{}:{} in {}'.format(win_counts[mcts_agent.id], win_counts[az_agent.id], self._evaluate_number_of_games))
+        self._logger.info('mcts:az_agent---{}:{} in {}'.format(win_counts[mcts_agent.id], win_counts[az_agent.id], self._evaluate_number_of_games))
 
         return win_counts[az_agent.id]/self._evaluate_number_of_games
 
@@ -184,14 +190,15 @@ class Trainer(object):
                 self._improve_policy(game_index)
 
             if game_index % self._check_frequence == 0:
+                
                 win_ratio = self._evaluate_plicy()
 
-                self._logger.debug("current self-play batch:{} and win win ratio is:{}".format(game_index, win_ratio))
+                self._logger.info("current self-play batch:{} and win win ratio is:{}".format(game_index, win_ratio))
 
                 torch.save(self._model.state_dict(), self._current_model_file)
 
                 if win_ratio > best_win_ratio:
-                    print("New best policy!!!!!!!!")
+                    self._logger.info("New best policy!!!!!!!!")
                     best_win_ratio = win_ratio
                     # update the best_policy
                     torch.save(self._model.state_dict(), self._best_model_file)
@@ -201,15 +208,15 @@ class Trainer(object):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Alphazero Training')
-    parser.add_argument('--checkpoint_dir', type=str, default='./checkpoints', help='Specifiy where to put the checkpoints')
+    parser = argparse.ArgumentParser(description='AlphaZero Training')
     parser.add_argument('--gpu_ids', type=str, default='0', help="Specifiy which gpu devices to use if available,e.g. '0,1,2'")
     parser.add_argument('--resume', type=bool, default=False, help='Wethere resume traning from the previous or not ')
+    parser.add_argument('--config', type = str,default='default.ini',help='A ini config file to setup the default machinery')
     args = parser.parse_args()
-    cfg = Utils.config()
+    
     logger = logging.getLogger(__name__)
 
-    Trainer(args, cfg, logger).run()
+    Trainer(args,logger).run()
 
 
 if __name__ == '__main__':
