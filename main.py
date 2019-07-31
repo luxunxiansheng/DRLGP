@@ -24,16 +24,15 @@ from game.connect5game import Connect5Game
 
 
 class Trainer(object):
-    def __init__(self, args,logger):
+    def __init__(self, args, logger):
 
-        self._logger = logger   
-        
+        self._logger = logger
+
         config_name = args.config
-        
-        # hardcode the config path just for convinence. 
+
+        # hardcode the config path just for convinence.
         cfg = Utils.config("./config/" + config_name)
-        
-        
+
         self._number_of_planes = cfg['GAME'].getint('number_of_planes')
         self._board_size = cfg['GAME'].getint('board_size')
 
@@ -52,9 +51,8 @@ class Trainer(object):
         self._kl_threshold = cfg['TRAIN'].getfloat('kl_threshold')
         self._check_frequence = cfg['TRAIN'].getint('check_frequence')
 
-        
         self._current_model_file = './checkpoints/'+config_name.split('.')[0]+'/current.model'
-        self._best_model_file    = './checkpoints/'+config_name.split('.')[0]+'/best.model'
+        self._best_model_file = './checkpoints/'+config_name.split('.')[0]+'/best.model'
 
         self._evaluate_number_of_games = cfg['EVALUATE'].getint('number_of_games')
 
@@ -157,18 +155,19 @@ class Trainer(object):
                 break
 
     def _evaluate_plicy(self):
+
         mcts_agent = MCTSAgent(0, "MCTSAgent", "O", self._basic_mcts_round_per_moves, self._basic_mcts_temperature)
-        az_agent = AlphaZeroAgent(1, "AZAent", "X", self._encoder, self._model, self._az_mcts_round_per_moves, self._az_mcts_temperature, device=self._device)
+        az_agent = AlphaZeroAgent(1, "AZAgent", "X", self._encoder, self._model, self._az_mcts_round_per_moves, self._az_mcts_temperature, device=self._device)
 
         win_counts = {
             mcts_agent.id: 0,
             az_agent.id: 0,
         }
 
-        for game_index in tqdm(range(self._evaluate_number_of_games)):
-            az_agent.reset()
+        for _ in tqdm(range(self._evaluate_number_of_games)):
+
             players = [mcts_agent, az_agent]
-            winner = Connect5Game.run_episode(self._board_size, players, players[0 if game_index % 2 == 0 else 1], self._number_of_planes, is_self_play=False)
+            winner = Connect5Game.run_episode(self._board_size, players, players[random.choice([0, 1])], self._number_of_planes, is_self_play=False)
 
             if winner is not None:
                 win_counts[winner.id] += 1
@@ -190,7 +189,7 @@ class Trainer(object):
                 self._improve_policy(game_index)
 
             if game_index % self._check_frequence == 0:
-                
+
                 win_ratio = self._evaluate_plicy()
 
                 self._logger.info("current self-play batch:{} and win win ratio is:{}".format(game_index, win_ratio))
@@ -211,12 +210,12 @@ def main():
     parser = argparse.ArgumentParser(description='AlphaZero Training')
     parser.add_argument('--gpu_ids', type=str, default='0', help="Specifiy which gpu devices to use if available,e.g. '0,1,2'")
     parser.add_argument('--resume', type=bool, default=False, help='Wethere resume traning from the previous or not ')
-    parser.add_argument('--config', type = str,default='default.ini',help='A ini config file to setup the default machinery')
+    parser.add_argument('--config', type=str, default='default.ini', help='A ini config file to setup the default machinery')
     args = parser.parse_args()
-    
+
     logger = logging.getLogger(__name__)
 
-    Trainer(args,logger).run()
+    Trainer(args, logger).run()
 
 
 if __name__ == '__main__':
