@@ -46,7 +46,7 @@ from agent.alphazeroagent.alphazeroagent import AlphaZeroAgent
 from agent.alphazeroagent.experiencebuffer import ExpericenceBuffer
 from agent.alphazeroagent.experiencecollector import ExperienceCollector
 from agent.humanplayer import HumanPlayer
-from boardencoder.multipleplaneencoder import MultiplePlaneEncoder
+from boardencoder.snapshotencoder import SnapshotEncoder
 from common.board import Board
 from common.move import Move
 from common.player import Player
@@ -109,7 +109,7 @@ number_of_planes = 10
 board_size = 9
 round_per_moves = 100
 
-encoder = MultiplePlaneEncoder(number_of_planes, board_size)
+encoder = SnapshotEncoder(number_of_planes, board_size)
 
 input_shape = (number_of_planes, board_size, board_size)
 model_new = ResNet8Network(input_shape, board_size * board_size)

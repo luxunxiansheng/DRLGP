@@ -38,7 +38,7 @@ from common.encoder import Encoder
 from common.point import Point
 
 
-class MultiplePlaneEncoder(Encoder):
+class SnapshotEncoder(Encoder):
     def __init__(self, num_plane, board_size):
         self._board_size = board_size
         self._board_width = board_size
@@ -46,7 +46,7 @@ class MultiplePlaneEncoder(Encoder):
         self._num_plane = num_plane
 
     def name(self):
-        return 'MultiplePlaneEncoder'
+        return 'SnapshotEncoder'
 
     @property
     def num_plane(self):

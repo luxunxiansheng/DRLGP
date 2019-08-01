@@ -50,8 +50,8 @@ from common.board import Board
 from common.gamestate import GameState
 from common.move import Move
 from common.player import Player
-from mcts.branch import Branch
-from mcts.node import Node
+from .mcts.branch import Branch
+from .mcts.node import Node
 
 
 class AlphaZeroAgent(Player):

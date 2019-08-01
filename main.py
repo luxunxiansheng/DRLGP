@@ -54,7 +54,7 @@ from tqdm import tqdm
 from agent.alphazeroagent.alphazeroagent import AlphaZeroAgent
 from agent.alphazeroagent.experiencebuffer import ExpericenceBuffer
 from agent.alphazeroagent.experiencecollector import ExperienceCollector
-from boardencoder.multipleplaneencoder import MultiplePlaneEncoder
+from boardencoder.snapshotencoder import SnapshotEncoder
 
 from agent.mctsagent import MCTSAgent
 from common.board import Board
@@ -111,7 +111,7 @@ class Trainer(object):
 
         experience_collector_1 = ExperienceCollector()
         experience_collector_2 = ExperienceCollector()
-        self._encoder = MultiplePlaneEncoder(self._number_of_planes, self._board_size)
+        self._encoder = SnapshotEncoder(self._number_of_planes, self._board_size)
 
         input_shape = (self._number_of_planes, self._board_size, self._board_size)
         model_name = cfg['MODELS'].get('net')
