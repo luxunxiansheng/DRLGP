@@ -34,34 +34,26 @@
 # /
 
 
-import copy
+from collections import deque
 
-from common.board import Board
-from common.move import Move
-from common.player import Player
-from common.point import Point
+import numpy as np
 
 
-class GameState:
-    """
-    board: what the situation looks like
-    player_in_action: the player who will place its piece into the board
-    previous_move:  the move which led to what the current board looks like 
-    """
-
-    def __init__(self, board, player_in_action, previous_move):
-        self._board = board
-        self._player_in_action = player_in_action
-        self._previous_move = previous_move
+class ExpericenceBuffer:
+    def __init__(self, compacity):
+        self._data = deque(maxlen=compacity)
 
     @property
-    def board(self):
-        return self._board
+    def data(self):
+        return self._data
 
-    @property
-    def player_in_action(self):
-        return self._player_in_action
+    def combine_experience(self, collectors):
+        combined_states = np.concatenate([np.array(c.states) for c in collectors])
+        combined_rewards = np.concatenate([np.array(c.rewards) for c in collectors])
+        combined_visit_counts = np.concatenate([np.array(c.visit_counts) for c in collectors])
 
-    @property
-    def previous_move(self):
-        return self._previous_move
+        zipped_data = zip(combined_states, combined_rewards, combined_visit_counts)
+        self._data.extend(zipped_data)
+
+    def size(self):
+        return len(self._data)

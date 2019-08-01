@@ -1,3 +1,39 @@
+# #### BEGIN LICENSE BLOCK #####
+ # Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ #
+ # The contents of this file are subject to the Mozilla Public License Version
+ # 1.1 (the "License"); you may not use this file except in compliance with
+ # the License. You may obtain a copy of the License at
+ # http://www.mozilla.org/MPL/
+ #
+ # Software distributed under the License is distributed on an "AS IS" basis,
+ # WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ # for the specific language governing rights and limitations under the
+ # License.
+ #
+ #   
+ # Contributor(s): 
+ # 
+ #    Bin.Li (ornot2008@yahoo.com) 
+ #
+ #
+ # Alternatively, the contents of this file may be used under the terms of
+ # either the GNU General Public License Version 2 or later (the "GPL"), or
+ # the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ # in which case the provisions of the GPL or the LGPL are applicable instead
+ # of those above. If you wish to allow use of your version of this file only
+ # under the terms of either the GPL or the LGPL, and not to allow others to
+ # use your version of this file under the terms of the MPL, indicate your
+ # decision by deleting the provisions above and replace them with the notice
+ # and other provisions required by the GPL or the LGPL. If you do not delete
+ # the provisions above, a recipient may use your version of this file under
+ # the terms of any one of the MPL, the GPL or the LGPL.
+ #
+ # #### END LICENSE BLOCK #####
+ #
+ #/  
+
+
 import argparse
 import logging
 import os
@@ -15,9 +51,11 @@ from torch.nn import DataParallel
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
-from agent.alphazeroagent import (AlphaZeroAgent, AlphaZeroExpericenceBuffer,
-                                  AlphaZeroExperienceCollector,
-                                  MultiplePlaneEncoder)
+from agent.alphazeroagent.alphazeroagent import AlphaZeroAgent
+from agent.alphazeroagent.experiencebuffer import ExpericenceBuffer
+from agent.alphazeroagent.experiencecollector import ExperienceCollector
+from boardencoder.multipleplaneencoder import MultiplePlaneEncoder
+
 from agent.mctsagent import MCTSAgent
 from common.board import Board
 from common.utils import Utils
@@ -71,8 +109,8 @@ class Trainer(object):
         cuda = 'cuda:' + str(gpu_ids[0])
         self._device = torch.device(cuda if use_cuda else 'cpu')
 
-        experience_collector_1 = AlphaZeroExperienceCollector()
-        experience_collector_2 = AlphaZeroExperienceCollector()
+        experience_collector_1 = ExperienceCollector()
+        experience_collector_2 = ExperienceCollector()
         self._encoder = MultiplePlaneEncoder(self._number_of_planes, self._board_size)
 
         input_shape = (self._number_of_planes, self._board_size, self._board_size)
@@ -90,7 +128,7 @@ class Trainer(object):
         self._agent_1 = AlphaZeroAgent(0, "Agent1", "O", self._encoder, self._model, self._az_mcts_round_per_moves, self._az_mcts_temperature, experience_collector_1, device=self._device)
         self._agent_2 = AlphaZeroAgent(1, "Agent2", "X", self._encoder, self._model, self._az_mcts_round_per_moves, self._az_mcts_temperature, experience_collector_2, device=self._device)
 
-        self._experience_buffer = AlphaZeroExpericenceBuffer(self._buffer_size)
+        self._experience_buffer = ExpericenceBuffer(self._buffer_size)
 
         self._optimizer = Utils.get_optimizer(self._model.parameters(), cfg)
 

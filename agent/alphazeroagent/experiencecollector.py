@@ -34,34 +34,37 @@
 # /
 
 
-import copy
+class ExperienceCollector:
+    def __init__(self):
+        self._states = []
+        self._visit_counts = []
+        self._rewards = []
+        self._current_episode_states = []
+        self._current_episode_visit_counts = []
 
-from common.board import Board
-from common.move import Move
-from common.player import Player
-from common.point import Point
+    def reset_episode(self):
+        self._current_episode_states = []
+        self._current_episode_visit_counts = []
 
+    def record_decision(self, state, visit_counts):
+        self._current_episode_states.append(state)
+        self._current_episode_visit_counts.append(visit_counts)
 
-class GameState:
-    """
-    board: what the situation looks like
-    player_in_action: the player who will place its piece into the board
-    previous_move:  the move which led to what the current board looks like 
-    """
-
-    def __init__(self, board, player_in_action, previous_move):
-        self._board = board
-        self._player_in_action = player_in_action
-        self._previous_move = previous_move
-
-    @property
-    def board(self):
-        return self._board
-
-    @property
-    def player_in_action(self):
-        return self._player_in_action
+    def complete_episode(self, reward):
+        num_states = len(self._current_episode_states)
+        self._states += self._current_episode_states
+        self._visit_counts += self._current_episode_visit_counts
+        self._rewards += [reward for _ in range(num_states)]
+        self.reset_episode()
 
     @property
-    def previous_move(self):
-        return self._previous_move
+    def visit_counts(self):
+        return self._visit_counts
+
+    @property
+    def rewards(self):
+        return self._rewards
+
+    @property
+    def states(self):
+        return self._states

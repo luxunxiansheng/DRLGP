@@ -1,31 +1,70 @@
+# #### BEGIN LICENSE BLOCK #####
+# Version: MPL 1.1/GPL 2.0/LGPL 2.1
+#
+# The contents of this file are subject to the Mozilla Public License Version
+# 1.1 (the "License"); you may not use this file except in compliance with
+# the License. You may obtain a copy of the License at
+# http://www.mozilla.org/MPL/
+#
+# Software distributed under the License is distributed on an "AS IS" basis,
+# WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+# for the specific language governing rights and limitations under the
+# License.
+#
+#
+# Contributor(s):
+#
+#    Bin.Li (ornot2008@yahoo.com)
+#
+#
+# Alternatively, the contents of this file may be used under the terms of
+# either the GNU General Public License Version 2 or later (the "GPL"), or
+# the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+# in which case the provisions of the GPL or the LGPL are applicable instead
+# of those above. If you wish to allow use of your version of this file only
+# under the terms of either the GPL or the LGPL, and not to allow others to
+# use your version of this file under the terms of the MPL, indicate your
+# decision by deleting the provisions above and replace them with the notice
+# and other provisions required by the GPL or the LGPL. If you do not delete
+# the provisions above, a recipient may use your version of this file under
+# the terms of any one of the MPL, the GPL or the LGPL.
+#
+# #### END LICENSE BLOCK #####
+#
+# /
+
+
 import os
 import sys
-sys.path.insert(0, os.path.abspath('.'))
-
 
 import torch
 import torch.nn as nn
 from flask import Flask, jsonify, request
 from models.ResNet8Network import ResNet8Network
 
-from agent.alphazeroagent import (AlphaZeroAgent, AlphaZeroExpericenceBuffer,
-                                  AlphaZeroExperienceCollector,
-                                  MultiplePlaneEncoder)
+from agent.alphazeroagent.alphazeroagent import AlphaZeroAgent
+from agent.alphazeroagent.experiencebuffer import ExpericenceBuffer
+from agent.alphazeroagent.experiencecollector import ExperienceCollector
 from agent.humanplayer import HumanPlayer
+from boardencoder.multipleplaneencoder import MultiplePlaneEncoder
 from common.board import Board
 from common.move import Move
 from common.player import Player
 from common.point import Point
 from game.connect5game import Connect5Game
 
+sys.path.insert(0, os.path.abspath('.'))
+
 
 def coords_from_point(point):
     return '%s%d' % (Board.get_column_indicator(point.col-1), point.row)
 
+
 def point_from_coords(text):
-        col_name = text[0]
-        row = int(text[1])
-        return Point(row, Board.get_column_indicator_index(col_name)+1)
+    col_name = text[0]
+    row = int(text[1])
+    return Point(row, Board.get_column_indicator_index(col_name)+1)
+
 
 def get_web_app():
     """Create a flask application for serving bot moves.
@@ -37,29 +76,29 @@ def get_web_app():
 
     @app.route('/select-move/<bot_name>', methods=['POST'])
     def select_move(bot_name):
-        historic_jboard_positions=[point_from_coords([move][0]) for move in (request.json)['moves']]
-        historic_moves=[Move(Point(board_size+1-historic_jboard_position.row,historic_jboard_position.col)) for historic_jboard_position in historic_jboard_positions]
+        historic_jboard_positions = [point_from_coords([move][0]) for move in (request.json)['moves']]
+        historic_moves = [Move(Point(board_size+1-historic_jboard_position.row, historic_jboard_position.col)) for historic_jboard_position in historic_jboard_positions]
         game = Connect5Game(board, players, start_player, False)
         for move in historic_moves:
-            if isinstance(game.working_game_state.player_in_action,AlphaZeroAgent): 
+            if isinstance(game.working_game_state.player_in_action, AlphaZeroAgent):
                 game.working_game_state.player_in_action.store_game_state(game.working_game_state)
             game.apply_move(move)
-  
+
         bot_move = bot_agent.select_move(game, game.working_game_state)
         game.apply_move(bot_move)
         game.working_game_state.board.print_board()
-        jboard_postion=Point(board_size+1-bot_move.point.row,bot_move.point.col) 
+        jboard_postion = Point(board_size+1-bot_move.point.row, bot_move.point.col)
         bot_move_str = coords_from_point(jboard_postion)
- 
+
         over = True if game.is_over() else False
-       
+
         return jsonify({
             'bot_move': bot_move_str,
-            'over'    : over,
+            'over': over,
             'diagnostics': bot_agent.diagnostics
-            })
+        })
 
-    return app     
+    return app
 
 
 torch.manual_seed(1)

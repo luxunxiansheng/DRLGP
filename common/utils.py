@@ -61,7 +61,6 @@ class Utils(object):
         config.read(cfg_path)
         return config
 
-  
     @staticmethod
     def lr_schedule(lr, lr_factor, epoch_now, lr_epochs):
         """
@@ -88,13 +87,13 @@ class Utils(object):
         elif norm_type == "GroupNorm":
             return nn.GroupNorm(num_groups, num_features, eps=eps)
         elif norm_type == "InstanceNorm":
-            return nn.InstanceNorm2d(num_features, eps=eps,affine=True, track_running_stats=True)
+            return nn.InstanceNorm2d(num_features, eps=eps, affine=True, track_running_stats=True)
         else:
             raise Exception('Unknown Norm Function : {}'.format(norm_type))
 
     @staticmethod
     def get_optimizer(params, cfg):
-        if cfg['TRAIN'].get('optimizer')=='Adam':
+        if cfg['TRAIN'].get('optimizer') == 'Adam':
             return Adam(params, lr=cfg['TRAIN.OPTIMIZER.ADAM'].getfloat('learning_rate'), weight_decay=cfg['TRAIN.OPTIMIZER.ADAM'].getfloat('weight_decay'))
         else:
             raise Exception('Unknown optimizer : {}'.format(cfg['TRAIN'].get('optimizer')))

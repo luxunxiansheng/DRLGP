@@ -11,7 +11,6 @@ from common.player import Player
 from agent.randomagent import RandomAgent
 
 
-
 class MCTSNode(object):
 
     DRAW = -1
