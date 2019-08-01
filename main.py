@@ -5,6 +5,7 @@ import random
 
 import numpy as np
 import torch
+import torch.multiprocessing as mp
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
@@ -154,29 +155,47 @@ class Trainer(object):
             if kl > self._kl_threshold * 4:
                 break
 
+    @staticmethod
+    def _self_play_game_once(board_size,players,number_of_planes,results):
+        winner = Connect5Game.run_episode(board_size, players, players[random.choice([0, 1])],number_of_planes, is_self_play=False)
+        if winner is not None:
+            results.put(winner.id)
+        
     def _evaluate_plicy(self):
 
         mcts_agent = MCTSAgent(0, "MCTSAgent", "O", self._basic_mcts_round_per_moves, self._basic_mcts_temperature)
         az_agent = AlphaZeroAgent(1, "AZAgent", "X", self._encoder, self._model, self._az_mcts_round_per_moves, self._az_mcts_temperature, device=self._device)
+     
+        players = [mcts_agent, az_agent]
 
         win_counts = {
             mcts_agent.id: 0,
             az_agent.id: 0,
         }
 
-        for _ in tqdm(range(self._evaluate_number_of_games)):
+        results= mp.Queue()
 
-            players = [mcts_agent, az_agent]
-            winner = Connect5Game.run_episode(self._board_size, players, players[random.choice([0, 1])], self._number_of_planes, is_self_play=False)
+        processes = []
+        for _ in range(self._evaluate_number_of_games):
+            p = mp.Process(target=Trainer._self_play_game_once, args=(self._board_size,players,self._number_of_planes,results))
+            p.start()
+            processes.append(p)
 
-            if winner is not None:
-                win_counts[winner.id] += 1
+        for p in processes:
+           p.join()
 
+        winner_ids = [results.get() for _ in processes]
+
+        for winner_id in winner_ids:
+            win_counts[winner_id]+= 1
+                         
         self._logger.info('mcts:az_agent---{}:{} in {}'.format(win_counts[mcts_agent.id], win_counts[az_agent.id], self._evaluate_number_of_games))
 
         return win_counts[az_agent.id]/self._evaluate_number_of_games
 
     def run(self):
+
+        mp.set_start_method('spawn')
 
         best_win_ratio = 0
 
@@ -210,7 +229,7 @@ def main():
     parser = argparse.ArgumentParser(description='AlphaZero Training')
     parser.add_argument('--gpu_ids', type=str, default='0', help="Specifiy which gpu devices to use if available,e.g. '0,1,2'")
     parser.add_argument('--resume', type=bool, default=False, help='Wethere resume traning from the previous or not ')
-    parser.add_argument('--config', type=str, default='default.ini', help='A ini config file to setup the default machinery')
+    parser.add_argument('-config', type=str, default='default.ini', help='A ini config file to setup the default machinery')
     args = parser.parse_args()
 
     logger = logging.getLogger(__name__)
