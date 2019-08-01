@@ -56,6 +56,8 @@ class Trainer(object):
         self._best_model_file = './checkpoints/'+config_name.split('.')[0]+'/best.model'
 
         self._evaluate_number_of_games = cfg['EVALUATE'].getint('number_of_games')
+        self._multipleprocessing = cfg['EVALUATE'].getboolean('mutipleprocessing')
+
 
         os.makedirs(os.path.dirname(self._current_model_file), exist_ok=True)
         os.makedirs(os.path.dirname(self._best_model_file), exist_ok=True)
@@ -165,7 +167,6 @@ class Trainer(object):
 
         mcts_agent = MCTSAgent(0, "MCTSAgent", "O", self._basic_mcts_round_per_moves, self._basic_mcts_temperature)
         az_agent = AlphaZeroAgent(1, "AZAgent", "X", self._encoder, self._model, self._az_mcts_round_per_moves, self._az_mcts_temperature, device=self._device)
-     
         players = [mcts_agent, az_agent]
 
         win_counts = {
@@ -173,21 +174,31 @@ class Trainer(object):
             az_agent.id: 0,
         }
 
-        results= mp.Queue()
 
-        processes = []
-        for _ in range(self._evaluate_number_of_games):
-            p = mp.Process(target=Trainer._self_play_game_once, args=(self._board_size,players,self._number_of_planes,results))
-            p.start()
-            processes.append(p)
+        if self._multipleprocessing:
+            results= mp.Queue()
 
-        for p in processes:
-           p.join()
+            processes = []
+            for _ in range(self._evaluate_number_of_games):
+                p = mp.Process(target=Trainer._self_play_game_once, args=(self._board_size,players,self._number_of_planes,results))
+                p.start()
+                processes.append(p)
 
-        winner_ids = [results.get() for _ in processes]
+            for p in processes:
+                p.join()
 
-        for winner_id in winner_ids:
-            win_counts[winner_id]+= 1
+            winner_ids = [results.get() for _ in processes]
+
+            for winner_id in winner_ids:
+                win_counts[winner_id] += 1
+
+        else:
+            for _ in tqdm(range(self._evaluate_number_of_games)):
+                winner = Connect5Game.run_episode(self._board_size, players, players[random.choice([0, 1])], self._number_of_planes, is_self_play=False)
+
+                if winner is not None:
+                    win_counts[winner.id] += 1
+
                          
         self._logger.info('mcts:az_agent---{}:{} in {}'.format(win_counts[mcts_agent.id], win_counts[az_agent.id], self._evaluate_number_of_games))
 
