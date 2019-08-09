@@ -5,13 +5,29 @@ from common.move  import Move
 
 class Tree(object):
     def __init__(self):
-        self._root_node=Node
-
+        self._root_node=None
+        self._working_node=None
+   
     
     @property
     def root_node(self):
         return self._root_node
+
+    @root_node.setter
+    def root_node(self, value):
+        self._root_node = value    
     
+    @property
+    def working_node(self):    
+        return self._working_node
+
+    @working_node.setter
+    def working_node(self, value):
+        self._working_node = value
+
+    def reset(self):
+        self._root_node= None
+        self._working_node =None    
 
     def add_node_to_branch(self, game_state, temperature,estimated_branch_priors, estimated_state_value, parent_branch):
         new_node = Node(game_state, estimated_state_value, parent_branch,temperature)
