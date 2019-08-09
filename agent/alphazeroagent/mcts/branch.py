@@ -35,17 +35,17 @@
 
 
 
-class Branch:
+class Branch(object):
     def __init__(self, parent_node,move,prior):
         self._move = move
+      
         self._total_value = 0.0
-        
         self._prior = prior
         self._visit_counts = 0
 
         self._parent_node  = parent_node
         self._child_node = None
-
+    
     @property
     def move(self):
         return self._move
@@ -69,6 +69,10 @@ class Branch:
     @visit_counts.setter
     def visit_counts(self, value):
         self._visit_counts = value
+    
+    @property
+    def expected_value(self):
+        return self._total_value/self._visit_counts if self._visit_counts!=0 else 0
 
     @property
     def parent_node(self):
@@ -78,6 +82,5 @@ class Branch:
     def child_node(self):
         return self._child_node    
    
-    @child_node.setter
-    def child_node(self, node):
+    def add_child_node(self, node):
         self._child_node = node

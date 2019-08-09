@@ -35,17 +35,56 @@
 
 import numpy as np
 
-class Node:
+class Node(object):
     def __init__(self, game_state, game_state_value, parent_branch, temperature=0.8):
         self._game_state = game_state
+        
         self._game_state_value = game_state_value
         self._total_visit_counts = 1
 
         self._parent_branch = parent_branch
-
         self._children_branch = None
 
         self._temperature = temperature
+
+    def add_branch(self,point,branch):
+        assert branch.parent_node == self
+        self._children_branch[point]=branch
+
+    def does_branch_exist(self,point):
+        return  point in self.children_branch
+        
+    def expected_value_of_branch(self, point):
+        return self._children_branch[point].expected_value
+        
+    def prior_of_branch(self, point):
+        return self._children_branch[point].prior
+        
+    def visit_counts_of_branch(self, point):
+        return self._children_branch[point].visit_counts
+        
+    def record_visit(self, point, value):
+        self._total_visit_counts += 1
+        self._children_branch[point].visit_counts += 1
+        self._children_branch[point].total_value += value
+
+    def select_branch(self, is_root=False, is_selfplay=True):
+        if not self.children_branch:    # no free points to move
+            return None
+
+        Qs = [self.expected_value_of_branch(point) for point in self.children_branch]
+        Ps = [self.prior_of_branch(point) for point in self.children_branch]
+        Ns = [self.visit_counts_of_branch(point) for point in self.children_branch]
+
+        if is_root and is_selfplay:
+            noises = np.random.dirichlet([0.03] * len(self.children_branch))
+            Ps = [0.75*p+0.25*noise for p, noise in zip(Ps, noises)]
+
+        scores = [(q + self._temperature * p * np.sqrt(self._total_visit_counts) / (n + 1)).item() for q, p, n in zip(Qs, Ps, Ns)]
+        best_point_index = np.argmax(scores)
+
+        points = list(self.children_branch)
+        return self._children_branch[points[best_point_index]]
 
     @property
     def game_state(self):
@@ -70,40 +109,3 @@ class Node:
     @children_branch.setter
     def children_branch(self, value):
         self._children_branch = value
-
-    def expected_value_of_branch(self, point):
-        branch = self._children_branch[point]
-        if branch.visit_counts == 0:
-            return 0.0
-        return branch.total_value/branch.visit_counts
-
-    def prior_of_branch(self, point):
-        return self._children_branch[point].prior
-
-    def visit_counts_of_branch(self, point):
-        if point in self._children_branch:
-            return self._children_branch[point].visit_counts
-        return 0
-
-    def record_visit(self, point, value):
-        self._total_visit_counts += 1
-        self._children_branch[point].visit_counts += 1
-        self._children_branch[point].total_value += value
-
-    def select_branch(self, is_root=False, is_selfplay=True):
-        if not self.children_branch:    # no free points to move
-            return None
-
-        Qs = [self.expected_value_of_branch(point) for point in self.children_branch]
-        Ps = [self.prior_of_branch(point) for point in self.children_branch]
-        Ns = [self.visit_counts_of_branch(point) for point in self.children_branch]
-
-        if is_root and is_selfplay:
-            noises = np.random.dirichlet([0.03] * len(self.children_branch))
-            Ps = [0.75*p+0.25*noise for p, noise in zip(Ps, noises)]
-
-        scores = [(q + self._temperature * p * np.sqrt(self._total_visit_counts) / (n + 1)).item() for q, p, n in zip(Qs, Ps, Ns)]
-        best_point_index = np.argmax(scores)
-
-        points = list(self.children_branch)
-        return self._children_branch[points[best_point_index]]

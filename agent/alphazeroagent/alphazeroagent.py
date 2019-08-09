@@ -52,6 +52,7 @@ from common.move import Move
 from common.player import Player
 from .mcts.branch import Branch
 from .mcts.node import Node
+from .mcts.tree import Tree
 
 
 class AlphaZeroAgent(Player):
@@ -63,8 +64,11 @@ class AlphaZeroAgent(Player):
         self._num_rounds = num_rounds
         self._experience_collector = experience_collector
         self._temperature = temperature
+        self._mcts_tree   = Tree()
 
     def reset(self):
+        #TODO:  reset tree?
+       
         if self._experience_collector is not None:
             self._experience_collector.reset_episode()
 
