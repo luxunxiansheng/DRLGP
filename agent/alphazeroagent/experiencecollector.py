@@ -42,7 +42,7 @@ class ExperienceCollector:
         self._current_episode_states = []
         self._current_episode_visit_counts = []
 
-    def reset_episode(self):
+    def reset(self):
         self._current_episode_states = []
         self._current_episode_visit_counts = []
 
@@ -55,7 +55,7 @@ class ExperienceCollector:
         self._states += self._current_episode_states
         self._visit_counts += self._current_episode_visit_counts
         self._rewards += [reward for _ in range(num_states)]
-        self.reset_episode()
+        self.reset()
 
     @property
     def visit_counts(self):

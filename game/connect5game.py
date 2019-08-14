@@ -44,6 +44,7 @@ from common.player import Player
 from common.point import Point
 
 
+
 class Connect5Game(Game):
     @staticmethod
     def _connect_5_into_a_line(board, player):
@@ -151,8 +152,10 @@ class Connect5Game(Game):
 
     @staticmethod
     def run_episode(board_size, players, start_player, number_of_planes, is_self_play):
+        
         board = Board(board_size)
         game = Connect5Game(board, players, start_player, number_of_planes, is_self_play)
+        
 
         while not game.is_over():
             move = game.working_game_state.player_in_action.select_move(game, game.working_game_state)

@@ -4,9 +4,10 @@ from common.move  import Move
 
 
 class Tree(object):
-    def __init__(self):
-        self._root_node=None
-        self._working_node=None
+    def __init__(self,root_game_state,state_value=0.0,temperature):
+        self._root_node=Node(root_game_state, root_game_state_value,None,temperature)
+        self._working_node=self._root_node
+        
    
     
     @property

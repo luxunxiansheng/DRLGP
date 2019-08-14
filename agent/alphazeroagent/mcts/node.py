@@ -109,3 +109,6 @@ class Node(object):
     @children_branch.setter
     def children_branch(self, value):
         self._children_branch = value
+
+    def is_leaf(self):
+        return self._children_branch == {} 

@@ -1,37 +1,37 @@
 # #### BEGIN LICENSE BLOCK #####
- # Version: MPL 1.1/GPL 2.0/LGPL 2.1
- #
- # The contents of this file are subject to the Mozilla Public License Version
- # 1.1 (the "License"); you may not use this file except in compliance with
- # the License. You may obtain a copy of the License at
- # http://www.mozilla.org/MPL/
- #
- # Software distributed under the License is distributed on an "AS IS" basis,
- # WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- # for the specific language governing rights and limitations under the
- # License.
- #
- #   
- # Contributor(s): 
- # 
- #    Bin.Li (ornot2008@yahoo.com) 
- #
- #
- # Alternatively, the contents of this file may be used under the terms of
- # either the GNU General Public License Version 2 or later (the "GPL"), or
- # the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- # in which case the provisions of the GPL or the LGPL are applicable instead
- # of those above. If you wish to allow use of your version of this file only
- # under the terms of either the GPL or the LGPL, and not to allow others to
- # use your version of this file under the terms of the MPL, indicate your
- # decision by deleting the provisions above and replace them with the notice
- # and other provisions required by the GPL or the LGPL. If you do not delete
- # the provisions above, a recipient may use your version of this file under
- # the terms of any one of the MPL, the GPL or the LGPL.
- #
- # #### END LICENSE BLOCK #####
- #
- #/  
+# Version: MPL 1.1/GPL 2.0/LGPL 2.1
+#
+# The contents of this file are subject to the Mozilla Public License Version
+# 1.1 (the "License"); you may not use this file except in compliance with
+# the License. You may obtain a copy of the License at
+# http://www.mozilla.org/MPL/
+#
+# Software distributed under the License is distributed on an "AS IS" basis,
+# WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+# for the specific language governing rights and limitations under the
+# License.
+#
+#
+# Contributor(s):
+#
+#    Bin.Li (ornot2008@yahoo.com)
+#
+#
+# Alternatively, the contents of this file may be used under the terms of
+# either the GNU General Public License Version 2 or later (the "GPL"), or
+# the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+# in which case the provisions of the GPL or the LGPL are applicable instead
+# of those above. If you wish to allow use of your version of this file only
+# under the terms of either the GPL or the LGPL, and not to allow others to
+# use your version of this file under the terms of the MPL, indicate your
+# decision by deleting the provisions above and replace them with the notice
+# and other provisions required by the GPL or the LGPL. If you do not delete
+# the provisions above, a recipient may use your version of this file under
+# the terms of any one of the MPL, the GPL or the LGPL.
+#
+# #### END LICENSE BLOCK #####
+#
+# /
 
 
 import argparse
@@ -54,6 +54,7 @@ from tqdm import tqdm
 from agent.alphazeroagent.alphazeroagent import AlphaZeroAgent
 from agent.alphazeroagent.experiencebuffer import ExpericenceBuffer
 from agent.alphazeroagent.experiencecollector import ExperienceCollector
+from agent.alphazeroagent.mcts.tree import Tree
 from boardencoder.snapshotencoder import SnapshotEncoder
 
 from agent.mctsagent import MCTSAgent
@@ -75,11 +76,14 @@ class Trainer(object):
         self._number_of_planes = cfg['GAME'].getint('number_of_planes')
         self._board_size = cfg['GAME'].getint('board_size')
 
-        self._az_mcts_round_per_moves = cfg['AZ_MCTS'].getint('round_per_moves')
+        self._az_mcts_round_per_moves = cfg['AZ_MCTS'].getint(
+            'round_per_moves')
         self._az_mcts_temperature = cfg['AZ_MCTS'].getfloat('temperature')
 
-        self._basic_mcts_temperature = cfg['BASIC_MCTS'].getfloat('temperature')
-        self._basic_mcts_round_per_moves = cfg['BASIC_MCTS'].getint('round_per_moves')
+        self._basic_mcts_temperature = cfg['BASIC_MCTS'].getfloat(
+            'temperature')
+        self._basic_mcts_round_per_moves = cfg['BASIC_MCTS'].getint(
+            'round_per_moves')
 
         self._train_number_of_games = cfg['TRAIN'].getint('number_of_games')
         self._buffer_size = cfg['TRAIN'].getint('buffer_size')
@@ -90,12 +94,15 @@ class Trainer(object):
         self._kl_threshold = cfg['TRAIN'].getfloat('kl_threshold')
         self._check_frequence = cfg['TRAIN'].getint('check_frequence')
 
-        self._current_model_file = './checkpoints/'+config_name.split('.')[0]+'/current.model'
-        self._best_model_file = './checkpoints/'+config_name.split('.')[0]+'/best.model'
+        self._current_model_file = './checkpoints/' + \
+            config_name.split('.')[0]+'/current.model'
+        self._best_model_file = './checkpoints/' + \
+            config_name.split('.')[0]+'/best.model'
 
-        self._evaluate_number_of_games = cfg['EVALUATE'].getint('number_of_games')
-        self._multipleprocessing = cfg['EVALUATE'].getboolean('mutipleprocessing')
-
+        self._evaluate_number_of_games = cfg['EVALUATE'].getint(
+            'number_of_games')
+        self._multipleprocessing = cfg['EVALUATE'].getboolean(
+            'mutipleprocessing')
 
         os.makedirs(os.path.dirname(self._current_model_file), exist_ok=True)
         os.makedirs(os.path.dirname(self._best_model_file), exist_ok=True)
@@ -105,17 +112,17 @@ class Trainer(object):
         gpu_ids = list(map(int, args.gpu_ids.split(',')))
         num_devices = torch.cuda.device_count()
         if num_devices < len(gpu_ids):
-            raise Exception('#available gpu : {} < --device_ids : {}'.format(num_devices, len(gpu_ids)))
+            raise Exception(
+                '#available gpu : {} < --device_ids : {}'.format(num_devices, len(gpu_ids)))
         cuda = 'cuda:' + str(gpu_ids[0])
         self._device = torch.device(cuda if use_cuda else 'cpu')
 
-        experience_collector_1 = ExperienceCollector()
-        experience_collector_2 = ExperienceCollector()
         self._encoder = SnapshotEncoder(self._number_of_planes, self._board_size)
 
-        input_shape = (self._number_of_planes, self._board_size, self._board_size)
+        input_shape = (self._number_of_planes,self._board_size, self._board_size)
         model_name = cfg['MODELS'].get('net')
-        self._model = ResNet8Network(input_shape, self._board_size * self._board_size) if model_name == 'ResNet8Network' else Simple5Network(input_shape, self._board_size * self._board_size)
+        self._model = ResNet8Network(input_shape, self._board_size * self._board_size) if model_name == 'ResNet8Network' else Simple5Network(
+            input_shape, self._board_size * self._board_size)
 
         # Be aware this is not the first time to run this program
         resume = args.resume
@@ -125,23 +132,34 @@ class Trainer(object):
         #self._model = DataParallel(self._model,device_ids=gpu_ids)
         self._model = self._model.to(self._device)
 
-        self._agent_1 = AlphaZeroAgent(0, "Agent1", "O", self._encoder, self._model, self._az_mcts_round_per_moves, self._az_mcts_temperature, experience_collector_1, device=self._device)
-        self._agent_2 = AlphaZeroAgent(1, "Agent2", "X", self._encoder, self._model, self._az_mcts_round_per_moves, self._az_mcts_temperature, experience_collector_2, device=self._device)
-
         self._experience_buffer = ExpericenceBuffer(self._buffer_size)
 
         self._optimizer = Utils.get_optimizer(self._model.parameters(), cfg)
 
-        self._writer = SummaryWriter(log_dir='./runs/'+config_name.split('.')[0])
+        self._writer = SummaryWriter(
+            log_dir='./runs/'+config_name.split('.')[0])
 
-    def _collect_data(self, game_index):
-        self._agent_1.reset()
-        self._agent_2.reset()
+    def _collect_data_once(self, game_index):
+       
+        agent_1 = AlphaZeroAgent(0, "Agent1", "O", self._encoder, self._model,self._az_mcts_round_per_moves, device=self._device)
+        agent_2 = AlphaZeroAgent(1, "Agent2", "X", self._encoder, self._model,self._az_mcts_round_per_moves, device=self._device)
+        players = [agent_1, agent_2]
+        
+        board = Board(self._board_size)
+        
+        game = Connect5Game(board, players, players[0 if game_index % 2 == 0 else 1],self._number_of_planes,True)
+        
+        mcts_tree = Tree(game.working_game_state,0.0,self._az_mcts_temperature)
 
-        players = [self._agent_1, self._agent_2]
+        
+        while not game.is_over():
+            move = game.working_game_state.player_in_action.select_move(game, game.working_game_state)
+            game.apply_move(move)
+            # game.working_game_state.board.print_board()
 
-        winner = Connect5Game.run_episode(self._board_size, players, players[0 if game_index % 2 == 0 else 1],  self._number_of_planes, True)
-
+        game.working_game_state.board.print_board()
+        
+        winner = game.final_winner 
         if winner is not None:
             if winner == players[0]:
                 players[0].experience_collector.complete_episode(reward=1)
@@ -150,19 +168,23 @@ class Trainer(object):
                 players[1].experience_collector.complete_episode(reward=1)
                 players[0].experience_collector.complete_episode(reward=-1)
 
-            self._experience_buffer.combine_experience([self._agent_1.experience_collector, self._agent_2.experience_collector])
+            self._experience_buffer.combine_experience([agent_1.experience_collector,agent_2.experience_collector])
 
     def _improve_policy(self, game_index):
         self._model.train()
 
-        batch_data = random.sample(self._experience_buffer.data, self._batch_size)
+        batch_data = random.sample(
+            self._experience_buffer.data, self._batch_size)
 
         for _ in range(self._epochs):
             states, rewards, visit_counts = zip(*batch_data)
 
-            states = torch.from_numpy(np.array(list(states))).to(self._device, dtype=torch.float)
-            rewards = torch.from_numpy(np.array(list(rewards))).to(self._device, dtype=torch.float)
-            visit_counts = torch.from_numpy(np.array(list(visit_counts))).to(self._device, dtype=torch.float)
+            states = torch.from_numpy(np.array(list(states))).to(
+                self._device, dtype=torch.float)
+            rewards = torch.from_numpy(np.array(list(rewards))).to(
+                self._device, dtype=torch.float)
+            visit_counts = torch.from_numpy(np.array(list(visit_counts))).to(
+                self._device, dtype=torch.float)
 
             action_policy_target = F.softmax(visit_counts, dim=1)
             value_target = rewards
@@ -178,11 +200,15 @@ class Trainer(object):
             loss = loss_policy + loss_value
 
             with torch.no_grad():
-                entroy = -torch.mean(torch.sum(log_action_policy*action_policy, dim=1))
+                entroy = - \
+                    torch.mean(
+                        torch.sum(log_action_policy*action_policy, dim=1))
 
             self._writer.add_scalar('loss', loss.item(), game_index)
-            self._writer.add_scalar('loss_value', loss_value.item(), game_index)
-            self._writer.add_scalar('loss_policy', loss_policy.item(), game_index)
+            self._writer.add_scalar(
+                'loss_value', loss_value.item(), game_index)
+            self._writer.add_scalar(
+                'loss_policy', loss_policy.item(), game_index)
             self._writer.add_scalar('entropy', entroy.item(), game_index)
 
             self._optimizer.zero_grad()
@@ -196,15 +222,18 @@ class Trainer(object):
                 break
 
     @staticmethod
-    def _self_play_game_once(board_size,players,number_of_planes,results):
-        winner = Connect5Game.run_episode(board_size, players, players[random.choice([0, 1])],number_of_planes, is_self_play=False)
+    def _self_play_game_once(board_size, players, number_of_planes, results):
+        winner = Connect5Game.run_episode(board_size, players, players[random.choice([
+                                          0, 1])], number_of_planes, is_self_play=False)
         if winner is not None:
             results.put(winner.id)
-        
+
     def _evaluate_plicy(self):
 
-        mcts_agent = MCTSAgent(0, "MCTSAgent", "O", self._basic_mcts_round_per_moves, self._basic_mcts_temperature)
-        az_agent = AlphaZeroAgent(1, "AZAgent", "X", self._encoder, self._model, self._az_mcts_round_per_moves, self._az_mcts_temperature, device=self._device)
+        mcts_agent = MCTSAgent(
+            0, "MCTSAgent", "O", self._basic_mcts_round_per_moves, self._basic_mcts_temperature)
+        az_agent = AlphaZeroAgent(1, "AZAgent", "X", self._encoder, self._model,
+                                  self._az_mcts_round_per_moves, self._az_mcts_temperature, device=self._device)
         players = [mcts_agent, az_agent]
 
         win_counts = {
@@ -212,13 +241,13 @@ class Trainer(object):
             az_agent.id: 0,
         }
 
-
         if self._multipleprocessing:
-            results= mp.Queue()
+            results = mp.Queue()
 
             processes = []
             for _ in range(self._evaluate_number_of_games):
-                p = mp.Process(target=Trainer._self_play_game_once, args=(self._board_size,players,self._number_of_planes,results))
+                p = mp.Process(target=Trainer._self_play_game_once, args=(
+                    self._board_size, players, self._number_of_planes, results))
                 p.start()
                 processes.append(p)
 
@@ -232,13 +261,14 @@ class Trainer(object):
 
         else:
             for _ in tqdm(range(self._evaluate_number_of_games)):
-                winner = Connect5Game.run_episode(self._board_size, players, players[random.choice([0, 1])], self._number_of_planes, is_self_play=False)
+                winner = Connect5Game.run_episode(self._board_size, players, players[random.choice(
+                    [0, 1])], self._number_of_planes, is_self_play=False)
 
                 if winner is not None:
                     win_counts[winner.id] += 1
 
-                         
-        self._logger.info('mcts:az_agent---{}:{} in {}'.format(win_counts[mcts_agent.id], win_counts[az_agent.id], self._evaluate_number_of_games))
+        self._logger.info('mcts:az_agent---{}:{} in {}'.format(
+            win_counts[mcts_agent.id], win_counts[az_agent.id], self._evaluate_number_of_games))
 
         return win_counts[az_agent.id]/self._evaluate_number_of_games
 
@@ -250,7 +280,7 @@ class Trainer(object):
 
         for game_index in tqdm(range(1, self._train_number_of_games)):
             # collect data via self-playing
-            self._collect_data(game_index)
+            self._collect_data_once(game_index)
 
             if self._experience_buffer.size() > self._batch_size:
                 # update the policy with SGD
@@ -260,7 +290,8 @@ class Trainer(object):
 
                 win_ratio = self._evaluate_plicy()
 
-                self._logger.info("current self-play batch:{} and win win ratio is:{}".format(game_index, win_ratio))
+                self._logger.info(
+                    "current self-play batch:{} and win win ratio is:{}".format(game_index, win_ratio))
 
                 torch.save(self._model.state_dict(), self._current_model_file)
 
@@ -276,9 +307,12 @@ class Trainer(object):
 
 def main():
     parser = argparse.ArgumentParser(description='AlphaZero Training')
-    parser.add_argument('--gpu_ids', type=str, default='0', help="Specifiy which gpu devices to use if available,e.g. '0,1,2'")
-    parser.add_argument('--resume', type=bool, default=False, help='Wethere resume traning from the previous or not ')
-    parser.add_argument('-config', type=str, default='default.ini', help='A ini config file to setup the default machinery')
+    parser.add_argument('--gpu_ids', type=str, default='0',
+                        help="Specifiy which gpu devices to use if available,e.g. '0,1,2'")
+    parser.add_argument('--resume', type=bool, default=False,
+                        help='Wethere resume traning from the previous or not ')
+    parser.add_argument('-config', type=str, default='default.ini',
+                        help='A ini config file to setup the default machinery')
     args = parser.parse_args()
 
     logger = logging.getLogger(__name__)
