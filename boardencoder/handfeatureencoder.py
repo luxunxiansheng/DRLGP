@@ -72,7 +72,8 @@ class HandFeatureEncoder(Encoder):
         return board_matrix
 
     def shape(self):
-        return self._num_plane, self._board_height, self._board_width
+
+        return self._num_plane*2+2, self._board_height, self._board_width
 
     def encode_point(self, point):
         return self._board_width*(point.row-1)+(point.col-1)
