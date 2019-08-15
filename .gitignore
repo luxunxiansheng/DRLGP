@@ -105,11 +105,10 @@ venv.bak/
 .vscode/settings.json
 
 
-/connect5data
+
 /runs
-/archived_model
 checkpoints/
 
 
 .vscode/settings.json
-.vscode/settings.json
+
