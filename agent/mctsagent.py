@@ -121,7 +121,7 @@ class MCTSAgent(Player):
         # created node to root
         #
 
-        root = MCTSNode(game, game.working_state)
+        root = MCTSNode(game, game.working_game_state)
 
         for _ in tqdm(range(self._num_rounds)):
             node = root

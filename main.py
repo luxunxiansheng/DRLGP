@@ -154,7 +154,7 @@ class Trainer(object):
         while not game.is_over():
             move = game.working_game_state.player_in_action.select_move(game)
             game.apply_move(move)
-            mcts_tree.go_down(move)
+            
             # game.working_game_state.board.print_board()
 
         game.working_game_state.board.print_board()
@@ -227,16 +227,42 @@ class Trainer(object):
                                           0, 1])], number_of_planes, is_self_play=False)
         if winner is not None:
             results.put(winner.id)
+     
 
-    def _evaluate_plicy(self):
 
+    def _evaluate_plicy_once(self, game_index):
+
+        mcts_tree = Tree()
         mcts_agent = MCTSAgent(1, "MCTSAgent", "O", self._basic_mcts_round_per_moves, self._basic_mcts_temperature)
-        az_agent = AlphaZeroAgent(2, "AZAgent", "X", self._encoder, self._model,self._az_mcts_round_per_moves, self._az_mcts_temperature, device=self._device)
+        az_agent =   AlphaZeroAgent(2, "Agent2", "X", self._encoder, self._model, mcts_tree, self._az_mcts_round_per_moves, device=self._device)
+        
+        board = Board(self._board_size)
         players = [mcts_agent, az_agent]
 
+        game = Connect5Game(board, players, players[0 if game_index % 2 == 0 else 1], self._number_of_planes, is_self_play=False)
+
+        while not game.is_over():
+            move = game.working_game_state.player_in_action.select_move(game)
+            game.apply_move(move)
+            
+            # game.working_game_state.board.print_board()
+
+        game.working_game_state.board.print_board()
+
+        winner = game.final_winner
+        
+        return winner
+        
+
+    
+
+
+
+    def _evaluate_plicy(self):
+             
         win_counts = {
-            mcts_agent.id: 0,
-            az_agent.id: 0,
+            1: 0,
+            2: 0,
         }
 
         if self._multipleprocessing:
@@ -258,17 +284,18 @@ class Trainer(object):
                 win_counts[winner_id] += 1
 
         else:
-            for _ in tqdm(range(self._evaluate_number_of_games)):
-                winner = Connect5Game.run_episode(self._board_size, players, players[random.choice(
-                    [0, 1])], self._number_of_planes, is_self_play=False)
-
+            for game_index in tqdm(range(self._evaluate_number_of_games)):
+                winner = self._evaluate_plicy_once(game_index)
                 if winner is not None:
-                    win_counts[winner.id] += 1
+                    win_counts[winner.id]+=1
+             
+             
 
+                
         self._logger.info('mcts:az_agent---{}:{} in {}'.format(
-            win_counts[mcts_agent.id], win_counts[az_agent.id], self._evaluate_number_of_games))
+            win_counts[1], win_counts[2], self._evaluate_number_of_games))
 
-        return win_counts[az_agent.id]/self._evaluate_number_of_games
+        return win_counts[1]/self._evaluate_number_of_games
 
     def run(self):
 

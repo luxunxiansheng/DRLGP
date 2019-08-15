@@ -132,13 +132,15 @@ class AlphaZeroAgent(Player):
                     break
        
         visit_counts = np.array([working_root.visit_counts_of_branch(self._encoder.decode_point_index(idx)) for idx in range(self._encoder.num_points())])
-
-        if self._experience_collector is not None:
-            self._experience_collector.record_decision(root_board_matrix, visit_counts)
-
+        next_move = Move(max(working_root.children_branch, key=working_root.visit_counts_of_branch))
         
+        if game.is_selfplay:
+            self._experience_collector.record_decision(root_board_matrix, visit_counts)
+            self._mcts_tree.go_down(next_move)
+        else:
+            self._mcts_tree.working_node = None
 
-        return  Move(max(working_root.children_branch, key=working_root.visit_counts_of_branch))
+        return  next_move
               
        
 
