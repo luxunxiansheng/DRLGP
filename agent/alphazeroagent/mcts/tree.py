@@ -1,5 +1,5 @@
-from branch import Branch
-from node   import Node 
+from agent.alphazeroagent.mcts.node import Node
+from agent.alphazeroagent.mcts.branch import Branch
 from common.move  import Move
 
 
@@ -34,11 +34,3 @@ class Tree(object):
         self._working_node = branch.child_node
 
     
-   
-   
-    
-    
-
-
- 
-

@@ -35,7 +35,7 @@
 
 import numpy as np
 
-from  branch  import Branch
+from  agent.alphazeroagent.mcts.branch  import Branch
 from  common.move  import  Move
 
 class Node(object):
@@ -46,7 +46,7 @@ class Node(object):
         self._total_visit_counts = 1
 
         self._parent_branch = parent_branch
-        self._children_branch = None
+        self._children_branch = {}
 
         self._temperature = temperature
 
@@ -115,4 +115,4 @@ class Node(object):
         self._children_branch = value
 
     def is_leaf(self):
-        return self._children_branch == None 
+        return self._children_branch 

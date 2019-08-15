@@ -50,9 +50,10 @@ from common.board import Board
 from common.gamestate import GameState
 from common.move import Move
 from common.player import Player
-from mcts.branch import Branch
-from mcts.node import Node
-from mcts.tree import Tree
+from agent.alphazeroagent.mcts.branch import Branch
+from agent.alphazeroagent.mcts.node import Node
+from agent.alphazeroagent.mcts.tree import Tree
+from agent.alphazeroagent.experiencecollector import ExperienceCollector
 
 
 class AlphaZeroAgent(Player):
@@ -62,7 +63,7 @@ class AlphaZeroAgent(Player):
         self._device = device
         self._model = model
         self._num_rounds = num_rounds
-        self._experience_collector = None
+        self._experience_collector = ExperienceCollector()
         self._mcts_tree = mcts_tree
  
 
@@ -88,12 +89,12 @@ class AlphaZeroAgent(Player):
 
    
     def select_move(self, game):
-        root_board_matrix = self._encoder.encode(game.state_cache.game_state)
+        root_board_matrix = self._encoder.encode(game.state_cache.game_states)
        
         working_root = self._mcts_tree.working_node 
         if working_root is None:
             estimated_branch_priors, estimated_state_value = self._predict(root_board_matrix)
-            working_root = self._create_node_with_children_branch(game.working_state,estimated_state_value[0].item(),estimated_branch_priors[0],None)
+            working_root = self._create_node_with_children_branch(game.working_game_state,estimated_state_value[0].item(),estimated_branch_priors[0],None)
                
         for _ in tqdm(range(self._num_rounds)):
             current_node = working_root
@@ -110,7 +111,7 @@ class AlphaZeroAgent(Player):
                     # expand
                     new_state = game.look_ahead_next_move(current_node.game_state, current_branch.move)
                     game_state_memory.push(new_state)
-                    board_matrix = self._encoder.encode(game_state_memory.game_state)
+                    board_matrix = self._encoder.encode(game_state_memory.game_states)
                     estimated_branch_priors, estimated_state_value = self._predict(board_matrix)
                     current_node = self._create_node_with_children_branch(new_state, estimated_state_value[0].item(), estimated_branch_priors[0], current_branch)
                     current_branch.add_child_node(current_node)

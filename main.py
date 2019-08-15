@@ -150,7 +150,7 @@ class Trainer(object):
         game = Connect5Game(board, players, players[0 if game_index % 2 == 0 else 1], self._number_of_planes, True)
 
         while not game.is_over():
-            move = game.working_game_state.player_in_action.select_move(game, game.working_game_state)
+            move = game.working_game_state.player_in_action.select_move(game)
             game.apply_move(move)
             mcts_tree.go_down(move)
             # game.working_game_state.board.print_board()
@@ -310,8 +310,10 @@ def main():
     parser.add_argument('-config', type=str, default='default.ini',
                         help='A ini config file to setup the default machinery')
     args = parser.parse_args()
-
+    
+    
     logger = logging.getLogger(__name__)
+    logger.setLevel(logging.INFO)
 
     Trainer(args, logger).run()
 
