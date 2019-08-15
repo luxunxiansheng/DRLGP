@@ -119,7 +119,7 @@ class Trainer(object):
 
         self._encoder = SnapshotEncoder(self._number_of_planes, self._board_size)
 
-        input_shape = (self._number_of_planes,self._board_size, self._board_size)
+        input_shape = (self._number_of_planes, self._board_size, self._board_size)
         model_name = cfg['MODELS'].get('net')
         self._model = ResNet8Network(input_shape, self._board_size * self._board_size) if model_name == 'ResNet8Network' else Simple5Network(
             input_shape, self._board_size * self._board_size)
@@ -140,26 +140,24 @@ class Trainer(object):
             log_dir='./runs/'+config_name.split('.')[0])
 
     def _collect_data_once(self, game_index):
-       
-        agent_1 = AlphaZeroAgent(0, "Agent1", "O", self._encoder, self._model,self._az_mcts_round_per_moves, device=self._device)
-        agent_2 = AlphaZeroAgent(1, "Agent2", "X", self._encoder, self._model,self._az_mcts_round_per_moves, device=self._device)
-        players = [agent_1, agent_2]
-        
-        board = Board(self._board_size)
-        
-        game = Connect5Game(board, players, players[0 if game_index % 2 == 0 else 1],self._number_of_planes,True)
-        
-        mcts_tree = Tree(game.working_game_state,0.0,self._az_mcts_temperature)
 
-        
+        mcts_tree = Tree()
+        agent_1 = AlphaZeroAgent(0, "Agent1", "O", self._encoder, self._model, mcts_tree, self._az_mcts_round_per_moves, device=self._device)
+        agent_2 = AlphaZeroAgent(1, "Agent2", "X", self._encoder, self._model, mcts_tree, self._az_mcts_round_per_moves, device=self._device)
+
+        board = Board(self._board_size)
+        players = [agent_1, agent_2]
+        game = Connect5Game(board, players, players[0 if game_index % 2 == 0 else 1], self._number_of_planes, True)
+
         while not game.is_over():
             move = game.working_game_state.player_in_action.select_move(game, game.working_game_state)
             game.apply_move(move)
+            mcts_tree.go_down(move)
             # game.working_game_state.board.print_board()
 
         game.working_game_state.board.print_board()
-        
-        winner = game.final_winner 
+
+        winner = game.final_winner
         if winner is not None:
             if winner == players[0]:
                 players[0].experience_collector.complete_episode(reward=1)
@@ -168,7 +166,7 @@ class Trainer(object):
                 players[1].experience_collector.complete_episode(reward=1)
                 players[0].experience_collector.complete_episode(reward=-1)
 
-            self._experience_buffer.combine_experience([agent_1.experience_collector,agent_2.experience_collector])
+            self._experience_buffer.combine_experience([agent_1.experience_collector, agent_2.experience_collector])
 
     def _improve_policy(self, game_index):
         self._model.train()
@@ -230,10 +228,8 @@ class Trainer(object):
 
     def _evaluate_plicy(self):
 
-        mcts_agent = MCTSAgent(
-            0, "MCTSAgent", "O", self._basic_mcts_round_per_moves, self._basic_mcts_temperature)
-        az_agent = AlphaZeroAgent(1, "AZAgent", "X", self._encoder, self._model,
-                                  self._az_mcts_round_per_moves, self._az_mcts_temperature, device=self._device)
+        mcts_agent = MCTSAgent(0, "MCTSAgent", "O", self._basic_mcts_round_per_moves, self._basic_mcts_temperature)
+        az_agent = AlphaZeroAgent(1, "AZAgent", "X", self._encoder, self._model,self._az_mcts_round_per_moves, self._az_mcts_temperature, device=self._device)
         players = [mcts_agent, az_agent]
 
         win_counts = {

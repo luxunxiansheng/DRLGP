@@ -35,6 +35,9 @@
 
 import numpy as np
 
+from  branch  import Branch
+from  common.move  import  Move
+
 class Node(object):
     def __init__(self, game_state, game_state_value, parent_branch, temperature=0.8):
         self._game_state = game_state
@@ -47,12 +50,16 @@ class Node(object):
 
         self._temperature = temperature
 
-    def add_branch(self,point,branch):
-        assert branch.parent_node == self
-        self._children_branch[point]=branch
+
+    def add_branch(self,point,prior):
+       
+        self._children_branch[point]=Branch(self,Move(point),prior)
 
     def does_branch_exist(self,point):
-        return  point in self.children_branch
+        return point in self.children_branch
+  
+    def get_child_branch(self, point):
+        return self.children_branch[point]
         
     def expected_value_of_branch(self, point):
         return self._children_branch[point].expected_value
@@ -68,15 +75,12 @@ class Node(object):
         self._children_branch[point].visit_counts += 1
         self._children_branch[point].total_value += value
 
-    def select_branch(self, is_root=False, is_selfplay=True):
-        if not self.children_branch:    # no free points to move
-            return None
-
+    def select_branch(self, randomly=False, is_selfplay=True):
         Qs = [self.expected_value_of_branch(point) for point in self.children_branch]
         Ps = [self.prior_of_branch(point) for point in self.children_branch]
         Ns = [self.visit_counts_of_branch(point) for point in self.children_branch]
 
-        if is_root and is_selfplay:
+        if randomly and is_selfplay:
             noises = np.random.dirichlet([0.03] * len(self.children_branch))
             Ps = [0.75*p+0.25*noise for p, noise in zip(Ps, noises)]
 
@@ -111,4 +115,4 @@ class Node(object):
         self._children_branch = value
 
     def is_leaf(self):
-        return self._children_branch == {} 
+        return self._children_branch == None 

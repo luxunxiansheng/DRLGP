@@ -51,8 +51,8 @@ class Game_State_Memory:
         self._capacity = capacity
         self._game_states = deque()
 
-    def push(self, experience):
-        self._game_states.append(experience)
+    def push(self, game_state):
+        self._game_states.append(game_state.board)
         if self.size() > self._capacity:
             self._game_states.popleft()
 
@@ -120,6 +120,7 @@ class Game:
         pass
 
     def apply_move(self, move):
+        self._state_cache.push(self._working_game_state)
         self._working_game_state = self.look_ahead_next_move(self._working_game_state, move)
 
     def look_ahead_next_move(self, game_state, move):

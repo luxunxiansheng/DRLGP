@@ -53,7 +53,7 @@ class Player(object):
     def mark(self):
         return self._mark
 
-    def select_move(self, game, game_state):
+    def select_move(self,game):
         raise NotImplementedError()
 
     def __eq__(self, other):

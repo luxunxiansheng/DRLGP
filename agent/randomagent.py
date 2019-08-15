@@ -6,8 +6,8 @@ from common.point import Point
 
 
 class RandomAgent(Player):
-    def select_move(self,game,game_state):
-        possible_points = game_state.board.get_legal_points()
+    def select_move(self,game):
+        possible_points = game.working_state.board.get_legal_points()
         possible_moves = [Move(point) for point in possible_points]
 
         if not possible_moves:

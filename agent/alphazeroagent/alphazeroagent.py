@@ -50,108 +50,94 @@ from common.board import Board
 from common.gamestate import GameState
 from common.move import Move
 from common.player import Player
-from .mcts.branch import Branch
-from .mcts.node import Node
-from .mcts.tree import Tree
+from mcts.branch import Branch
+from mcts.node import Node
+from mcts.tree import Tree
 
 
 class AlphaZeroAgent(Player):
-    def __init__(self, id, name, mark, encoder,model,num_rounds,device='cpu'):
+    def __init__(self, id, name, mark, encoder,model,mcts_tree,num_rounds,device='cpu'):
         super().__init__(id, name, mark)
         self._encoder = encoder
         self._device = device
         self._model = model
         self._num_rounds = num_rounds
         self._experience_collector = None
-       
-
+        self._mcts_tree = mcts_tree
+ 
 
     @property
     def experience_collector(self):
         return self._experience_collector
 
     
+    def _predict(self, board_matrix):
+        model_input = torch.from_numpy(board_matrix).unsqueeze(0).to(self._device, dtype=torch.float)
+        return self._model(model_input) 
+   
 
-
-    def create_node(self, game_state, estimated_branch_priors, estimated_state_value, parent_branch=None):
-
-        new_node = Node(game_state, estimated_state_value,
-                        parent_branch, self._temperature)
-
-        chiildren_branch = {}
+    def _create_node_with_children_branch(self,game_state,estimated_state_value,estimated_branch_priors,parent_branch):
+        
+        new_node = Node(game_state, estimated_state_value,parent_branch)
+            
         for idx, p in enumerate(estimated_branch_priors):
             point = self._encoder.decode_point_index(idx)
-            if game_state.board.is_free_point(point):
-                chiildren_branch[point] = Branch(new_node, Move(point), p)
-
-        new_node.children_branch = chiildren_branch
-
-        if parent_branch is not None:
-            parent_branch.child_node = new_node
-
+            if new_node.game_state.board.is_free_point(point):
+                new_node.add_branch(point, p)
         return new_node
 
-    # it is guaranteed that it is not the final game state anyway
-    def select_move(self, game, game_state):
+   
+    def select_move(self, game):
+        root_board_matrix = self._encoder.encode(game.state_cache.game_state)
+       
+        working_root = self._mcts_tree.working_node 
+        if working_root is None:
+            estimated_branch_priors, estimated_state_value = self._predict(root_board_matrix)
+            working_root = self._create_node_with_children_branch(game.working_state,estimated_state_value[0].item(),estimated_branch_priors[0],None)
                
-        
-        
-        game.state_cache.push(game_state.board)
-        root_board_matrix = self._encoder.encode(game.state_cache.game_states)
-        model_input = torch.from_numpy(root_board_matrix).unsqueeze(0).to(self._device, dtype=torch.float)
-        estimated_branch_priors, estimated_state_value = self.predict(model_input)
-        root = self.create_node(
-            game_state, estimated_branch_priors[0], estimated_state_value[0].item())
-
         for _ in tqdm(range(self._num_rounds)):
-            node = root
-            game_state_memory = copy.deepcopy(game.state_cache)
+            current_node = working_root
+            game_state_memory= copy.deepcopy(game.state_cache)           
 
-            # select
-            next_branch = node.select_branch(
-                is_root=True, is_selfplay=game.is_selfplay)
-            assert next_branch is not None
-
-            # search the tree until the game end node or a new node
-            while next_branch is not None:
-                if next_branch.child_node is not None:
-                    node = next_branch.child_node
-                    game_state_memory.push(node.game_state.board)
-                    next_branch = node.select_branch(
-                        is_root=False, is_selfplay=game.is_selfplay)
-
-                else:
-                    # expand
-                    new_state = game.look_ahead_next_move(
-                        node.game_state, next_branch.move)
-                    game_state_memory.push(node.game_state.board)
-                    temp_board_matrix = self._encoder.encode(
-                        game_state_memory.game_states)
-                    model_input = torch.from_numpy(temp_board_matrix).unsqueeze(
-                        0).to(self._device, dtype=torch.float)
-                    estimated_branch_priors, estimated_state_value = self.predict(
-                        model_input)
-                    node = self.create_node(
-                        new_state, estimated_branch_priors[0], estimated_state_value[0].item(), next_branch)
+            while True:
+                # reach  the end of the game
+                if current_node.is_leaf():
                     break
+                              
+                randomly = True if current_node==working_root else False
+                current_branch = current_node.select_branch(randomly)
+                if current_branch.child_node is None:
+                    # expand
+                    new_state = game.look_ahead_next_move(current_node.game_state, current_branch.move)
+                    game_state_memory.push(new_state)
+                    board_matrix = self._encoder.encode(game_state_memory.game_state)
+                    estimated_branch_priors, estimated_state_value = self._predict(board_matrix)
+                    current_node = self._create_node_with_children_branch(new_state, estimated_state_value[0].item(), estimated_branch_priors[0], current_branch)
+                    current_branch.add_child_node(current_node)
+                    break
+                else:
+                    current_node = current_branch.child_node
+                    game_state_memory.push(current_node.game_state)
 
-            value = -1 * node.game_state_value
-
-            parent_branch = node.parent_branch
-            while parent_branch is not None:
-                parent_node = parent_branch.parent_node
-                parent_node.record_visit(parent_branch.move.point, value)
-                parent_branch = parent_node.parent_branch
+            # update 
+            value = -1 * current_node.game_state_value
+            while True:
+                current_branch = current_node.parent_branch
+                current_node   = current_branch.parent_node
+                current_node.record_visit(current_branch.move.point, value)
                 value = -1 * value
-
-        visit_counts = np.array([root.visit_counts_of_branch(
-            self._encoder.decode_point_index(idx)) for idx in range(self._encoder.num_points())])
+                if current_node == working_root:
+                    break
+       
+        visit_counts = np.array([working_root.visit_counts_of_branch(self._encoder.decode_point_index(idx)) for idx in range(self._encoder.num_points())])
 
         if self._experience_collector is not None:
-            self._experience_collector.record_decision(
-                root_board_matrix, visit_counts)
+            self._experience_collector.record_decision(root_board_matrix, visit_counts)
 
-        return Move(max(root.children_branch, key=root.visit_counts_of_branch))
+        
 
-    def predict(self, input_states):
-        return self._model(input_states)
+        return  Move(max(working_root.children_branch, key=working_root.visit_counts_of_branch))
+              
+       
+
+

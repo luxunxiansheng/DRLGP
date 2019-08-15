@@ -99,7 +99,7 @@ class MCTSAgent(Player):
 
         return best_child
 
-    def select_move(self, game, game_state):
+    def select_move(self,game):
         # The basic MCTS process is described as below:
         #
         # Selection:
@@ -121,7 +121,7 @@ class MCTSAgent(Player):
         # created node to root
         #
 
-        root = MCTSNode(game, game_state)
+        root = MCTSNode(game, game.working_state)
 
         for _ in tqdm(range(self._num_rounds)):
             node = root
@@ -146,7 +146,7 @@ class MCTSAgent(Player):
         best_win_ratio = -1.0
 
         for child in root.children:
-            child_win_ratio = child.win_ratio(game_state.player_in_action)
+            child_win_ratio = child.win_ratio(game.working_game_state.player_in_action)
             if child_win_ratio > best_win_ratio:
                 best_win_ratio = child_win_ratio
                 best_point = child.previous_point
@@ -173,7 +173,7 @@ class MCTSAgent(Player):
         game.reset(board, bots, start_player)
        
         while not game.is_over():
-            move = game.working_game_state.player_in_action.select_move(game, game.working_game_state)
+            move = game.working_game_state.player_in_action.select_move(game)
             game.apply_move(move)
             #game.working_game_state.board.print_board()
         winner = game.get_winner(game.working_game_state)
