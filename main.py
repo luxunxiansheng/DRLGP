@@ -38,6 +38,7 @@ import argparse
 import logging
 import os
 import random
+import sys
 
 import numpy as np
 import torch
@@ -55,9 +56,8 @@ from agent.alphazeroagent.alphazeroagent import AlphaZeroAgent
 from agent.alphazeroagent.experiencebuffer import ExpericenceBuffer
 from agent.alphazeroagent.experiencecollector import ExperienceCollector
 from agent.alphazeroagent.mcts.tree import Tree
-from boardencoder.snapshotencoder import SnapshotEncoder
-
 from agent.mctsagent import MCTSAgent
+from boardencoder.snapshotencoder import SnapshotEncoder
 from common.board import Board
 from common.utils import Utils
 from game.connect5game import Connect5Game
@@ -150,11 +150,10 @@ class Trainer(object):
         players = [agent_1, agent_2]
         game = Connect5Game(board, players, players[0 if game_index % 2 == 0 else 1], self._number_of_planes, True)
 
-
         while not game.is_over():
             move = game.working_game_state.player_in_action.select_move(game)
             game.apply_move(move)
-            
+
             # game.working_game_state.board.print_board()
 
         game.working_game_state.board.print_board()
@@ -227,15 +226,13 @@ class Trainer(object):
                                           0, 1])], number_of_planes, is_self_play=False)
         if winner is not None:
             results.put(winner.id)
-     
-
 
     def _evaluate_plicy_once(self, game_index):
 
         mcts_tree = Tree()
         mcts_agent = MCTSAgent(1, "MCTSAgent", "O", self._basic_mcts_round_per_moves, self._basic_mcts_temperature)
-        az_agent =   AlphaZeroAgent(2, "Agent2", "X", self._encoder, self._model, mcts_tree, self._az_mcts_round_per_moves, device=self._device)
-        
+        az_agent = AlphaZeroAgent(2, "Agent2", "X", self._encoder, self._model, mcts_tree, self._az_mcts_round_per_moves, device=self._device)
+
         board = Board(self._board_size)
         players = [mcts_agent, az_agent]
 
@@ -244,22 +241,17 @@ class Trainer(object):
         while not game.is_over():
             move = game.working_game_state.player_in_action.select_move(game)
             game.apply_move(move)
-            
+
             # game.working_game_state.board.print_board()
 
         game.working_game_state.board.print_board()
 
         winner = game.final_winner
-        
+
         return winner
-        
-
-    
-
-
 
     def _evaluate_plicy(self):
-             
+
         win_counts = {
             1: 0,
             2: 0,
@@ -287,11 +279,8 @@ class Trainer(object):
             for game_index in tqdm(range(self._evaluate_number_of_games)):
                 winner = self._evaluate_plicy_once(game_index)
                 if winner is not None:
-                    win_counts[winner.id]+=1
-             
-             
+                    win_counts[winner.id] += 1
 
-                
         self._logger.info('mcts:az_agent---{}:{} in {}'.format(
             win_counts[1], win_counts[2], self._evaluate_number_of_games))
 
@@ -339,10 +328,9 @@ def main():
     parser.add_argument('-config', type=str, default='default.ini',
                         help='A ini config file to setup the default machinery')
     args = parser.parse_args()
-    
-    
+
+    logging.basicConfig(stream=sys.stdout, level=logging.INFO)
     logger = logging.getLogger(__name__)
-    logger.setLevel(logging.INFO)
 
     Trainer(args, logger).run()
 
