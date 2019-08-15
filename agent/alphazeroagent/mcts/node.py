@@ -59,7 +59,7 @@ class Node(object):
         return point in self.children_branch
   
     def get_child_branch(self, point):
-        return self.children_branch[point]
+        return self._children_branch[point]
         
     def expected_value_of_branch(self, point):
         return self._children_branch[point].expected_value
@@ -68,7 +68,8 @@ class Node(object):
         return self._children_branch[point].prior
         
     def visit_counts_of_branch(self, point):
-        return self._children_branch[point].visit_counts
+        return self._children_branch[point].visit_counts if self.does_branch_exist(point) else 0
+        
         
     def record_visit(self, point, value):
         self._total_visit_counts += 1
@@ -115,4 +116,4 @@ class Node(object):
         self._children_branch = value
 
     def is_leaf(self):
-        return self._children_branch 
+        return not self._children_branch 

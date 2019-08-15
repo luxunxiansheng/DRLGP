@@ -90,12 +90,13 @@ class AlphaZeroAgent(Player):
    
     def select_move(self, game):
         root_board_matrix = self._encoder.encode(game.state_cache.game_states)
-       
-        working_root = self._mcts_tree.working_node 
-        if working_root is None:
+              
+        if self._mcts_tree.working_node  is None:
             estimated_branch_priors, estimated_state_value = self._predict(root_board_matrix)
-            working_root = self._create_node_with_children_branch(game.working_game_state,estimated_state_value[0].item(),estimated_branch_priors[0],None)
-               
+            self._mcts_tree.working_node = self._create_node_with_children_branch(game.working_game_state,estimated_state_value[0].item(),estimated_branch_priors[0],None)
+
+        working_root = self._mcts_tree.working_node 
+
         for _ in tqdm(range(self._num_rounds)):
             current_node = working_root
             game_state_memory= copy.deepcopy(game.state_cache)           

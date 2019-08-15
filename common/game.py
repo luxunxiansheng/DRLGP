@@ -78,6 +78,7 @@ class Game:
         self._final_winner = None
         self._is_selfplay = is_self_play
         self._state_cache = Game_State_Memory(state_cache_size)
+        self._state_cache.push(self._working_game_state)
 
     def reset(self, board, playerlist, start_player, is_self_play=False):
         self._players = playerlist
@@ -120,8 +121,8 @@ class Game:
         pass
 
     def apply_move(self, move):
-        self._state_cache.push(self._working_game_state)
         self._working_game_state = self.look_ahead_next_move(self._working_game_state, move)
+        self._state_cache.push(self._working_game_state)
 
     def look_ahead_next_move(self, game_state, move):
         new_board = copy.deepcopy(game_state.board)

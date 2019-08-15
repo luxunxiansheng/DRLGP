@@ -109,12 +109,13 @@ class Trainer(object):
 
         use_cuda = torch.cuda.is_available()
 
-        gpu_ids = list(map(int, args.gpu_ids.split(',')))
-        num_devices = torch.cuda.device_count()
-        if num_devices < len(gpu_ids):
-            raise Exception(
-                '#available gpu : {} < --device_ids : {}'.format(num_devices, len(gpu_ids)))
-        cuda = 'cuda:' + str(gpu_ids[0])
+        if use_cuda:
+            gpu_ids = list(map(int, args.gpu_ids.split(',')))
+            num_devices = torch.cuda.device_count()
+            if num_devices < len(gpu_ids):
+                raise Exception(
+                    '#available gpu : {} < --device_ids : {}'.format(num_devices, len(gpu_ids)))
+            cuda = 'cuda:' + str(gpu_ids[0])
         self._device = torch.device(cuda if use_cuda else 'cpu')
 
         self._encoder = SnapshotEncoder(self._number_of_planes, self._board_size)
@@ -142,12 +143,13 @@ class Trainer(object):
     def _collect_data_once(self, game_index):
 
         mcts_tree = Tree()
-        agent_1 = AlphaZeroAgent(0, "Agent1", "O", self._encoder, self._model, mcts_tree, self._az_mcts_round_per_moves, device=self._device)
-        agent_2 = AlphaZeroAgent(1, "Agent2", "X", self._encoder, self._model, mcts_tree, self._az_mcts_round_per_moves, device=self._device)
+        agent_1 = AlphaZeroAgent(1, "Agent1", "O", self._encoder, self._model, mcts_tree, self._az_mcts_round_per_moves, device=self._device)
+        agent_2 = AlphaZeroAgent(2, "Agent2", "X", self._encoder, self._model, mcts_tree, self._az_mcts_round_per_moves, device=self._device)
 
         board = Board(self._board_size)
         players = [agent_1, agent_2]
         game = Connect5Game(board, players, players[0 if game_index % 2 == 0 else 1], self._number_of_planes, True)
+
 
         while not game.is_over():
             move = game.working_game_state.player_in_action.select_move(game)
@@ -228,8 +230,8 @@ class Trainer(object):
 
     def _evaluate_plicy(self):
 
-        mcts_agent = MCTSAgent(0, "MCTSAgent", "O", self._basic_mcts_round_per_moves, self._basic_mcts_temperature)
-        az_agent = AlphaZeroAgent(1, "AZAgent", "X", self._encoder, self._model,self._az_mcts_round_per_moves, self._az_mcts_temperature, device=self._device)
+        mcts_agent = MCTSAgent(1, "MCTSAgent", "O", self._basic_mcts_round_per_moves, self._basic_mcts_temperature)
+        az_agent = AlphaZeroAgent(2, "AZAgent", "X", self._encoder, self._model,self._az_mcts_round_per_moves, self._az_mcts_temperature, device=self._device)
         players = [mcts_agent, az_agent]
 
         win_counts = {
