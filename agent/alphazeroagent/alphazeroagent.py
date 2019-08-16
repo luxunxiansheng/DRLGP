@@ -84,7 +84,7 @@ class AlphaZeroAgent(Player):
                 new_node.add_branch(point, p)
         return new_node
 
-    @profile
+   
     def select_move(self, game):
         root_board_matrix = self._encoder.encode(game.state_cache.game_states)
 

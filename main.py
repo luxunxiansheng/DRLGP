@@ -204,10 +204,8 @@ class Trainer(object):
                         torch.sum(log_action_policy*action_policy, dim=1))
 
             self._writer.add_scalar('loss', loss.item(), game_index)
-            self._writer.add_scalar(
-                'loss_value', loss_value.item(), game_index)
-            self._writer.add_scalar(
-                'loss_policy', loss_policy.item(), game_index)
+            self._writer.add_scalar('loss_value', loss_value.item(), game_index)
+            self._writer.add_scalar('loss_policy', loss_policy.item(), game_index)
             self._writer.add_scalar('entropy', entroy.item(), game_index)
 
             self._optimizer.zero_grad()
@@ -284,7 +282,7 @@ class Trainer(object):
         self._logger.info('mcts:az_agent---{}:{} in {}'.format(
             win_counts[1], win_counts[2], self._evaluate_number_of_games))
 
-        return win_counts[1]/self._evaluate_number_of_games
+        return win_counts[2]/self._evaluate_number_of_games
 
     def run(self):
 
@@ -305,7 +303,7 @@ class Trainer(object):
                 win_ratio = self._evaluate_plicy()
 
                 self._logger.info(
-                    "current self-play batch:{} and win win ratio is:{}".format(game_index, win_ratio))
+                    "current self-play batch:{} and win ratio is:{}".format(game_index, win_ratio))
 
                 torch.save(self._model.state_dict(), self._current_model_file)
 

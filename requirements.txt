@@ -1,3 +1,4 @@
 six
 tqdm
 tf-nightly
+memory_profiler
