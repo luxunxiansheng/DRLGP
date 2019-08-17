@@ -13,13 +13,11 @@ class MyFancyClass(object):
         print('----------------------------------------------------------')
 
 
-def worker(pipe,i):
+def worker(results,i):
     myclass = MyFancyClass(i)
     myclass.do_something()
-    pipe.send(myclass)
-    pipe.close()
-
-
+    results.put(myclass)
+    
 
 if __name__ == '__main__':
     scores=[]
@@ -27,27 +25,23 @@ if __name__ == '__main__':
     
     
     processes = []
-    pipes = []
+    results = mp.Queue()
+
     for i in range(3):
-        parent_conn,child_conn = mp.Pipe()
-        p = mp.Process(target=worker, args=(child_conn,i))
-        processes.append(p)
-        pipes.append(parent_conn)
-        p.start()
         
+        p = mp.Process(target=worker, args=(results,i))
+        processes.append(p)
+        p.start()
+
+        scores.append(results.get())   
      
     
-    scores = [parent_conn.recv() for parent_conn in pipes]
-        
+    
     for p in processes:
         p.join()
 
-     
-
-    for pipe in pipes:
-        pipe.close()
        
-        print('*****************************************************************')
+    print('*****************************************************************')
     
       
 

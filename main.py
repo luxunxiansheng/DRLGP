@@ -173,6 +173,7 @@ class Trainer(object):
             expericence_buffer = ExpericenceBuffer()
             expericence_buffer.combine_experience([agent_1.experience_collector, agent_2.experience_collector])
             pipe.send(expericence_buffer)
+            
             pipe.close()
 
     def _collect_data_in_parallel(self):
@@ -186,17 +187,18 @@ class Trainer(object):
             p = mp.Process(target=Trainer._collect_data_once_in_parallel, args=(self._encoder, self._model,
                                                                                 self._az_mcts_round_per_moves, self._board_size, self._number_of_planes, self._device, child_connection_end))
             processes.append(p)
-            pipes.append(parent_connection_end)
+            pipes.append((parent_connection_end,child_connection_end))
             p.start()
 
-        for parent_connection_end in pipes:
+        for (parent_connection_end,child_connection_end) in pipes:
+            child_connection_end.close()
             experience_buffer = parent_connection_end.recv()
             self._experience_buffer.merge(experience_buffer)
 
         for p in processes:
             p.join()
-        for pipe in pipes:
-            pipe.close()
+        for (parent_connection_end,_) in pipes:
+            parent_connection_end.close()
 
         print('------------------------------------------------------------------------------------')
         print(self._experience_buffer.size())
