@@ -142,56 +142,66 @@ class Trainer(object):
         self._writer = SummaryWriter(
             log_dir='./runs/'+config_name.split('.')[0])
 
-    
+    @staticmethod
+    def _collect_data_once_in_parallel(encoder, model, az_mcts_round_per_moves, board_size, number_of_planes, device, pipe):
+        mcts_tree = Tree()
+        agent_1 = AlphaZeroAgent(Connect5Game.ASSIGNED_PLAYER_ID_1, "AlphaZeroAgent1", encoder, model, mcts_tree, az_mcts_round_per_moves, device=device)
+        agent_2 = AlphaZeroAgent(Connect5Game.ASSIGNED_PLAYER_ID_2, "AlphaZeroAgent2", encoder, model, mcts_tree, az_mcts_round_per_moves, device=device)
+
+        board = Board(board_size)
+        players = [agent_1, agent_2]
+        game = Connect5Game(board, players,  players[random.choice([0, 1])], number_of_planes, True)
+
+        while not game.is_over():
+            move = game.working_game_state.player_in_action.select_move(game)
+            game.apply_move(move)
+
+            # game.working_game_state.board.print_board()
+
+        # game.working_game_state.board.print_board()
+
+        winner = game.final_winner
+
+        if winner is not None:
+            if winner == players[0]:
+                players[0].experience_collector.complete_episode(reward=1)
+                players[1].experience_collector.complete_episode(reward=-1)
+            if winner == players[1]:
+                players[1].experience_collector.complete_episode(reward=1)
+                players[0].experience_collector.complete_episode(reward=-1)
+
+            expericence_buffer = ExpericenceBuffer()
+            expericence_buffer.combine_experience([agent_1.experience_collector, agent_2.experience_collector])
+            pipe.send(expericence_buffer)
+            pipe.close()
 
     def _collect_data_in_parallel(self):
-        def _collect_data_once_in_parallel(encoder,model,az_mcts_round_per_moves,board_size,number_of_planes,device,results):
-            mcts_tree = Tree()
-            agent_1 = AlphaZeroAgent(Connect5Game.ASSIGNED_PLAYER_ID_1, "AlphaZeroAgent1", encoder, model, mcts_tree, az_mcts_round_per_moves, device=device)
-            agent_2 = AlphaZeroAgent(Connect5Game.ASSIGNED_PLAYER_ID_2, "AlphaZeroAgent2", encoder, model, mcts_tree, az_mcts_round_per_moves, device=device)
 
-            board = Board(board_size)
-            players = [agent_1, agent_2]
-            game = Connect5Game(board, players,  players[random.choice([0, 1])],number_of_planes, True)
-
-            while not game.is_over():
-                move = game.working_game_state.player_in_action.select_move(game)
-                game.apply_move(move)
-
-                # game.working_game_state.board.print_board()
-
-            #game.working_game_state.board.print_board()
-
-            winner = game.final_winner
-            if winner is not None:
-                if winner == players[0]:
-                    players[0].experience_collector.complete_episode(reward=1)
-                    players[1].experience_collector.complete_episode(reward=-1)
-                if winner == players[1]:
-                    players[1].experience_collector.complete_episode(reward=1)
-                    players[0].experience_collector.complete_episode(reward=-1)
-
-                results.put((agent_1.experience_collector, agent_2.experience_collector))
-                
-
-        results = mp.Queue()
         processes = []
-        for _ in range(self._evaluate_number_of_games):
-            p = mp.Process(target=_collect_data_once_in_parallel, args=(self._encoder,self._model,self._az_mcts_round_per_moves,self._board_size,self._number_of_planes,self._device,results))
-            p.start()
+        pipes = []
+
+        for _ in range(self._batch_of_self_play):
+            parent_connection_end, child_connection_end = mp.Pipe()
+
+            p = mp.Process(target=Trainer._collect_data_once_in_parallel, args=(self._encoder, self._model,
+                                                                                self._az_mcts_round_per_moves, self._board_size, self._number_of_planes, self._device, child_connection_end))
             processes.append(p)
+            pipes.append(parent_connection_end)
+            p.start()
+
+        for parent_connection_end in pipes:
+            experience_buffer = parent_connection_end.recv()
+            self._experience_buffer.merge(experience_buffer)
 
         for p in processes:
             p.join()
+        for pipe in pipes:
+            pipe.close()
 
-        experience_collectors = [results.get() for _ in processes]
-
-        for experience_collector_pair in experience_collectors:
-            self._experience_buffer.combine_experience([experience_collector_pair[0],experience_collector_pair[1]])
-
-            
+        print('------------------------------------------------------------------------------------')
+        print(self._experience_buffer.size())
         
-    
+
     def _collect_data_once(self):
 
         mcts_tree = Tree()
@@ -208,7 +218,8 @@ class Trainer(object):
 
             # game.working_game_state.board.print_board()
 
-        game.working_game_state.board.print_board()
+        # game.working_game_state.board.print_board()
+        # self._logger.info(game.final_winner.name)
 
         winner = game.final_winner
         if winner is not None:
@@ -220,6 +231,13 @@ class Trainer(object):
                 players[0].experience_collector.complete_episode(reward=-1)
 
             self._experience_buffer.combine_experience([agent_1.experience_collector, agent_2.experience_collector])
+
+    def _collect_data(self, batch_index):
+        if self._multipleprocessing:
+            self._collect_data_in_parallel()
+        else:
+            for _ in range(self._batch_of_self_play):
+                self._collect_data_once()
 
     def _improve_policy(self, game_index):
         self._model.train()
@@ -287,7 +305,8 @@ class Trainer(object):
 
             # game.working_game_state.board.print_board()
 
-        #game.working_game_state.board.print_board()
+        # game.working_game_state.board.print_board()
+        self._logger.info(game.final_winner.name)
 
         winner = game.final_winner
 
@@ -296,13 +315,67 @@ class Trainer(object):
 
         return 0
 
+    @staticmethod
+    def _evaluate_policy_once_in_parallel(basic_mcts_round_per_moves, basic_mcts_temperature, encoder, model, az_mcts_round_per_moves, device, board_size, number_of_planes, pipe):
+        mcts_tree = Tree()
+        mcts_agent = MCTSAgent(Connect5Game.ASSIGNED_PLAYER_ID_1, "MCTSAgent", basic_mcts_round_per_moves, basic_mcts_temperature)
+        az_agent = AlphaZeroAgent(Connect5Game.ASSIGNED_PLAYER_ID_2, "AlphaZeroAgent", encoder, model, mcts_tree, az_mcts_round_per_moves, device=device)
+
+        board = Board(board_size)
+        players = [mcts_agent, az_agent]
+
+        game = Connect5Game(board, players, players[random.choice([0, 1])], number_of_planes, is_self_play=False)
+
+        while not game.is_over():
+            move = game.working_game_state.player_in_action.select_move(game)
+            game.apply_move(move)
+
+            # game.working_game_state.board.print_board()
+
+        # game.working_game_state.board.print_board()
+
+        winner = game.final_winner
+
+        score = 0
+        if winner is not None:
+            score = 1 if winner.id == az_agent.id else -1
+
+        pipe.send(score)
+        pipe.close()
+
+    def _evaluate_ploicy_in_parallel(self):
+
+        final_score = 0
+
+        processes = []
+        pipes = []
+
+        for _ in range(self._evaluate_number_of_games):
+            parent_connection_end, child_connection_end = mp.Pipe()
+
+            p = mp.Process(target=Trainer._evaluate_policy_once_in_parallel, args=(self._basic_mcts_round_per_moves, self._basic_mcts_temperature, self._encoder,
+                                                                                   self._model, self._az_mcts_round_per_moves, self._device, self._board_size, self._number_of_planes, child_connection_end))
+
+            processes.append(p)
+            pipes.append(parent_connection_end)
+            p.start()
+
+        for parent_connection_end in pipes:
+            final_score += parent_connection_end.recv()
+
+        for p in processes:
+            p.join()
+        for pipe in pipes:
+            pipe.close()
+
+        return final_score
+
     def _evaluate_policy(self):
 
         final_score = 0
 
         if self._multipleprocessing:
-            self._evaluate_ploicy_in_parallel()
-
+            final_score = self._evaluate_ploicy_in_parallel()
         else:
             for _ in tqdm(range(self._evaluate_number_of_games)):
                 final_score += self._evaluate_policy_once()
@@ -311,67 +384,13 @@ class Trainer(object):
 
         return final_score
 
-    def _evaluate_ploicy_in_parallel(self):
-        
-        def _evaluate_policy_once_in_parallel(basic_mcts_round_per_moves, basic_mcts_temperature, encoder, model, az_mcts_round_per_moves, device, board_size, number_of_planes, results):
-            mcts_tree = Tree()
-            mcts_agent = MCTSAgent(Connect5Game.ASSIGNED_PLAYER_ID_1, "MCTSAgent", basic_mcts_round_per_moves, basic_mcts_temperature)
-            az_agent = AlphaZeroAgent(Connect5Game.ASSIGNED_PLAYER_ID_2, "AlphaZeroAgent", encoder, model, mcts_tree, az_mcts_round_per_moves, device=device)
-
-            board = Board(board_size)
-            players = [mcts_agent, az_agent]
-
-            game = Connect5Game(board, players, players[random.choice([0, 1])], number_of_planes, is_self_play=False)
-
-            while not game.is_over():
-                move = game.working_game_state.player_in_action.select_move(game)
-                game.apply_move(move)
-
-                # game.working_game_state.board.print_board()
-
-            #game.working_game_state.board.print_board()
-
-            winner = game.final_winner
-
-            score = 0
-            if winner is not None:
-                score = 1 if winner.id == az_agent.id else -1
-            results.put(score) 
-        
-        
-
-        results = mp.Queue()
-        processes = []
-        for _ in range(self._evaluate_number_of_games):
-            p = mp.Process(target=_evaluate_policy_once_in_parallel, args=(self._basic_mcts_round_per_moves, self._basic_mcts_temperature,
-                                                                      self._encoder, self._model, self._az_mcts_round_per_moves, self._device, self._board_size, self._number_of_planes, results))
-            p.start()
-            processes.append(p)
-
-        for p in processes:
-            p.join()
-
-        scores = [results.get() for _ in processes]
-
-        for score in scores:
-            final_score += score
-    
-
-    def _collect_data(self, batch_index):
-        if self._multipleprocessing:
-           self._collect_data_in_parallel()
-        else:
-            for _ in range(self._batch_of_self_play):
-                self._collect_data_once()
-    
-
     def run(self):
 
         mp.set_start_method('spawn')
 
         best_score = 0
 
-        for batch_index in tqdm(range(1, self._train_number_of_games/self._batch_of_self_play)):
+        for batch_index in tqdm(range(1, int(self._train_number_of_games/self._batch_of_self_play))):
             # collect data via self-playing
             self._collect_data(batch_index)
 

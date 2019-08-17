@@ -40,7 +40,7 @@ import numpy as np
 
 
 class ExpericenceBuffer:
-    def __init__(self, compacity):
+    def __init__(self, compacity=10000):
         self._data = deque(maxlen=compacity)
 
     @property
@@ -57,3 +57,8 @@ class ExpericenceBuffer:
 
     def size(self):
         return len(self._data)
+
+
+    def merge(self, other):
+        self._data += other.data
+    
