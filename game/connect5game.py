@@ -45,6 +45,10 @@ from common.point import Point
 
 
 class Connect5Game(Game):
+    
+    ASSIGNED_PLAYER_ID_1 = 1
+    ASSIGNED_PLAYER_ID_2 = 2
+    
     @staticmethod
     def _connect_5_into_a_line(board, player):
         # check vertical win

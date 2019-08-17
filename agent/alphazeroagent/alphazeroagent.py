@@ -57,14 +57,16 @@ from common.player import Player
 
 
 class AlphaZeroAgent(Player):
-    def __init__(self, id, name, mark, encoder, model, mcts_tree, num_rounds, device='cpu'):
-        super().__init__(id, name, mark)
+    def __init__(self, id, name, encoder, model, mcts_tree, num_rounds, device='cpu'):
+        super().__init__(id, name)
         self._encoder = encoder
         self._device = device
         self._model = model
         self._num_rounds = num_rounds
         self._experience_collector = ExperienceCollector()
         self._mcts_tree = mcts_tree
+      
+
 
     @property
     def experience_collector(self):

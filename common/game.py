@@ -71,7 +71,6 @@ class Game:
     """
     A abstract class about Game. Essentially, it contains a player list and a current working state. 
     """
-
     def __init__(self, board, playerlist, start_player, state_cache_size=10, is_self_play=False):
         self._players = playerlist
         self._working_game_state = GameState(board, start_player, None)
