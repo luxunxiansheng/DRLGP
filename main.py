@@ -95,7 +95,7 @@ class Trainer(object):
         self._epochs = cfg['TRAIN'].getint('epochs')
         self._kl_threshold = cfg['TRAIN'].getfloat('kl_threshold')
         self._check_frequence = cfg['TRAIN'].getint('check_frequence')
-        self._multipleprocessing_selfplay=cfg['TRAIN'].getboolean('multipleprocessing_selfplay')
+        self._multipleprocessing_selfplay = cfg['TRAIN'].getboolean('multipleprocessing_selfplay')
 
         self._current_model_file = './checkpoints/' + \
             config_name.split('.')[0]+'/current.model'
@@ -174,7 +174,7 @@ class Trainer(object):
             expericence_buffer = ExpericenceBuffer()
             expericence_buffer.combine_experience([agent_1.experience_collector, agent_2.experience_collector])
             pipe.send(expericence_buffer)
-            
+
             pipe.close()
 
     def _collect_data_in_parallel(self):
@@ -187,33 +187,29 @@ class Trainer(object):
             p = mp.Process(target=Trainer._collect_data_once_in_parallel, args=(self._encoder, self._model,
                                                                                 self._az_mcts_round_per_moves, self._board_size, self._number_of_planes, self._device, child_connection_end))
             processes.append(p)
-            pipes.append((parent_connection_end,child_connection_end))
+            pipes.append((parent_connection_end, child_connection_end))
             p.start()
 
-        for (parent_connection_end,child_connection_end) in pipes:
-        
+        for (parent_connection_end, child_connection_end) in pipes:
+
             child_connection_end.close()
-           
+
             while True:
                 try:
-                   experience_buffer = parent_connection_end.recv()
-                   self._experience_buffer.merge(experience_buffer)
+                    experience_buffer = parent_connection_end.recv()
+                    self._experience_buffer.merge(experience_buffer)
                 except EOFError:
-                    
+
                     self._logger.debug('EOFError')
                     break
 
-        
-        for (parent_connection_end,_) in pipes:
+        for (parent_connection_end, _) in pipes:
             parent_connection_end.close()
-
 
         for p in processes:
             p.join()
 
-       
         self._logger.debug(str(self._experience_buffer.size()))
-        
 
     def _collect_data_once(self):
 
@@ -370,16 +366,26 @@ class Trainer(object):
                                                                                    self._model, self._az_mcts_round_per_moves, self._device, self._board_size, self._number_of_planes, child_connection_end))
 
             processes.append(p)
-            pipes.append(parent_connection_end)
+            pipes.append((parent_connection_end, child_connection_end))
             p.start()
 
-        for parent_connection_end in pipes:
-            final_score += parent_connection_end.recv()
+        for (parent_connection_end, child_connection_end) in pipes:
+
+            child_connection_end.close()
+
+            while True:
+                try:
+                    final_score += parent_connection_end.recv()
+                except EOFError:
+
+                    self._logger.debug('EOFError')
+                    break
+
+        for (parent_connection_end, _) in pipes:
+            parent_connection_end.close()
 
         for p in processes:
             p.join()
-        for pipe in pipes:
-            pipe.close()
 
         return final_score
 
