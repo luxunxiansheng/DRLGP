@@ -95,6 +95,7 @@ class Trainer(object):
         self._epochs = cfg['TRAIN'].getint('epochs')
         self._kl_threshold = cfg['TRAIN'].getfloat('kl_threshold')
         self._check_frequence = cfg['TRAIN'].getint('check_frequence')
+        self._multipleprocessing_selfplay=cfg['TRAIN'].getboolean('multipleprocessing_selfplay')
 
         self._current_model_file = './checkpoints/' + \
             config_name.split('.')[0]+'/current.model'
@@ -103,7 +104,7 @@ class Trainer(object):
 
         self._evaluate_number_of_games = cfg['EVALUATE'].getint(
             'number_of_games')
-        self._multipleprocessing = cfg['EVALUATE'].getboolean(
+        self._multipleprocessing_evaluation = cfg['EVALUATE'].getboolean(
             'mutipleprocessing')
 
         os.makedirs(os.path.dirname(self._current_model_file), exist_ok=True)
@@ -183,7 +184,6 @@ class Trainer(object):
 
         for _ in range(self._batch_of_self_play):
             parent_connection_end, child_connection_end = mp.Pipe()
-
             p = mp.Process(target=Trainer._collect_data_once_in_parallel, args=(self._encoder, self._model,
                                                                                 self._az_mcts_round_per_moves, self._board_size, self._number_of_planes, self._device, child_connection_end))
             processes.append(p)
@@ -191,17 +191,28 @@ class Trainer(object):
             p.start()
 
         for (parent_connection_end,child_connection_end) in pipes:
+        
             child_connection_end.close()
-            experience_buffer = parent_connection_end.recv()
-            self._experience_buffer.merge(experience_buffer)
+           
+            while True:
+                try:
+                   experience_buffer = parent_connection_end.recv()
+                   self._experience_buffer.merge(experience_buffer)
+                except EOFError:
+                    
+                    self._logger.debug('EOFError')
+                    break
 
-        for p in processes:
-            p.join()
+        
         for (parent_connection_end,_) in pipes:
             parent_connection_end.close()
 
-        print('------------------------------------------------------------------------------------')
-        print(self._experience_buffer.size())
+
+        for p in processes:
+            p.join()
+
+       
+        self._logger.debug(str(self._experience_buffer.size()))
         
 
     def _collect_data_once(self):
@@ -235,7 +246,7 @@ class Trainer(object):
             self._experience_buffer.combine_experience([agent_1.experience_collector, agent_2.experience_collector])
 
     def _collect_data(self, batch_index):
-        if self._multipleprocessing:
+        if self._multipleprocessing_selfplay:
             self._collect_data_in_parallel()
         else:
             for _ in range(self._batch_of_self_play):
@@ -376,7 +387,7 @@ class Trainer(object):
 
         final_score = 0
 
-        if self._multipleprocessing:
+        if self._multipleprocessing_evaluation:
             final_score = self._evaluate_ploicy_in_parallel()
         else:
             for _ in tqdm(range(self._evaluate_number_of_games)):
