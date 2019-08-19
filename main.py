@@ -110,8 +110,19 @@ class Trainer(object):
         os.makedirs(os.path.dirname(self._current_model_file), exist_ok=True)
         os.makedirs(os.path.dirname(self._best_model_file), exist_ok=True)
 
-        use_cuda = torch.cuda.is_available()
+        self._encoder = SnapshotEncoder(self._number_of_planes, self._board_size)
 
+        input_shape = (self._number_of_planes, self._board_size, self._board_size)
+        model_name = cfg['MODELS'].get('net')
+        self._model = ResNet8Network(input_shape, self._board_size * self._board_size) if model_name == 'ResNet8Network' else Simple5Network(
+            input_shape, self._board_size * self._board_size)
+        
+        # Be aware this is not the first time to run this program
+        resume = args.resume
+        if resume:
+            self._model.load_state_dict(torch.load(self._current_model_file))
+        
+        use_cuda = torch.cuda.is_available()
         if use_cuda:
             gpu_ids = list(map(int, args.gpu_ids.split(',')))
             num_devices = torch.cuda.device_count()
@@ -119,21 +130,11 @@ class Trainer(object):
                 raise Exception(
                     '#available gpu : {} < --device_ids : {}'.format(num_devices, len(gpu_ids)))
             cuda = 'cuda:' + str(gpu_ids[0])
+                 
+            #self._model = DataParallel(self._model,device_ids=gpu_ids)
+       
         self._device = torch.device(cuda if use_cuda else 'cpu')
-
-        self._encoder = SnapshotEncoder(self._number_of_planes, self._board_size)
-
-        input_shape = (self._number_of_planes, self._board_size, self._board_size)
-        model_name = cfg['MODELS'].get('net')
-        self._model = ResNet8Network(input_shape, self._board_size * self._board_size) if model_name == 'ResNet8Network' else Simple5Network(
-            input_shape, self._board_size * self._board_size)
-
-        # Be aware this is not the first time to run this program
-        resume = args.resume
-        if resume:
-            self._model.load_state_dict(torch.load(self._current_model_file))
-
-        #self._model = DataParallel(self._model,device_ids=gpu_ids)
+        
         self._model = self._model.to(self._device)
 
         self._experience_buffer = ExpericenceBuffer(self._buffer_size)
