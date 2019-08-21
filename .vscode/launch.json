@@ -11,7 +11,7 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "debugOptions": ["DebugStdLib"],
-            "args": ["-config","debug.ini"]
+            "args": ["-config","debug_deepmind.ini"]
            
         },
         {

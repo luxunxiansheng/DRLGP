@@ -35,11 +35,10 @@
 
 
 class Player(object):
-    def __init__(self, id, name, mark):
+    def __init__(self, id, name):
         self._id = id
         self._name = name
-        self._mark = mark
-        self._diagnostics_info = ''
+    
 
     @property
     def id(self):
@@ -49,10 +48,7 @@ class Player(object):
     def name(self):
         return self._name
 
-    @property
-    def mark(self):
-        return self._mark
-
+    
     def select_move(self,game):
         raise NotImplementedError()
 
@@ -62,10 +58,4 @@ class Player(object):
 
         return self.id == other.id
 
-    @property
-    def diagnostics(self):
-        return self._diagnostics_info
-
-    @diagnostics.setter
-    def diagnostics(self, info):
-        self._diagnostics_info = info
+ 

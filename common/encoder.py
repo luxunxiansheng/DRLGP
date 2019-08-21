@@ -38,7 +38,7 @@ class Encoder:
     def name(self):
         raise NotImplementedError()
 
-    def encode(self, game_state):
+    def encode(self, game_state,player_in_action):
         raise NotImplementedError()
 
     def decode(self, board_matrix):

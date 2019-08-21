@@ -45,6 +45,10 @@ from common.point import Point
 
 
 class Connect5Game(Game):
+    
+    ASSIGNED_PLAYER_ID_1 = 1
+    ASSIGNED_PLAYER_ID_2 = 2
+    
     @staticmethod
     def _connect_5_into_a_line(board, player):
         # check vertical win
@@ -149,22 +153,4 @@ class Connect5Game(Game):
             return players[1]
         return None
 
-    @staticmethod
-    def run_episode(board_size, players, start_player, number_of_planes, is_self_play):
-        
-        board = Board(board_size)
-        game = Connect5Game(board, players, start_player, number_of_planes, is_self_play)
-        
-
-        while not game.is_over():
-            move = game.working_game_state.player_in_action.select_move(game, game.working_game_state)
-            game.apply_move(move)
-
-            
-
-            # game.working_game_state.board.print_board()
-
-        game.working_game_state.board.print_board()
-        print('winner is {}'.format(game.final_winner.id if game.final_winner is not None else 'draw'))
-
-        return game.final_winner
+    

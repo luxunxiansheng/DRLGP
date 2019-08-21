@@ -71,13 +71,13 @@ class Game:
     """
     A abstract class about Game. Essentially, it contains a player list and a current working state. 
     """
-
     def __init__(self, board, playerlist, start_player, state_cache_size=10, is_self_play=False):
         self._players = playerlist
         self._working_game_state = GameState(board, start_player, None)
         self._final_winner = None
         self._is_selfplay = is_self_play
         self._state_cache = Game_State_Memory(state_cache_size)
+        self._state_cache.push(self._working_game_state)
 
     def reset(self, board, playerlist, start_player, is_self_play=False):
         self._players = playerlist
@@ -120,8 +120,8 @@ class Game:
         pass
 
     def apply_move(self, move):
-        self._state_cache.push(self._working_game_state)
         self._working_game_state = self.look_ahead_next_move(self._working_game_state, move)
+        self._state_cache.push(self._working_game_state)
 
     def look_ahead_next_move(self, game_state, move):
         new_board = copy.deepcopy(game_state.board)

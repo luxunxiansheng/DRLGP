@@ -30,6 +30,7 @@ class MCTSNode(object):
         self._children = []
         self._unvisited_points = game_state.board.get_legal_points()
 
+    
     @property
     def game_state(self):
         return self._game_state
@@ -76,10 +77,12 @@ class MCTSNode(object):
 
 
 class MCTSAgent(Player):
-    def __init__(self, id, name, mark, num_rounds, temperature):
-        super().__init__(id, name, mark)
+    def __init__(self, id, name,num_rounds, temperature):
+        super().__init__(id, name)
         self._num_rounds = num_rounds
         self._temperature = temperature
+    
+    
 
     def _select_child(self, node):
         total_rollouts = sum(child.num_rollouts for child in node.children)
@@ -121,7 +124,7 @@ class MCTSAgent(Player):
         # created node to root
         #
 
-        root = MCTSNode(game, game.working_state)
+        root = MCTSNode(game, game.working_game_state)
 
         for _ in tqdm(range(self._num_rounds)):
             node = root
@@ -154,8 +157,8 @@ class MCTSAgent(Player):
         return Move(best_point)
 
     def _simulate_random_game_for_state(self, game,game_state):
-        bots = [RandomAgent(0, "RandomAgent0", "X"),
-                RandomAgent(1, "RandomAgent1", "O")]
+        bots = [RandomAgent(1, "RandomAgent0"),
+                RandomAgent(2, "RandomAgent1")]
 
         
         # current board status

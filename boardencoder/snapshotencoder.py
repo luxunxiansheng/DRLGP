@@ -60,7 +60,7 @@ class SnapshotEncoder(Encoder):
     def board_height(self):
         return self._board_height
 
-    def encode(self, boards):
+    def encode(self, boards,player_in_action):
         board_matrix = np.zeros(self.shape(), dtype=int)
         for plane in range(len(boards)):
             for row in range(self._board_height):
