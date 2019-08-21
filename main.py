@@ -57,7 +57,7 @@ from agent.alphazeroagent.experiencebuffer import ExpericenceBuffer
 from agent.alphazeroagent.experiencecollector import ExperienceCollector
 from agent.alphazeroagent.mcts.tree import Tree
 from agent.mctsagent import MCTSAgent
-from boardencoder.snapshotencoder import SnapshotEncoder
+from boardencoder.snapshotencoder import SnapshotEncoder,BlackWhiteEncoder
 from common.board import Board
 from common.utils import Utils
 from game.connect5game import Connect5Game
@@ -75,6 +75,7 @@ class Trainer(object):
 
         self._number_of_planes = cfg['GAME'].getint('number_of_planes')
         self._board_size = cfg['GAME'].getint('board_size')
+        self._encoder_name=cfg['GAME'].get('encoder_name')
 
         self._az_mcts_round_per_moves = cfg['AZ_MCTS'].getint(
             'round_per_moves')
@@ -105,12 +106,15 @@ class Trainer(object):
         self._evaluate_number_of_games = cfg['EVALUATE'].getint(
             'number_of_games')
         self._multipleprocessing_evaluation = cfg['EVALUATE'].getboolean(
-            'mutipleprocessing')
+            'mutipleprocessing_evaluation')
 
         os.makedirs(os.path.dirname(self._current_model_file), exist_ok=True)
         os.makedirs(os.path.dirname(self._best_model_file), exist_ok=True)
 
-        self._encoder = SnapshotEncoder(self._number_of_planes, self._board_size)
+        if self._encoder_name == 'SnapshotEncoder': 
+           self._encoder = SnapshotEncoder(self._number_of_planes, self._board_size)
+        else:
+           self._encoder = BlackWhiteEncoder(self._number_of_planes,self._board_size)
 
         input_shape = (self._number_of_planes, self._board_size, self._board_size)
         model_name = cfg['MODELS'].get('net')
