@@ -57,7 +57,9 @@ from agent.alphazeroagent.experiencebuffer import ExpericenceBuffer
 from agent.alphazeroagent.experiencecollector import ExperienceCollector
 from agent.alphazeroagent.mcts.tree import Tree
 from agent.mctsagent import MCTSAgent
-from boardencoder.snapshotencoder import SnapshotEncoder,BlackWhiteEncoder
+from boardencoder.snapshotencoder import SnapshotEncoder
+from boardencoder.blackwhiteencoder import BlackWhiteEncoder
+
 from common.board import Board
 from common.utils import Utils
 from game.connect5game import Connect5Game
@@ -113,10 +115,12 @@ class Trainer(object):
 
         if self._encoder_name == 'SnapshotEncoder': 
            self._encoder = SnapshotEncoder(self._number_of_planes, self._board_size)
+           input_shape = (self._number_of_planes, self._board_size, self._board_size)
         else:
            self._encoder = BlackWhiteEncoder(self._number_of_planes,self._board_size)
+           input_shape = (self._number_of_planes*2+1, self._board_size, self._board_size)
 
-        input_shape = (self._number_of_planes, self._board_size, self._board_size)
+       
         model_name = cfg['MODELS'].get('net')
         self._model = ResNet8Network(input_shape, self._board_size * self._board_size) if model_name == 'ResNet8Network' else Simple5Network(
             input_shape, self._board_size * self._board_size)
@@ -410,7 +414,7 @@ class Trainer(object):
 
     def run(self):
 
-        mp.set_start_method('spawn')
+        mp.set_start_method('spawn',force=True)
 
         best_score = 0
 

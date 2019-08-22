@@ -73,6 +73,7 @@ class BlackWhiteEncoder(Encoder):
         Refer to: Mastering the Game of Go without Human Knowledge
         '''
 
+        
         board_matrix = np.zeros(self.shape(), dtype=int)
         for plane in range(len(boards)):
             if plane < len(boards):
@@ -81,14 +82,18 @@ class BlackWhiteEncoder(Encoder):
                         point = Point(row+1, col+1)
                         piece = boards[plane].get_piece_at_point(point)
                         if piece is not None:
-                            if piece.owner_id == player_in_action:
+                            if piece.owner_id == player_in_action.id:
                                 board_matrix[plane+self._num_plane, row, col] = 1
                             else:
                                 board_matrix[plane, row, col] = 1
-            else:
-                for row in range(self._board_height):
-                    for col in range(self._board_width):
-                        board_matrix[plane, row, col] = player_in_action
+            
+        
+        for row in range(self._board_height):
+            for col in range(self._board_width):
+                board_matrix[self._num_plane*2, row, col] = player_in_action.id 
+    
+        
+        return board_matrix
       
 
     def shape(self):

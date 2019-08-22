@@ -86,7 +86,7 @@ class AlphaZeroAgent(Player):
 
    
     def select_move(self, game):
-        root_board_matrix = self._encoder.encode(game.state_cache.game_states,game.game_state.player_in_action)
+        root_board_matrix = self._encoder.encode(game.state_cache.game_states,game.working_game_state.player_in_action)
 
         if self._mcts_tree.working_node is None:
             estimated_branch_priors, estimated_state_value = self._predict(root_board_matrix)
@@ -109,7 +109,7 @@ class AlphaZeroAgent(Player):
                     # expand
                     new_state = game.look_ahead_next_move(current_node.game_state, current_branch.move)
                     game_state_memory.push(new_state)
-                    board_matrix = self._encoder.encode(game_state_memory.game_states,game.game_state.player_in_action)
+                    board_matrix = self._encoder.encode(game_state_memory.game_states,game.working_game_state.player_in_action)
                     estimated_branch_priors, estimated_state_value = self._predict(board_matrix)
                     current_node = self._create_node_with_children_branch(new_state, estimated_state_value[0].item(), estimated_branch_priors[0], current_branch)
                     current_branch.add_child_node(current_node)
@@ -137,4 +137,5 @@ class AlphaZeroAgent(Player):
         else:
             self._mcts_tree.working_node = None
 
+              
         return next_move
