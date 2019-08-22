@@ -73,41 +73,41 @@ class Trainer(object):
         config_name = args.config
 
         # hardcode the config path just for convinence.
-        cfg = Utils.config("./config/" + config_name)
+        self._cfg = Utils.config("./config/" + config_name)
 
-        self._number_of_planes = cfg['GAME'].getint('number_of_planes')
-        self._board_size = cfg['GAME'].getint('board_size')
-        self._encoder_name=cfg['GAME'].get('encoder_name')
+        self._number_of_planes = self._cfg['GAME'].getint('number_of_planes')
+        self._board_size = self._cfg['GAME'].getint('board_size')
+        self._encoder_name=self._cfg['GAME'].get('encoder_name')
 
-        self._az_mcts_round_per_moves = cfg['AZ_MCTS'].getint(
+        self._az_mcts_round_per_moves = self._cfg['AZ_MCTS'].getint(
             'round_per_moves')
-        self._az_mcts_temperature = cfg['AZ_MCTS'].getfloat('temperature')
+        self._az_mcts_temperature = self._cfg['AZ_MCTS'].getfloat('temperature')
 
-        self._basic_mcts_temperature = cfg['BASIC_MCTS'].getfloat(
+        self._basic_mcts_temperature = self._cfg['BASIC_MCTS'].getfloat(
             'temperature')
-        self._basic_mcts_round_per_moves = cfg['BASIC_MCTS'].getint(
+        self._basic_mcts_round_per_moves = self._cfg['BASIC_MCTS'].getint(
             'round_per_moves')
 
-        self._train_number_of_games = cfg['TRAIN'].getint('number_of_games')
-        self._batch_of_self_play = cfg['TRAIN'].getint('batch_of_self_play')
+        self._train_number_of_games = self._cfg['TRAIN'].getint('number_of_games')
+        self._batch_of_self_play = self._cfg['TRAIN'].getint('batch_of_self_play')
 
-        self._buffer_size = cfg['TRAIN'].getint('buffer_size')
-        self._learning_rate = cfg['TRAIN'].getfloat('learning_rate')
-        self._batch_size = cfg['TRAIN'].getint('batch_size')
+        self._buffer_size = self._cfg['TRAIN'].getint('buffer_size')
+        self._learning_rate = self._cfg['TRAIN'].getfloat('learning_rate')
+        self._batch_size = self._cfg['TRAIN'].getint('batch_size')
 
-        self._epochs = cfg['TRAIN'].getint('epochs')
-        self._kl_threshold = cfg['TRAIN'].getfloat('kl_threshold')
-        self._check_frequence = cfg['TRAIN'].getint('check_frequence')
-        self._multipleprocessing_selfplay = cfg['TRAIN'].getboolean('multipleprocessing_selfplay')
+        self._epochs = self._cfg['TRAIN'].getint('epochs')
+        self._kl_threshold = self._cfg['TRAIN'].getfloat('kl_threshold')
+        self._check_frequence = self._cfg['TRAIN'].getint('check_frequence')
+        self._multipleprocessing_selfplay = self._cfg['TRAIN'].getboolean('multipleprocessing_selfplay')
 
         self._current_model_file = './checkpoints/' + \
             config_name.split('.')[0]+'/current.model'
         self._best_model_file = './checkpoints/' + \
             config_name.split('.')[0]+'/best.model'
 
-        self._evaluate_number_of_games = cfg['EVALUATE'].getint(
+        self._evaluate_number_of_games = self._cfg['EVALUATE'].getint(
             'number_of_games')
-        self._multipleprocessing_evaluation = cfg['EVALUATE'].getboolean(
+        self._multipleprocessing_evaluation = self._cfg['EVALUATE'].getboolean(
             'mutipleprocessing_evaluation')
 
         os.makedirs(os.path.dirname(self._current_model_file), exist_ok=True)
@@ -121,7 +121,7 @@ class Trainer(object):
            input_shape = (self._number_of_planes*2+1, self._board_size, self._board_size)
 
        
-        model_name = cfg['MODELS'].get('net')
+        model_name = self._cfg['MODELS'].get('net')
         self._model = ResNet8Network(input_shape, self._board_size * self._board_size) if model_name == 'ResNet8Network' else Simple5Network(
             input_shape, self._board_size * self._board_size)
         
@@ -130,30 +130,31 @@ class Trainer(object):
         if resume:
             self._model.load_state_dict(torch.load(self._current_model_file))
         
-        use_cuda = torch.cuda.is_available()
-        if use_cuda:
-            gpu_ids = list(map(int, args.gpu_ids.split(',')))
+        self._use_cuda = torch.cuda.is_available()
+        if self._use_cuda :
+            self._gpu_ids = list(map(int, args.gpu_ids.split(',')))
             num_devices = torch.cuda.device_count()
-            if num_devices < len(gpu_ids):
+            if num_devices < len(self._gpu_ids):
                 raise Exception(
-                    '#available gpu : {} < --device_ids : {}'.format(num_devices, len(gpu_ids)))
-            cuda = 'cuda:' + str(gpu_ids[0])
-                 
-            #self._model = DataParallel(self._model,device_ids=gpu_ids)
-       
-        self._device = torch.device(cuda if use_cuda else 'cpu')
-        
-        self._model = self._model.to(self._device)
+                    '#available gpu : {} < --device_ids : {}'.format(num_devices, len(self._gpu_ids)))
 
+            self._gpu_devices= [torch.device('cuda:'+self._gpu_ids[i]) for i in range(len(self._gpu_ids))]       
+            
+                
+            
+       
+        self._cpu_device = torch.device('cpu')
+                      
+       
         self._experience_buffer = ExpericenceBuffer(self._buffer_size)
 
-        self._optimizer = Utils.get_optimizer(self._model.parameters(), cfg)
+        
 
         self._writer = SummaryWriter(
             log_dir='./runs/'+config_name.split('.')[0])
 
     @staticmethod
-    def _collect_data_once_in_parallel(encoder, model, az_mcts_round_per_moves, board_size, number_of_planes, device, pipe):
+    def _collect_data_once_in_parallel(encoder, model, az_mcts_round_per_moves, board_size, number_of_planes,device, pipe):
         mcts_tree = Tree()
         agent_1 = AlphaZeroAgent(Connect5Game.ASSIGNED_PLAYER_ID_1, "AlphaZeroAgent1", encoder, model, mcts_tree, az_mcts_round_per_moves, device=device)
         agent_2 = AlphaZeroAgent(Connect5Game.ASSIGNED_PLAYER_ID_2, "AlphaZeroAgent2", encoder, model, mcts_tree, az_mcts_round_per_moves, device=device)
@@ -190,14 +191,15 @@ class Trainer(object):
 
         processes = []
         pipes = []
-
-        for _ in range(self._batch_of_self_play):
+      
+        for gpu_index in range(len(self._gpu_devices)):
             parent_connection_end, child_connection_end = mp.Pipe()
             p = mp.Process(target=Trainer._collect_data_once_in_parallel, args=(self._encoder, self._model,
-                                                                                self._az_mcts_round_per_moves, self._board_size, self._number_of_planes, self._device, child_connection_end))
+                                                                                self._az_mcts_round_per_moves, self._board_size, self._number_of_planes, self._gpu_devices[gpu_index], child_connection_end))
             processes.append(p)
             pipes.append((parent_connection_end, child_connection_end))
             p.start()
+      
 
         for (parent_connection_end, child_connection_end) in pipes:
 
@@ -208,7 +210,6 @@ class Trainer(object):
                     experience_buffer = parent_connection_end.recv()
                     self._experience_buffer.merge(experience_buffer)
                 except EOFError:
-
                     self._logger.debug('EOFError')
                     break
 
@@ -221,10 +222,10 @@ class Trainer(object):
         self._logger.debug(str(self._experience_buffer.size()))
 
     def _collect_data_once(self):
-
+        device = self._gpu_devices[0] if self._use_cuda else self._cpu_device         
         mcts_tree = Tree()
-        agent_1 = AlphaZeroAgent(Connect5Game.ASSIGNED_PLAYER_ID_1, "AlphaZeroAgent1", self._encoder, self._model, mcts_tree, self._az_mcts_round_per_moves, device=self._device)
-        agent_2 = AlphaZeroAgent(Connect5Game.ASSIGNED_PLAYER_ID_2, "AlphaZeroAgent2", self._encoder, self._model, mcts_tree, self._az_mcts_round_per_moves, device=self._device)
+        agent_1 = AlphaZeroAgent(Connect5Game.ASSIGNED_PLAYER_ID_1, "AlphaZeroAgent1", self._encoder, self._model, mcts_tree, self._az_mcts_round_per_moves, device=device)
+        agent_2 = AlphaZeroAgent(Connect5Game.ASSIGNED_PLAYER_ID_2, "AlphaZeroAgent2", self._encoder, self._model, mcts_tree, self._az_mcts_round_per_moves, device=device)
 
         board = Board(self._board_size)
         players = [agent_1, agent_2]
@@ -250,33 +251,37 @@ class Trainer(object):
 
             self._experience_buffer.combine_experience([agent_1.experience_collector, agent_2.experience_collector])
 
-    def _collect_data(self, batch_index):
-        if self._multipleprocessing_selfplay:
-            self._collect_data_in_parallel()
+    def _collect_data(self):
+        if len(self._gpu_devices) > 1:
+           self._collect_data_in_parallel()
         else:
-            for _ in range(self._batch_of_self_play):
-                self._collect_data_once()
+           self._collect_data_once()
 
     def _improve_policy(self, game_index):
         self._model.train()
 
-        batch_data = random.sample(
-            self._experience_buffer.data, self._batch_size)
+        batch_data = random.sample(self._experience_buffer.data, self._batch_size)
 
+        device = None
+        if self._use_cuda:
+            device = self._gpu_devices[0]
+            model = DataParallel(self._model,device_ids=self._gpu_ids)
+        else:
+            device = self._cpu_device
+            model =  self._model    
+
+        optimizer = Utils.get_optimizer(model.parameters(), self._cfg)
+        
         for _ in range(self._epochs):
             states, rewards, visit_counts = zip(*batch_data)
-
-            states = torch.from_numpy(np.array(list(states))).to(
-                self._device, dtype=torch.float)
-            rewards = torch.from_numpy(np.array(list(rewards))).to(
-                self._device, dtype=torch.float)
-            visit_counts = torch.from_numpy(np.array(list(visit_counts))).to(
-                self._device, dtype=torch.float)
+            states = torch.from_numpy(np.array(list(states))).to(device, dtype=torch.float)
+            rewards = torch.from_numpy(np.array(list(rewards))).to(device, dtype=torch.float)
+            visit_counts = torch.from_numpy(np.array(list(visit_counts))).to(device, dtype=torch.float)
 
             action_policy_target = F.softmax(visit_counts, dim=1)
             value_target = rewards
 
-            [action_policy, value] = self._model(states)
+            [action_policy, value] = model(states)
 
             log_action_policy = torch.log(action_policy)
             loss_policy = - log_action_policy * action_policy_target
@@ -296,21 +301,21 @@ class Trainer(object):
             self._writer.add_scalar('loss_policy', loss_policy.item(), game_index)
             self._writer.add_scalar('entropy', entroy.item(), game_index)
 
-            self._optimizer.zero_grad()
+            optimizer.zero_grad()
 
             loss.backward()
-            self._optimizer.step()
-            [updated_action_policy, _] = self._model(states)
+            optimizer.step()
+            [updated_action_policy, _] = model(states)
             kl = F.kl_div(action_policy, updated_action_policy).item()
 
             if kl > self._kl_threshold * 4:
                 break
 
     def _evaluate_policy_once(self):
-
+        device = self._gpu_devices[0] if self._use_cuda else self._cpu_device  
         mcts_tree = Tree()
         mcts_agent = MCTSAgent(Connect5Game.ASSIGNED_PLAYER_ID_1, "MCTSAgent", self._basic_mcts_round_per_moves, self._basic_mcts_temperature)
-        az_agent = AlphaZeroAgent(Connect5Game.ASSIGNED_PLAYER_ID_2, "AlphaZeroAgent", self._encoder, self._model, mcts_tree, self._az_mcts_round_per_moves, device=self._device)
+        az_agent = AlphaZeroAgent(Connect5Game.ASSIGNED_PLAYER_ID_2, "AlphaZeroAgent", self._encoder, self._model, mcts_tree, self._az_mcts_round_per_moves, device=device)
 
         board = Board(self._board_size)
         players = [mcts_agent, az_agent]
@@ -368,11 +373,11 @@ class Trainer(object):
         processes = []
         pipes = []
 
-        for _ in range(self._evaluate_number_of_games):
+        for gpu_index in range(len(self._gpu_devices)):
             parent_connection_end, child_connection_end = mp.Pipe()
 
             p = mp.Process(target=Trainer._evaluate_policy_once_in_parallel, args=(self._basic_mcts_round_per_moves, self._basic_mcts_temperature, self._encoder,
-                                                                                   self._model, self._az_mcts_round_per_moves, self._device, self._board_size, self._number_of_planes, child_connection_end))
+                                                                                   self._model, self._az_mcts_round_per_moves,self._gpu_devices[gpu_index], self._board_size, self._number_of_planes, child_connection_end))
 
             processes.append(p)
             pipes.append((parent_connection_end, child_connection_end))
@@ -402,11 +407,10 @@ class Trainer(object):
 
         final_score = 0
 
-        if self._multipleprocessing_evaluation:
+        if len(self._gpu_devices) > 1:
             final_score = self._evaluate_ploicy_in_parallel()
         else:
-            for _ in tqdm(range(self._evaluate_number_of_games)):
-                final_score += self._evaluate_policy_once()
+            final_score += self._evaluate_policy_once()
 
         self._logger.info('Alphazero gets {} in {}'.format(final_score, self._evaluate_number_of_games))
 
@@ -418,19 +422,19 @@ class Trainer(object):
 
         best_score = 0
 
-        for batch_index in tqdm(range(1, int(self._train_number_of_games/self._batch_of_self_play))):
+        for game_index in tqdm(range(1, self._train_number_of_games)):
             # collect data via self-playing
-            self._collect_data(batch_index)
+            self._collect_data()
 
             if self._experience_buffer.size() > self._batch_size:
                 # update the policy with SGD
-                self._improve_policy(batch_index)
+                self._improve_policy(game_index)
 
-            if batch_index % self._check_frequence == 0:
+            if game_index % self._check_frequence == 0:
 
                 score = self._evaluate_policy()
 
-                self._logger.info("current self-play batch:{} and score  is:{}".format(batch_index, score))
+                self._logger.info("current self-play batch:{} and score  is:{}".format(game_index, score))
 
                 torch.save(self._model.state_dict(), self._current_model_file)
 
@@ -440,18 +444,21 @@ class Trainer(object):
                     # update the best_policy
                     torch.save(self._model.state_dict(), self._best_model_file)
                     if (best_score == self._evaluate_number_of_games and self._basic_mcts_round_per_moves < 6000):
-                        self._basic_mcts_round_per_moves += 1000
+                        self._basic_mcts_round_per_moves += 200
                         best_score = 0
 
 
 def main():
     parser = argparse.ArgumentParser(description='AlphaZero Training')
-    parser.add_argument('--gpu_ids', type=str, default='0',
-                        help="Specifiy which gpu devices to use if available,e.g. '0,1,2'")
+    
+    parser.add_argument('-gpu_ids', type=str, default='0',help="Specifiy which gpu devices to use if available,e.g. '0,1,2'")
+    
     parser.add_argument('--resume', type=bool, default=False,
                         help='Wethere resume traning from the previous or not ')
+    
     parser.add_argument('-config', type=str, default='default.ini',
                         help='A ini config file to setup the default machinery')
+    
     args = parser.parse_args()
 
     logging.basicConfig(stream=sys.stdout, level=logging.INFO)

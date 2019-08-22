@@ -61,7 +61,7 @@ class AlphaZeroAgent(Player):
         super().__init__(id, name)
         self._encoder = encoder
         self._device = device
-        self._model = model
+        self._model = model.to(device)
         self._num_rounds = num_rounds
         self._experience_collector = ExperienceCollector()
         self._mcts_tree = mcts_tree
