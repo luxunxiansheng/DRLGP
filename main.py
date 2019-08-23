@@ -57,9 +57,8 @@ from agent.alphazeroagent.experiencebuffer import ExpericenceBuffer
 from agent.alphazeroagent.experiencecollector import ExperienceCollector
 from agent.alphazeroagent.mcts.tree import Tree
 from agent.mctsagent import MCTSAgent
-from boardencoder.snapshotencoder import SnapshotEncoder
 from boardencoder.blackwhiteencoder import BlackWhiteEncoder
-
+from boardencoder.snapshotencoder import SnapshotEncoder
 from common.board import Board
 from common.utils import Utils
 from game.connect5game import Connect5Game
@@ -73,43 +72,40 @@ class Trainer(object):
         config_name = args.config
 
         # hardcode the config path just for convinence.
-        self._cfg = Utils.config("./config/" + config_name)
+        cfg = Utils.config("./config/" + config_name)
 
-        self._number_of_planes = self._cfg['GAME'].getint('number_of_planes')
-        self._board_size = self._cfg['GAME'].getint('board_size')
-        self._encoder_name = self._cfg['GAME'].get('encoder_name')
+        self._number_of_planes = cfg['GAME'].getint('number_of_planes')
+        self._board_size = cfg['GAME'].getint('board_size')
+        self._encoder_name = cfg['GAME'].get('encoder_name')
 
-        self._az_mcts_round_per_moves = self._cfg['AZ_MCTS'].getint(
+        self._az_mcts_round_per_moves = cfg['AZ_MCTS'].getint(
             'round_per_moves')
-        self._az_mcts_temperature = self._cfg['AZ_MCTS'].getfloat('temperature')
+        self._az_mcts_temperature = cfg['AZ_MCTS'].getfloat('temperature')
 
-        self._basic_mcts_temperature = self._cfg['BASIC_MCTS'].getfloat(
+        self._basic_mcts_temperature = cfg['BASIC_MCTS'].getfloat(
             'temperature')
-        self._basic_mcts_round_per_moves = self._cfg['BASIC_MCTS'].getint(
+        self._basic_mcts_round_per_moves = cfg['BASIC_MCTS'].getint(
             'round_per_moves')
 
-        self._train_number_of_games = self._cfg['TRAIN'].getint('number_of_games')
-        self._batch_of_self_play = self._cfg['TRAIN'].getint('batch_of_self_play')
+        self._train_number_of_games = cfg['TRAIN'].getint('number_of_games')
+        self._batch_of_self_play = cfg['TRAIN'].getint('batch_of_self_play')
 
-        self._buffer_size = self._cfg['TRAIN'].getint('buffer_size')
-        self._learning_rate = self._cfg['TRAIN'].getfloat('learning_rate')
-        self._batch_size = self._cfg['TRAIN'].getint('batch_size')
+        self._buffer_size = cfg['TRAIN'].getint('buffer_size')
+        self._learning_rate = cfg['TRAIN'].getfloat('learning_rate')
+        self._batch_size = cfg['TRAIN'].getint('batch_size')
 
-        self._epochs = self._cfg['TRAIN'].getint('epochs')
-        self._kl_threshold = self._cfg['TRAIN'].getfloat('kl_threshold')
-        self._check_frequence = self._cfg['TRAIN'].getint('check_frequence')
-        
-        self._current_model_file = './checkpoints/' + \
-            config_name.split('.')[0]+'/current.model'
-        self._best_model_file = './checkpoints/' + \
-            config_name.split('.')[0]+'/best.model'
+        self._epochs = cfg['TRAIN'].getint('epochs')
+        self._kl_threshold = cfg['TRAIN'].getfloat('kl_threshold')
+        self._check_frequence = cfg['TRAIN'].getint('check_frequence')
 
-        self._evaluate_number_of_games = self._cfg['EVALUATE'].getint(
+        self._latest_checkpoint_file = './checkpoints/' + config_name.split('.')[0]+'/latest.pth.tar'
+        self._best_checkpoint_file = './checkpoints/' + config_name.split('.')[0]+'/best.pth.tar'
+
+        self._evaluate_number_of_games = cfg['EVALUATE'].getint(
             'number_of_games')
-        
 
-        os.makedirs(os.path.dirname(self._current_model_file), exist_ok=True)
-        os.makedirs(os.path.dirname(self._best_model_file), exist_ok=True)
+        os.makedirs(os.path.dirname(self._latest_checkpoint_file), exist_ok=True)
+        os.makedirs(os.path.dirname(self._best_checkpoint_file), exist_ok=True)
 
         if self._encoder_name == 'SnapshotEncoder':
             self._encoder = SnapshotEncoder(self._number_of_planes, self._board_size)
@@ -118,14 +114,34 @@ class Trainer(object):
             self._encoder = BlackWhiteEncoder(self._number_of_planes, self._board_size)
             input_shape = (self._number_of_planes*2+1, self._board_size, self._board_size)
 
-        model_name = self._cfg['MODELS'].get('net')
-        self._model = ResNet8Network(input_shape, self._board_size * self._board_size) if model_name == 'ResNet8Network' else Simple5Network(
+        self._model_name = cfg['MODELS'].get('net')
+        self._model = ResNet8Network(input_shape, self._board_size * self._board_size) if self._model_name == 'ResNet8Network' else Simple5Network(
             input_shape, self._board_size * self._board_size)
+
+        self._optimizer = Utils.get_optimizer(self._model.parameters(), cfg)
+
+        self._start_game_index = 0
+
+        self._entropy = 0
+        self._loss = 0
+        self._loss_value = 0
+        self._loss_policy = 0
 
         # Be aware this is not the first time to run this program
         resume = args.resume
         if resume:
-            self._model.load_state_dict(torch.load(self._current_model_file))
+            self._checkpoint = torch.load(self._latest_checkpoint_file)
+
+            if self._checkpoint['model_name'] == self._model_name: 
+                self._model.load_state_dict(self._checkpoint['model'])
+                self._model.eval()
+                self._optimizer.load_state_dict(self._checkpoint['optimizer'])
+                self._optimizer.param_groups[0]=self._model.parameters()
+                self._start_game_index = self._checkpoint['game_index']
+                self._entropy = self._checkpoint['entropy']
+                self._loss = self._checkpoint['loss']
+                self._loss_value = self._checkpoint['loss_value']
+                self._loss_policy = self._checkpoint['loss_policy']        
 
         self._use_cuda = torch.cuda.is_available()
         if self._use_cuda:
@@ -142,7 +158,9 @@ class Trainer(object):
         self._experience_buffer = ExpericenceBuffer(self._buffer_size)
 
         self._writer = SummaryWriter(
-            log_dir='./runs/'+config_name.split('.')[0])
+            log_dir='./runs/' + config_name.split('.')[0])
+
+        self._checkpoint = None
 
     @staticmethod
     def _collect_data_once_in_parallel(encoder, model, az_mcts_round_per_moves, board_size, number_of_planes, device, pipe):
@@ -175,11 +193,9 @@ class Trainer(object):
             expericence_buffer = ExpericenceBuffer()
             expericence_buffer.combine_experience([agent_1.experience_collector, agent_2.experience_collector])
             pipe.send(expericence_buffer)
-
             pipe.close()
 
     def _collect_data_in_parallel(self):
-
         processes = []
         pipes = []
 
@@ -192,15 +208,15 @@ class Trainer(object):
             p.start()
 
         for (parent_connection_end, child_connection_end) in pipes:
-
             child_connection_end.close()
 
             while True:
                 try:
                     experience_buffer = parent_connection_end.recv()
+                    self._logger.debug('Received experience buffer size  is {}'.format(experience_buffer.size()))
                     self._experience_buffer.merge(experience_buffer)
                 except EOFError:
-                    self._logger.debug('EOFError')
+
                     break
 
         for (parent_connection_end, _) in pipes:
@@ -209,7 +225,7 @@ class Trainer(object):
         for p in processes:
             p.join()
 
-        self._logger.debug("buffer size is :{}").format(self._experience_buffer.size())
+        self._logger.debug("buffer size is :{}".format(self._experience_buffer.size()))
 
     def _collect_data_once(self):
         device = self._gpu_devices[0] if self._use_cuda else self._cpu_device
@@ -250,8 +266,6 @@ class Trainer(object):
     def _improve_policy(self, game_index):
         self._model.train()
 
-        batch_data = random.sample(self._experience_buffer.data, self._batch_size)
-
         device = None
         model = self._model
         if self._use_cuda:
@@ -262,8 +276,7 @@ class Trainer(object):
             device = self._cpu_device
             model.to(device)
 
-        optimizer = Utils.get_optimizer(model.parameters(), self._cfg)
-
+        batch_data = random.sample(self._experience_buffer.data, self._batch_size)
         for _ in range(self._epochs):
             states, rewards, visit_counts = zip(*batch_data)
             states = torch.from_numpy(np.array(list(states))).to(device, dtype=torch.float)
@@ -276,32 +289,49 @@ class Trainer(object):
             [action_policy, value] = model(states)
 
             log_action_policy = torch.log(action_policy)
-            loss_policy = - log_action_policy * action_policy_target
-            loss_policy = loss_policy.sum(dim=1).mean()
+            self._loss_policy = - log_action_policy * action_policy_target
+            self._loss_policy = self._loss_policy.sum(dim=1).mean()
 
-            loss_value = F.mse_loss(value.squeeze(), value_target)
+            self._loss_value = F.mse_loss(value.squeeze(), value_target)
 
-            loss = loss_policy + loss_value
+            self._loss = self._loss_policy + self._loss_value
 
             with torch.no_grad():
-                entroy = - \
+                self._entropy = - \
                     torch.mean(
                         torch.sum(log_action_policy*action_policy, dim=1))
 
-            self._writer.add_scalar('loss', loss.item(), game_index)
-            self._writer.add_scalar('loss_value', loss_value.item(), game_index)
-            self._writer.add_scalar('loss_policy', loss_policy.item(), game_index)
-            self._writer.add_scalar('entropy', entroy.item(), game_index)
+            self._optimizer.zero_grad()
 
-            optimizer.zero_grad()
-
-            loss.backward()
-            optimizer.step()
+            self._loss.backward()
+            self._optimizer.step()
             [updated_action_policy, _] = model(states)
             kl = F.kl_div(action_policy, updated_action_policy).item()
 
             if kl > self._kl_threshold * 4:
                 break
+
+        real_game_index = game_index*len(self._gpu_devices) if len(self._gpu_devices) > 1 else game_index
+        self._writer.add_scalar('loss', self._loss.item(), real_game_index)
+        self._writer.add_scalar('loss_value', self._loss_value.item(), real_game_index)
+        self._writer.add_scalar('loss_policy', self._loss_policy.item(), real_game_index)
+        self._writer.add_scalar('entropy', self._entropy.item(), real_game_index)
+
+        # refer to https://discuss.pytorch.org/t/how-could-i-train-on-multi-gpu-and-infer-with-single-gpu/22838/7
+
+        if self._use_cuda:
+            model = model.module.to(self._cpu_device)
+        
+        
+        self._checkpoint = {'game_index': game_index,
+                            'model_name': self._model_name, 
+                            'model': model.state_dict(),
+                            'optimizer': self._optimizer.state_dict(),
+                            'entropy': self._entropy.item(),
+                            'loss': self._loss.item(),
+                            'loss_policy': self._loss_policy.item(),
+                            'loss_value': self._loss_value.item()
+                            }
 
     def _evaluate_policy_once(self):
         device = self._gpu_devices[0] if self._use_cuda else self._cpu_device
@@ -362,14 +392,15 @@ class Trainer(object):
 
         final_score = 0
 
-        processes = []
-        pipes = []
-        for game_round in range(0,self._evaluate_number_of_games,len(self._gpu_devices)):
+        for game_round in range(0, self._evaluate_number_of_games, len(self._gpu_devices)):
+            processes = []
+            pipes = []
+
             for gpu_index in range(len(self._gpu_devices)):
                 parent_connection_end, child_connection_end = mp.Pipe()
 
                 p = mp.Process(target=Trainer._evaluate_policy_once_in_parallel, args=(self._basic_mcts_round_per_moves, self._basic_mcts_temperature, self._encoder,
-                                                                                    self._model, self._az_mcts_round_per_moves, self._gpu_devices[gpu_index], self._board_size, self._number_of_planes, child_connection_end))
+                                                                                       self._model, self._az_mcts_round_per_moves, self._gpu_devices[gpu_index], self._board_size, self._number_of_planes, child_connection_end))
 
                 processes.append(p)
                 pipes.append((parent_connection_end, child_connection_end))
@@ -383,8 +414,6 @@ class Trainer(object):
                     try:
                         final_score += parent_connection_end.recv()
                     except EOFError:
-
-                        self._logger.debug('EOFError')
                         break
 
             for (parent_connection_end, _) in pipes:
@@ -394,7 +423,7 @@ class Trainer(object):
                 p.join()
 
             game_round += len(self._gpu_devices)
- 
+
         return final_score
 
     def _evaluate_policy(self):
@@ -416,7 +445,7 @@ class Trainer(object):
 
         best_score = -100
 
-        for game_index in tqdm(range(1, self._train_number_of_games)):
+        for game_index in tqdm(range(self._start_game_index, self._train_number_of_games)):
             # collect data via self-playing
             self._collect_data()
 
@@ -430,18 +459,16 @@ class Trainer(object):
 
                 self._logger.debug("current self-play batch:{} and score  is:{}".format(game_index, score))
 
-                torch.save(self._model.state_dict(), self._current_model_file)
+                torch.save(self._checkpoint, self._latest_checkpoint_file)
 
                 if score > best_score:
                     self._logger.info("New best score {}".format(best_score))
                     best_score = score
                     # update the best_policy
-                    torch.save(self._model.state_dict(), self._best_model_file)
+                    torch.save(self._checkpoint, self._best_checkpoint_file)
                     if (best_score == self._evaluate_number_of_games and self._basic_mcts_round_per_moves < 6000):
                         self._basic_mcts_round_per_moves += 200
-
                         self._logger.debug('current basic_mcts_round_moves:{}'.format(self._basic_mcts_round_per_moves))
-
                         best_score = 0
 
 
@@ -458,7 +485,7 @@ def main():
 
     args = parser.parse_args()
 
-    logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+    logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
     logger = logging.getLogger(__name__)
 
     Trainer(args, logger).run()
