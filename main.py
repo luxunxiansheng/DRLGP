@@ -136,7 +136,6 @@ class Trainer(object):
                 self._model.load_state_dict(self._checkpoint['model'])
                 self._model.eval()
                 self._optimizer.load_state_dict(self._checkpoint['optimizer'])
-                self._optimizer.param_groups[0] = self._model.parameters()
                 self._start_game_index = self._checkpoint['game_index']
                 self._entropy = self._checkpoint['entropy']
                 self._loss = self._checkpoint['loss']
@@ -144,6 +143,7 @@ class Trainer(object):
                 self._loss_policy = self._checkpoint['loss_policy']
 
         self._use_cuda = torch.cuda.is_available()
+        self._gpu_ids=[]
         if self._use_cuda:
             self._gpu_ids = list(map(int, args.gpu_ids.split(',')))
             num_devices = torch.cuda.device_count()
@@ -151,14 +151,13 @@ class Trainer(object):
                 raise Exception(
                     '#available gpu : {} < --device_ids : {}'.format(num_devices, len(self._gpu_ids)))
 
-            self._gpu_devices = [torch.device('cuda:'+str(self._gpu_ids[i])) for i in range(len(self._gpu_ids))]
+        self._gpu_devices = [torch.device('cuda:'+str(self._gpu_ids[i])) for i in range(len(self._gpu_ids))]
 
         self._cpu_device = torch.device('cpu')
 
         self._experience_buffer = ExpericenceBuffer(self._buffer_size)
 
-        self._writer = SummaryWriter(
-            log_dir='./runs/' + config_name.split('.')[0])
+        self._writer = SummaryWriter(log_dir='./runs/' + config_name.split('.')[0])
 
         self._checkpoint = None
 
