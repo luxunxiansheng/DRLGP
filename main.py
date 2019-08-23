@@ -132,16 +132,16 @@ class Trainer(object):
         if resume:
             self._checkpoint = torch.load(self._latest_checkpoint_file)
 
-            if self._checkpoint['model_name'] == self._model_name: 
+            if self._checkpoint['model_name'] == self._model_name:
                 self._model.load_state_dict(self._checkpoint['model'])
                 self._model.eval()
                 self._optimizer.load_state_dict(self._checkpoint['optimizer'])
-                self._optimizer.param_groups[0]=self._model.parameters()
+                self._optimizer.param_groups[0] = self._model.parameters()
                 self._start_game_index = self._checkpoint['game_index']
                 self._entropy = self._checkpoint['entropy']
                 self._loss = self._checkpoint['loss']
                 self._loss_value = self._checkpoint['loss_value']
-                self._loss_policy = self._checkpoint['loss_policy']        
+                self._loss_policy = self._checkpoint['loss_policy']
 
         self._use_cuda = torch.cuda.is_available()
         if self._use_cuda:
@@ -321,10 +321,9 @@ class Trainer(object):
 
         if self._use_cuda:
             model = model.module.to(self._cpu_device)
-        
-        
+
         self._checkpoint = {'game_index': game_index,
-                            'model_name': self._model_name, 
+                            'model_name': self._model_name,
                             'model': model.state_dict(),
                             'optimizer': self._optimizer.state_dict(),
                             'entropy': self._entropy.item(),
