@@ -94,7 +94,7 @@ class AlphaZeroAgent(Player):
 
         working_root = self._mcts_tree.working_node
 
-        for _ in range(self._num_rounds):
+        for _ in tqdm(range(self._num_rounds)):
             current_node = working_root
             game_state_memory = copy.deepcopy(game.state_cache)
 

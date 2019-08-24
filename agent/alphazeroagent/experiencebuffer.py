@@ -33,11 +33,10 @@
 #
 # /
 
-
+import copy
 from collections import deque
 
 import numpy as np
-
 
 class ExpericenceBuffer:
     def __init__(self, compacity=10000):
@@ -47,6 +46,11 @@ class ExpericenceBuffer:
     def data(self):
         return self._data
 
+    @data.setter
+    def data(self,data):
+        self._data=copy.deepcopy(data)
+
+    
     def combine_experience(self, collectors):
         combined_states = np.concatenate([np.array(c.states) for c in collectors])
         combined_rewards = np.concatenate([np.array(c.rewards) for c in collectors])
