@@ -486,7 +486,6 @@ class Trainer(object):
 
                   
                 if game_index % self._check_frequence == 0:
-
                     score = self._evaluate_policy()
                     self._logger.debug('--Policy Evaluated in round {} with score {} (az_mcts_round_per_move {} : basic_mcts_round_move {})--'.format(
                         game_index, score, self._az_mcts_rounds_per_move, self._basic_mcts_rounds_per_move))
@@ -518,12 +517,13 @@ def main():
     parser.add_argument('-config', type=str, default='default.ini',
                         help='A ini config file to setup the default machinery')
 
-    parser.add_argument('--logging',type=str, default = 'DEBUG',
+    parser.add_argument('--debug',type=str, default = 'True',
                          help='which level information should be shown,INFO,DEBUG,')                        
 
     args = parser.parse_args()
 
-    logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+    logging.basicConfig(stream=sys.stdout, level=logging.DEBUG if args.debug else logging.INFO)
+    
     logger = logging.getLogger(__name__)
 
     Trainer(args, logger).run()
