@@ -490,6 +490,8 @@ class Trainer(object):
                     self._logger.debug('--Policy Evaluated in round {} with score {} (az_mcts_round_per_move {} : basic_mcts_round_move {})--'.format(
                         game_index, score, self._az_mcts_rounds_per_move, self._basic_mcts_rounds_per_move))
 
+                    self._writer.add_scalar('score',score, game_index)    
+
                     self._checkpoint['basic_mcts_rounds_per_move']=self._basic_mcts_rounds_per_move
                     torch.save(self._checkpoint, self._latest_checkpoint_file)
 
@@ -523,7 +525,7 @@ def main():
     args = parser.parse_args()
 
     logging.basicConfig(stream=sys.stdout, level=logging.DEBUG if args.debug else logging.INFO)
-    
+
     logger = logging.getLogger(__name__)
 
     Trainer(args, logger).run()
