@@ -233,7 +233,7 @@ class Trainer(object):
         for (parent_connection_end, _) in pipes:
             parent_connection_end.close()
 
-        for p in processes:
+        for p in tqdm(processes):
             p.join()
 
         self._logger.debug("buffer size is :{}".format(
@@ -415,7 +415,7 @@ class Trainer(object):
 
         num_of_devices = len(self._gpu_devices)
 
-        for game_round in range(0, self._evaluate_number_of_games, num_of_devices):
+        for game_round in tqdm(range(0, self._evaluate_number_of_games, num_of_devices)):
             processes = []
             pipes = []
 
@@ -443,7 +443,7 @@ class Trainer(object):
             for (parent_connection_end, _) in pipes:
                 parent_connection_end.close()
 
-            for p in processes:
+            for p in tqdm(processes):
                 p.join()
 
         return final_score
@@ -469,7 +469,7 @@ class Trainer(object):
 
         mp.set_start_method('spawn', force=True)
 
-        best_score = -100
+        best_score = -20
 
         for game_index in tqdm(range(self._start_game_index, self._train_number_of_games+1)):
             # collect data via self-playing
@@ -490,11 +490,15 @@ class Trainer(object):
                     self._writer.add_scalar('score', score, game_index * len(self._gpu_devices) if len(self._gpu_devices) > 1 else game_index)
 
                     self._checkpoint['basic_mcts_rounds_per_move'] = self._basic_mcts_rounds_per_move
+                    self._checkpoint['best_score'] = score
+
                     torch.save(self._checkpoint, self._latest_checkpoint_file)
 
                     if score > best_score:
                         self._logger.info("New best score {}".format(score))
+
                         best_score = score
+
                         # update the best_policy
                         torch.save(self._checkpoint, self._best_checkpoint_file)
                         if (best_score == self._evaluate_number_of_games and self._basic_mcts_rounds_per_move < 6000):
