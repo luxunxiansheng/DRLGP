@@ -119,7 +119,11 @@ class AlphaZeroAgent(Player):
                     game_state_memory.push(current_node.game_state)
 
             # update
-            value = -1 * current_node.game_state_value
+            value = 0
+            if current_node.is_leaf():
+                value = -1
+            else:
+                value = -1 * current_node.game_state_value
             while True:
                 current_branch = current_node.parent_branch
                 current_node = current_branch.parent_node
