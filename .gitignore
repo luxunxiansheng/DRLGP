@@ -105,11 +105,8 @@ venv.bak/
 .vscode/settings.json
 
 
-
 /runs
-checkpoints/
-
 
 .vscode/settings.json
 test.py
-test.py
+
