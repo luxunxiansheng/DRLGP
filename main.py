@@ -149,8 +149,7 @@ class Trainer(object):
         # Be aware this is not the first time to run this program
         resume = args.resume
         if resume:
-            self._checkpoint = torch.load(self._latest_checkpoint_file)
-
+            self._checkpoint = torch.load(self._latest_checkpoint_file,map_location='cpu')
             if self._checkpoint['model_name'] == self._model_name:
                 self._model.to(self._gpu_devices[0]) if self._use_cuda else self._model.to(self._cpu_device)
                 self._model.load_state_dict(self._checkpoint['model'])
@@ -415,7 +414,7 @@ class Trainer(object):
 
         num_of_devices = len(self._gpu_devices)
 
-        for game_round in tqdm(range(0, self._evaluate_number_of_games, num_of_devices)):
+        for _ in range(0, self._evaluate_number_of_games, num_of_devices):
             processes = []
             pipes = []
 
@@ -458,7 +457,7 @@ class Trainer(object):
             self._evaluate_number_of_games = len(self._gpu_devices)*2
             final_score = self._evaluate_ploicy_in_parallel()
         else:
-            for _ in tqdm(range(self._evaluate_number_of_games)):
+            for _ in tqdm(range(self._evaluate_number_of_games),desc='Evaluation Loop'):
                 final_score += self._evaluate_policy_once()
 
         self._logger.debug('Alphazero gets {} in {}'.format(final_score, self._evaluate_number_of_games))
@@ -471,7 +470,7 @@ class Trainer(object):
 
         best_score = -20
 
-        for game_index in tqdm(range(self._start_game_index, self._train_number_of_games+1)):
+        for game_index in tqdm(range(self._start_game_index, self._train_number_of_games+1),desc='Train Loop'):
             # collect data via self-playing
             self._collect_data()
 
