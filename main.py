@@ -284,10 +284,12 @@ class Trainer(object):
     def _improve_policy(self, game_index):
         self._model.train()
 
-        device = next(self._model.parameters()).device
-
+        device = self._cpu_device
         if self._use_cuda:
-            self._model = DataParallel(self._model, device_ids=self._gpu_ids)
+            device = self._gpu_devices[0]
+            self._model = DataParallel(self._model.to(device), device_ids=self._gpu_ids)
+        else:
+            self._model.to(device)
 
         batch_data = random.sample(self._experience_buffer.data, self._batch_size)
         for _ in range(self._epochs):
@@ -345,7 +347,7 @@ class Trainer(object):
                             'experience_buffer': self._experience_buffer
                             }
 
-        self._model = self._model.to(device)
+        
 
     def _evaluate_policy_once(self):
         device = self._gpu_devices[0] if self._use_cuda else self._cpu_device
