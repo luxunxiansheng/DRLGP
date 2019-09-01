@@ -39,7 +39,7 @@ from  agent.alphazeroagent.mcts.branch  import Branch
 from  common.move  import  Move
 
 class Node(object):
-    def __init__(self, game_state, game_state_value, parent_branch, temperature=0.8):
+    def __init__(self, game_state, game_state_value, parent_branch, c_puct=5.0):
         self._game_state = game_state
         
         self._game_state_value = game_state_value
@@ -48,7 +48,7 @@ class Node(object):
         self._parent_branch = parent_branch
         self._children_branch = {}
 
-        self._temperature = temperature
+        self._c_puct = c_puct
 
 
     def add_branch(self,point,prior):
@@ -85,7 +85,7 @@ class Node(object):
             noises = np.random.dirichlet([0.03] * len(self.children_branch))
             Ps = [0.75*p+0.25*noise for p, noise in zip(Ps, noises)]
 
-        scores = [(q + self._temperature * p * np.sqrt(self._total_visit_counts) / (n + 1)).item() for q, p, n in zip(Qs, Ps, Ns)]
+        scores = [(q + self._c_puct * p * np.sqrt(self._total_visit_counts) / (n + 1)).item() for q, p, n in zip(Qs, Ps, Ns)]
         best_point_index = np.argmax(scores)
 
         points = list(self.children_branch)
@@ -105,7 +105,7 @@ class Node(object):
 
     @property
     def temperature(self):
-        return self._temperature
+        return self._c_puct
 
     @property
     def children_branch(self):

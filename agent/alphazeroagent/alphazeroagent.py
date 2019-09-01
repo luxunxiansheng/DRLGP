@@ -57,7 +57,7 @@ from common.player import Player
 
 
 class AlphaZeroAgent(Player):
-    def __init__(self, id, name, encoder, model, mcts_tree, num_rounds, device='cpu'):
+    def __init__(self, id, name, encoder, model, mcts_tree, num_rounds,c_puct,device='cpu'):
         super().__init__(id, name)
         self._encoder = encoder
         self._device = device
@@ -65,6 +65,7 @@ class AlphaZeroAgent(Player):
         self._num_rounds = num_rounds
         self._experience_collector = ExperienceCollector()
         self._mcts_tree = mcts_tree
+        self._cpuct = c_puct
  
     @property
     def experience_collector(self):
@@ -76,7 +77,7 @@ class AlphaZeroAgent(Player):
 
     def _create_node_with_children_branch(self, game_state, estimated_state_value, estimated_branch_priors, parent_branch):
 
-        new_node = Node(game_state, estimated_state_value, parent_branch)
+        new_node = Node(game_state, estimated_state_value, parent_branch,self._cpuct)
 
         for idx, p in enumerate(estimated_branch_priors):
             point = self._encoder.decode_point_index(idx)

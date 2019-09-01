@@ -81,6 +81,8 @@ class Trainer(object):
         self._az_mcts_rounds_per_move = cfg['AZ_MCTS'].getint(
             'rounds_per_move')
         self._az_mcts_temperature = cfg['AZ_MCTS'].getfloat('temperature')
+        self._c_puct = cfg['AZ_MCTS'].getfloat('C_puct')
+
 
         self._basic_mcts_temperature = cfg['BASIC_MCTS'].getfloat(
             'temperature')
@@ -169,12 +171,12 @@ class Trainer(object):
         self._checkpoint = None
 
     @staticmethod
-    def _collect_data_once_in_parallel(encoder, model, az_mcts_round_per_moves, board_size, number_of_planes, device, pipe):
+    def _collect_data_once_in_parallel(encoder, model, az_mcts_round_per_moves, board_size, number_of_planes,c_puct, device, pipe):
         mcts_tree = Tree()
         agent_1 = AlphaZeroAgent(Connect5Game.ASSIGNED_PLAYER_ID_1, "AlphaZeroAgent1",
-                                 encoder, model, mcts_tree, az_mcts_round_per_moves, device=device)
+                                 encoder, model, mcts_tree, az_mcts_round_per_moves,c_puct,device=device)
         agent_2 = AlphaZeroAgent(Connect5Game.ASSIGNED_PLAYER_ID_2, "AlphaZeroAgent2",
-                                 encoder, model, mcts_tree, az_mcts_round_per_moves, device=device)
+                                 encoder, model, mcts_tree, az_mcts_round_per_moves,c_puct, device=device)
 
         board = Board(board_size)
         players = [agent_1, agent_2]
@@ -211,7 +213,7 @@ class Trainer(object):
         for gpu_index in range(len(self._gpu_devices)):
             parent_connection_end, child_connection_end = mp.Pipe()
             p = mp.Process(target=Trainer._collect_data_once_in_parallel, args=(self._encoder, self._model, self._az_mcts_rounds_per_move,
-                                                                                self._board_size, self._number_of_planes, self._gpu_devices[gpu_index], child_connection_end))
+                                                                                self._board_size, self._number_of_planes, self._c_puct,self._gpu_devices[gpu_index], child_connection_end))
             processes.append(p)
             pipes.append((parent_connection_end, child_connection_end))
             p.start()
@@ -243,9 +245,9 @@ class Trainer(object):
         device = self._gpu_devices[0] if self._use_cuda else self._cpu_device
         mcts_tree = Tree()
         agent_1 = AlphaZeroAgent(Connect5Game.ASSIGNED_PLAYER_ID_1, "AlphaZeroAgent1",
-                                 self._encoder, self._model, mcts_tree, self._az_mcts_rounds_per_move, device=device)
+                                 self._encoder, self._model, mcts_tree, self._az_mcts_rounds_per_move, self._c_puct,device=device)
         agent_2 = AlphaZeroAgent(Connect5Game.ASSIGNED_PLAYER_ID_2, "AlphaZeroAgent2",
-                                 self._encoder, self._model, mcts_tree, self._az_mcts_rounds_per_move, device=device)
+                                 self._encoder, self._model, mcts_tree, self._az_mcts_rounds_per_move, self._c_puct,device=device)
 
         board = Board(self._board_size)
         players = [agent_1, agent_2]
@@ -355,7 +357,7 @@ class Trainer(object):
         mcts_agent = MCTSAgent(Connect5Game.ASSIGNED_PLAYER_ID_1, "MCTSAgent",
                                self._basic_mcts_rounds_per_move, self._basic_mcts_temperature)
         az_agent = AlphaZeroAgent(Connect5Game.ASSIGNED_PLAYER_ID_2, "AlphaZeroAgent",
-                                  self._encoder, self._model, mcts_tree, self._az_mcts_rounds_per_move, device=device)
+                                  self._encoder, self._model, mcts_tree, self._az_mcts_rounds_per_move, self._c_puct,device=device)
 
         board = Board(self._board_size)
         players = [mcts_agent, az_agent]
@@ -380,12 +382,12 @@ class Trainer(object):
         return 0
 
     @staticmethod
-    def _evaluate_policy_once_in_parallel(basic_mcts_round_per_moves, basic_mcts_temperature, encoder, model, az_mcts_round_per_moves, device, board_size, number_of_planes, pipe):
+    def _evaluate_policy_once_in_parallel(basic_mcts_round_per_moves, basic_mcts_temperature, encoder, model, az_mcts_round_per_moves,c_puct, device, board_size, number_of_planes, pipe):
         mcts_tree = Tree()
         mcts_agent = MCTSAgent(Connect5Game.ASSIGNED_PLAYER_ID_1, "MCTSAgent",
                                basic_mcts_round_per_moves, basic_mcts_temperature)
         az_agent = AlphaZeroAgent(Connect5Game.ASSIGNED_PLAYER_ID_2, "AlphaZeroAgent",
-                                  encoder, model, mcts_tree, az_mcts_round_per_moves, device=device)
+                                  encoder, model, mcts_tree, az_mcts_round_per_moves,c_puct, device=device)
 
         board = Board(board_size)
         players = [mcts_agent, az_agent]
@@ -424,7 +426,7 @@ class Trainer(object):
                 parent_connection_end, child_connection_end = mp.Pipe()
 
                 p = mp.Process(target=Trainer._evaluate_policy_once_in_parallel, args=(self._basic_mcts_rounds_per_move, self._basic_mcts_temperature, self._encoder,
-                                                                                       self._model, self._az_mcts_rounds_per_move, self._gpu_devices[gpu_index], self._board_size, self._number_of_planes, child_connection_end))
+                                                                                       self._model, self._az_mcts_rounds_per_move,self._c_puct, self._gpu_devices[gpu_index], self._board_size, self._number_of_planes, child_connection_end))
 
                 processes.append(p)
                 pipes.append((parent_connection_end, child_connection_end))
