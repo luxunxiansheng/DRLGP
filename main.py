@@ -438,7 +438,10 @@ class Trainer(object):
 
                 while True:
                     try:
-                        final_score += parent_connection_end.recv()
+                        score = parent_connection_end.recv()
+                        self._logger.debug("current score is{}".format(score))
+
+                        final_score += score
 
                     except EOFError:
                         break
