@@ -1,25 +1,13 @@
-class A(object):
-    def __init__(self):
-        self._name = "hello"
 
-    def show(self):
-        print(self._name)
-        
-    def change_name(self):
-        self._name="world"    
+import numpy as np
 
-a1 = A()
-a1.show()
+choice = np.array([[0, 0, 0], [2, 2, 2],[3,3,3],[4,4,4]])
 
-b1 = a1
-b1.change_name()
-b1.show()
+idx = np.random.choice(len(choice), p=[0.1,0.2,0.3,0.4])
+
+print(choice[idx])
 
 
-a1.show()
-
-c1 = a1
-c1.show()
 
 
 

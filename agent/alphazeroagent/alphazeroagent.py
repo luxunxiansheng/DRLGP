@@ -55,9 +55,13 @@ from common.gamestate import GameState
 from common.move import Move
 from common.player import Player
 
+def softmax(x):
+    probs = np.exp(x - np.max(x))
+    probs /= np.sum(probs)
+    return probs
 
 class AlphaZeroAgent(Player):
-    def __init__(self, id, name, encoder, model, mcts_tree, num_rounds,c_puct,device='cpu'):
+    def __init__(self, id, name, encoder, model, mcts_tree, num_rounds,c_puct,temperature=1.0,device='cpu'):
         super().__init__(id, name)
         self._encoder = encoder
         self._device = device
@@ -66,6 +70,8 @@ class AlphaZeroAgent(Player):
         self._experience_collector = ExperienceCollector()
         self._mcts_tree = mcts_tree
         self._cpuct = c_puct
+        self._temperature = temperature
+
  
     @property
     def experience_collector(self):
@@ -104,8 +110,7 @@ class AlphaZeroAgent(Player):
                 if current_node.is_leaf():
                     break
 
-                randomly = True if current_node == working_root else False
-                current_branch = current_node.select_branch(randomly)
+                current_branch = current_node.select_branch()
                 if current_branch.child_node is None:
                     # expand
                     new_state = game.look_ahead_next_move(current_node.game_state, current_branch.move)
@@ -133,14 +138,21 @@ class AlphaZeroAgent(Player):
                 if current_node == working_root:
                     break
 
-        visit_counts = np.array([working_root.visit_counts_of_branch(self._encoder.decode_point_index(idx)) for idx in range(self._encoder.num_points())])
-        next_move = Move(max(working_root.children_branch, key=working_root.visit_counts_of_branch))
+        point_visit_counts = [(self._encoder.decode_point_index(idx), working_root.visit_counts_of_branch(self._encoder.decode_point_index(idx))) for idx in range(self._encoder.num_points())]
+        
+        points, visit_counts = zip(*point_visit_counts)
+                      
+        next_move_probabilities = softmax(1.0/self._temperature*np.log(np.array(visit_counts)+1e-10))        
+      
 
         if game.is_selfplay:
+            # add dirichlet noise for exploration
+            next_move_probabilities = 0.75 * next_move_probabilities + 0.25 * np.random.dirichlet(0.3 * np.ones(len(next_move_probabilities)))
+            next_move = Move(points[np.random.choice(len(points),p=next_move_probabilities)])
             self._experience_collector.record_decision(root_board_matrix, visit_counts)
             self._mcts_tree.go_down(next_move)
         else:
+            next_move = Move(points[np.random.choice(len(points), p=next_move_probabilities)])
             self._mcts_tree.working_node = None
-
               
         return next_move

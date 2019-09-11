@@ -76,15 +76,11 @@ class Node(object):
         self._children_branch[point].visit_counts += 1
         self._children_branch[point].total_value += value
 
-    def select_branch(self, randomly=False, is_selfplay=True):
+    def select_branch(self):
         Qs = [self.expected_value_of_branch(point) for point in self.children_branch]
         Ps = [self.prior_of_branch(point) for point in self.children_branch]
         Ns = [self.visit_counts_of_branch(point) for point in self.children_branch]
-
-        if randomly and is_selfplay:
-            noises = np.random.dirichlet([0.03] * len(self.children_branch))
-            Ps = [0.75*p+0.25*noise for p, noise in zip(Ps, noises)]
-
+        
         scores = [(q + self._c_puct * p * np.sqrt(self._total_visit_counts) / (n + 1)).item() for q, p, n in zip(Qs, Ps, Ns)]
         best_point_index = np.argmax(scores)
 
