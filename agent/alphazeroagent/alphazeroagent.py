@@ -138,21 +138,31 @@ class AlphaZeroAgent(Player):
                 if current_node == working_root:
                     break
 
-        point_visit_counts = [(self._encoder.decode_point_index(idx), working_root.visit_counts_of_branch(self._encoder.decode_point_index(idx))) for idx in range(self._encoder.num_points())]
+
+        free_points = []
+        visit_counts_of_free_points = []
+        visit_counts =[]
         
-        points, visit_counts = zip(*point_visit_counts)
-                      
-        next_move_probabilities = softmax(1.0/self._temperature*np.log(np.array(visit_counts)+1e-10))        
+        for idx in range(self._encoder.num_points()):
+            point = self._encoder.decode_point_index(idx)
+            visit_count = working_root.visit_counts_of_branch(point)
+            visit_counts.append(visit_count)
+            if working_root.does_branch_exist(point):
+                free_points.append(point)
+                visit_counts_of_free_points.append(visit_count)                
+                
+                             
+        next_move_probabilities = softmax(1.0/self._temperature*np.log(visit_counts_of_free_points+1e-10))        
       
 
         if game.is_selfplay:
             # add dirichlet noise for exploration
             next_move_probabilities = 0.75 * next_move_probabilities + 0.25 * np.random.dirichlet(0.3 * np.ones(len(next_move_probabilities)))
-            next_move = Move(points[np.random.choice(len(points),p=next_move_probabilities)])
+            next_move = Move(free_points[np.random.choice(len(free_points),p=next_move_probabilities)])
             self._experience_collector.record_decision(root_board_matrix, visit_counts)
             self._mcts_tree.go_down(next_move)
         else:
-            next_move = Move(points[np.random.choice(len(points), p=next_move_probabilities)])
+            next_move = Move(free_points[np.random.choice(len(free_points), p=next_move_probabilities)])
             self._mcts_tree.working_node = None
               
         return next_move
