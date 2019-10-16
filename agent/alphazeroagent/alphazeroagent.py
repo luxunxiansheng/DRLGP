@@ -93,76 +93,100 @@ class AlphaZeroAgent(Player):
 
    
     def select_move(self, game):
-        root_board_matrix = self._encoder.encode(game.state_cache.game_states,game.working_game_state.player_in_action)
+        # encode  the last specified boards as the root
+        root_board_matrix = self._encoder.encode(
+            game.state_cache.game_states, game.working_game_state.player_in_action)
 
         if self._mcts_tree.working_node is None:
-            estimated_branch_priors, estimated_state_value = self._predict(root_board_matrix)
-            self._mcts_tree.working_node = self._create_node_with_children_branch(game.working_game_state, estimated_state_value[0].item(), estimated_branch_priors[0], None)
+            estimated_branch_priors, estimated_state_value = self._predict(
+                root_board_matrix)
+            self._mcts_tree.working_node = self._create_node_with_children_branch(
+                game.working_game_state, estimated_state_value[0].item(), estimated_branch_priors[0], None)
 
         working_root = self._mcts_tree.working_node
 
-        for _ in tqdm(range(self._num_rounds),desc='Rollout Loop'):
+        for _ in tqdm(range(self._num_rounds), desc='Rollout Loop'):
             current_node = working_root
             game_state_memory = copy.deepcopy(game.state_cache)
 
             while True:
                 # reach  the end of the game
-                if current_node.is_leaf():
+                if game.is_final_state(current_node.game_state):
                     break
 
                 current_branch = current_node.select_branch()
                 if current_branch.child_node is None:
                     # expand
-                    new_state = game.look_ahead_next_move(current_node.game_state, current_branch.move)
+                    new_state = game.look_ahead_next_move(
+                        current_node.game_state, current_branch.move)
                     game_state_memory.push(new_state)
-                    board_matrix = self._encoder.encode(game_state_memory.game_states,new_state.player_in_action)
-                    estimated_branch_priors, estimated_state_value = self._predict(board_matrix)
-                    current_node = self._create_node_with_children_branch(new_state, estimated_state_value[0].item(), estimated_branch_priors[0], current_branch)
+
+                    board_matrix = self._encoder.encode(
+                        game_state_memory.game_states, new_state.player_in_action)
+
+                    estimated_branch_priors, estimated_state_value = self._predict(
+                        board_matrix)
+                    current_node = self._create_node_with_children_branch(
+                        new_state, estimated_state_value[0].item(), estimated_branch_priors[0], current_branch)
                     current_branch.add_child_node(current_node)
                     break
                 else:
                     current_node = current_branch.child_node
                     game_state_memory.push(current_node.game_state)
 
-            # update
-            value = 0
-            if current_node.is_leaf():
-                value = -1
-            else:
-                value = -1 * current_node.game_state_value
-            while True:
-                current_branch = current_node.parent_branch
-                current_node = current_branch.parent_node
-                current_node.record_visit(current_branch.move.point, value)
-                value = -1 * value
-                if current_node == working_root:
-                    break
+            # Normally , the parent node value sholud be the oppsite of current node's value 
+            value = -1* current_node.game_state_value
+            
+            # Exception for the end of the game 
+            if game.is_final_state(current_node.game_state): 
+                winner = game.get_winner(current_node.game_state)
+                if winner is not None:
+                    # if I am the winner, then the previous player is loser, whose's state value should be -1
+                    if winner.id == self.id:
+                        value = -1
+                    else:
+                        value = 1 
+                else:
+                    value = 0
 
+            # update only not tie        
+            if value != 0:            
+                while True:
+                    current_branch = current_node.parent_branch
+                    current_node = current_branch.parent_node
+                    current_node.record_visit(current_branch.move.point, value)
+                    value = -1 * value
+                    if current_node == working_root:
+                        break
 
         free_points = []
         visit_counts_of_free_points = []
-        visit_counts =[]
-        
+        visit_counts = []
+
         for idx in range(self._encoder.num_points()):
             point = self._encoder.decode_point_index(idx)
             visit_count = working_root.visit_counts_of_branch(point)
             visit_counts.append(visit_count)
             if working_root.does_branch_exist(point):
                 free_points.append(point)
-                visit_counts_of_free_points.append(visit_count)                
-                
-                             
-        next_move_probabilities = softmax(1.0/self._temperature*np.log(np.asarray(visit_counts_of_free_points)+1e-10))        
-      
+                visit_counts_of_free_points.append(visit_count)
+
+        next_move_probabilities = softmax(
+            1.0/self._temperature*np.log(np.asarray(visit_counts_of_free_points)+1e-10))
 
         if game.is_selfplay:
             # add dirichlet noise for exploration
-            next_move_probabilities = 0.75 * next_move_probabilities + 0.25 * np.random.dirichlet(0.3 * np.ones(len(next_move_probabilities)))
-            next_move = Move(free_points[np.random.choice(len(free_points),p=next_move_probabilities)])
-            self._experience_collector.record_decision(root_board_matrix, np.asarray(visit_counts))
+            next_move_probabilities = 0.75 * next_move_probabilities + 0.25 * \
+                np.random.dirichlet(
+                    0.3 * np.ones(len(next_move_probabilities)))
+            next_move = Move(free_points[np.random.choice(
+                len(free_points), p=next_move_probabilities)])
+            self._experience_collector.record_decision(
+                root_board_matrix, np.asarray(visit_counts))
             self._mcts_tree.go_down(next_move)
         else:
-            next_move = Move(free_points[np.random.choice(len(free_points), p=next_move_probabilities)])
+            next_move = Move(free_points[np.random.choice(
+                len(free_points), p=next_move_probabilities)])
             self._mcts_tree.working_node = None
-              
+
         return next_move
