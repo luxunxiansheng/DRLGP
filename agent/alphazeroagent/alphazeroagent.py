@@ -171,10 +171,13 @@ class AlphaZeroAgent(Player):
                 free_points.append(point)
                 visit_counts_of_free_points.append(visit_count)
 
-        next_move_probabilities = softmax(
-            1.0/self._temperature*np.log(np.asarray(visit_counts_of_free_points)+1e-10))
+        
 
         if game.is_selfplay:
+            
+            next_move_probabilities = softmax(np.log(np.asarray(visit_counts_of_free_points)+1e-10))
+            
+            
             # add dirichlet noise for exploration
             next_move_probabilities = 0.75 * next_move_probabilities + 0.25 * \
                 np.random.dirichlet(
@@ -185,6 +188,10 @@ class AlphaZeroAgent(Player):
                 root_board_matrix, np.asarray(visit_counts))
             self._mcts_tree.go_down(next_move)
         else:
+
+            next_move_probabilities = softmax(
+            1.0/self._temperature*np.log(np.asarray(visit_counts_of_free_points)+1e-10))
+
             next_move = Move(free_points[np.random.choice(
                 len(free_points), p=next_move_probabilities)])
             self._mcts_tree.working_node = None
