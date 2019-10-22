@@ -174,7 +174,8 @@ class AlphaZeroAgent(Player):
         if game.is_selfplay:
             
             next_move_probabilities = softmax(np.log(np.asarray(visit_counts_of_free_points)+1e-10))
-                        
+            
+            
             # add dirichlet noise for exploration
             next_move_probabilities = 0.75 * next_move_probabilities + 0.25 * \
                 np.random.dirichlet(

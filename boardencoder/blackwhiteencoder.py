@@ -81,7 +81,7 @@ class BlackWhiteEncoder(Encoder):
                     piece = boards[plane].get_piece_at_point(point)
                     if piece is not None:
                         if piece.owner_id == player_in_action.id:
-                            board_matrix[plane*2+1, row, col] = 1
+                            board_matrix[plane*2+1,row, col] = 1
                         else:
                             board_matrix[plane*2, row, col] = 1
             
