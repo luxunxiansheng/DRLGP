@@ -81,27 +81,25 @@ class AlphaZeroAgent(Player):
         model_input = torch.from_numpy(board_matrix).unsqueeze(0).to(self._device, dtype=torch.float)
         return self._model(model_input)
 
-    def _create_node_with_children_branch(self, game_state, estimated_state_value, estimated_branch_priors, parent_branch):
+    def _create_node(self, game_state, estimated_state_value, estimated_branch_priors, parent_branch):
 
         new_node = Node(game_state, estimated_state_value, parent_branch,self._cpuct)
 
-        for idx, p in enumerate(estimated_branch_priors):
-            point = self._encoder.decode_point_index(idx)
-            if new_node.game_state.board.is_free_point(point):
-                new_node.add_branch(point, p)
+        if estimated_branch_priors is not None:        
+            for idx, p in enumerate(estimated_branch_priors):
+                point = self._encoder.decode_point_index(idx)
+                if new_node.game_state.board.is_free_point(point):
+                    new_node.add_branch(point, p)
         return new_node
 
    
     def select_move(self, game):
         # encode  the last specified boards as the root
-        root_board_matrix = self._encoder.encode(
-            game.state_cache.game_states, game.working_game_state.player_in_action)
+        root_board_matrix = self._encoder.encode(game.state_cache.game_states, game.working_game_state.player_in_action)
 
         if self._mcts_tree.working_node is None:
-            estimated_branch_priors, estimated_state_value = self._predict(
-                root_board_matrix)
-            self._mcts_tree.working_node = self._create_node_with_children_branch(
-                game.working_game_state, estimated_state_value[0].item(), estimated_branch_priors[0], None)
+            estimated_branch_priors, estimated_state_value = self._predict(root_board_matrix)
+            self._mcts_tree.working_node = self._create_node(game.working_game_state, estimated_state_value[0].item(), estimated_branch_priors[0], None)
 
         working_root = self._mcts_tree.working_node
 
@@ -117,17 +115,31 @@ class AlphaZeroAgent(Player):
                 current_branch = current_node.select_branch()
                 if current_branch.child_node is None:
                     # expand
-                    new_state = game.look_ahead_next_move(
-                        current_node.game_state, current_branch.move)
+                    new_state = game.look_ahead_next_move(current_node.game_state, current_branch.move)
                     game_state_memory.push(new_state)
+                    
+                    value_of_new_state = 0
+                    priors_of_new_children_branch =None
 
-                    board_matrix = self._encoder.encode(
-                        game_state_memory.game_states, new_state.player_in_action)
+                    #  cope with the end state
+                    if game.is_final_state(new_state):
+                        winner = game.get_winner(new_state)
+                        if winner is not None:
+                            if winner.id == self.id:
+                              value_of_new_state = -1
+                            else:
+                              value_of_new_state = 1 
+                        else:
+                            value_of_new_state = 0
+                    #  the normal state     
+                    else:
+                        board_matrix = self._encoder.encode(game_state_memory.game_states, new_state.player_in_action)
+                        estimated_branch_priors, estimated_state_value = self._predict(board_matrix)
+                        value_of_new_state = estimated_state_value[0].item()
+                        priors_of_new_children_branch =estimated_branch_priors[0]
 
-                    estimated_branch_priors, estimated_state_value = self._predict(
-                        board_matrix)
-                    current_node = self._create_node_with_children_branch(
-                        new_state, estimated_state_value[0].item(), estimated_branch_priors[0], current_branch)
+                    
+                    current_node = self._create_node(new_state,value_of_new_state,priors_of_new_children_branch, current_branch)
                     current_branch.add_child_node(current_node)
                     break
                 else:
@@ -136,28 +148,14 @@ class AlphaZeroAgent(Player):
 
             # Normally , the parent node value sholud be the oppsite of current node's value 
             value = -1* current_node.game_state_value
-            
-            # Exception for the end of the game 
-            if game.is_final_state(current_node.game_state): 
-                winner = game.get_winner(current_node.game_state)
-                if winner is not None:
-                    # if I am the winner, then the previous player is loser, whose's state value should be -1
-                    if winner.id == self.id:
-                        value = -1
-                    else:
-                        value = 1 
-                else:
-                    value = 0
-
-            # update only not tie        
-            if value != 0:            
-                while True:
-                    current_branch = current_node.parent_branch
-                    current_node = current_branch.parent_node
-                    current_node.record_visit(current_branch.move.point, value)
-                    value = -1 * value
-                    if current_node == working_root:
-                        break
+                              
+            while True:
+                current_branch = current_node.parent_branch
+                current_node = current_branch.parent_node
+                current_node.record_visit(current_branch.move.point, value)
+                value = -1 * value
+                if current_node == working_root:
+                    break
 
         free_points = []
         visit_counts_of_free_points = []
