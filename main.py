@@ -130,7 +130,7 @@ class Trainer(object):
                            self._board_size, self._board_size)
         else:
             self._encoder = BlackWhiteEncoder(self._number_of_planes, self._board_size)
-            input_shape = (self._number_of_planes*2+1,
+            input_shape = (self._number_of_planes*2+2,
                            self._board_size, self._board_size)
 
         self._model_name = cfg['MODELS'].get('net')

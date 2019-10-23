@@ -55,13 +55,15 @@ from common.gamestate import GameState
 from common.move import Move
 from common.player import Player
 
+
 def softmax(x):
     probs = np.exp(x - np.max(x))
     probs /= np.sum(probs)
     return probs
 
+
 class AlphaZeroAgent(Player):
-    def __init__(self, id, name, encoder, model, mcts_tree, num_rounds,c_puct,temperature=1.0,device='cpu'):
+    def __init__(self, id, name, encoder, model, mcts_tree, num_rounds, c_puct, temperature=1.0, device='cpu'):
         super().__init__(id, name)
         self._encoder = encoder
         self._device = device
@@ -72,34 +74,37 @@ class AlphaZeroAgent(Player):
         self._cpuct = c_puct
         self._temperature = temperature
 
- 
     @property
     def experience_collector(self):
         return self._experience_collector
 
     def _predict(self, board_matrix):
-        model_input = torch.from_numpy(board_matrix).unsqueeze(0).to(self._device, dtype=torch.float)
+        model_input = torch.from_numpy(board_matrix).unsqueeze(
+            0).to(self._device, dtype=torch.float)
         return self._model(model_input)
 
     def _create_node(self, game_state, estimated_state_value, estimated_branch_priors, parent_branch):
 
-        new_node = Node(game_state, estimated_state_value, parent_branch,self._cpuct)
+        new_node = Node(game_state, estimated_state_value,
+                        parent_branch, self._cpuct)
 
-        if estimated_branch_priors is not None:        
+        if estimated_branch_priors is not None:
             for idx, p in enumerate(estimated_branch_priors):
                 point = self._encoder.decode_point_index(idx)
                 if new_node.game_state.board.is_free_point(point):
                     new_node.add_branch(point, p)
         return new_node
 
-   
     def select_move(self, game):
         # encode  the last specified boards as the root
-        root_board_matrix = self._encoder.encode(game.state_cache.game_states, game.working_game_state.player_in_action)
+        root_board_matrix = self._encoder.encode(
+            game.state_cache.game_states, game.working_game_state.player_in_action, game.working_game_state.previous_move)
 
         if self._mcts_tree.working_node is None:
-            estimated_branch_priors, estimated_state_value = self._predict(root_board_matrix)
-            self._mcts_tree.working_node = self._create_node(game.working_game_state, estimated_state_value[0].item(), estimated_branch_priors[0], None)
+            estimated_branch_priors, estimated_state_value = self._predict(
+                root_board_matrix)
+            self._mcts_tree.working_node = self._create_node(
+                game.working_game_state, estimated_state_value[0].item(), estimated_branch_priors[0], None)
 
         working_root = self._mcts_tree.working_node
 
@@ -115,40 +120,43 @@ class AlphaZeroAgent(Player):
                 current_branch = current_node.select_branch()
                 if current_branch.child_node is None:
                     # expand
-                    new_state = game.look_ahead_next_move(current_node.game_state, current_branch.move)
+                    new_state = game.look_ahead_next_move(
+                        current_node.game_state, current_branch.move)
                     game_state_memory.push(new_state)
-                    
+
                     value_of_new_state = 0
-                    priors_of_new_children_branch =None
+                    priors_of_new_children_branch = None
 
                     #  cope with the end state
                     if game.is_final_state(new_state):
                         winner = game.get_winner(new_state)
                         if winner is not None:
                             if winner.id == self.id:
-                              value_of_new_state = -1
+                                value_of_new_state = -1
                             else:
-                              value_of_new_state = 1 
+                                value_of_new_state = 1
                         else:
                             value_of_new_state = 0
-                    #  the normal state     
+                    #  the normal state
                     else:
-                        board_matrix = self._encoder.encode(game_state_memory.game_states, new_state.player_in_action)
-                        estimated_branch_priors, estimated_state_value = self._predict(board_matrix)
+                        board_matrix = self._encoder.encode(
+                            game_state_memory.game_states, new_state.player_in_action,new_state.previous_move)
+                        estimated_branch_priors, estimated_state_value = self._predict(
+                            board_matrix)
                         value_of_new_state = estimated_state_value[0].item()
-                        priors_of_new_children_branch =estimated_branch_priors[0]
+                        priors_of_new_children_branch = estimated_branch_priors[0]
 
-                    
-                    current_node = self._create_node(new_state,value_of_new_state,priors_of_new_children_branch, current_branch)
+                    current_node = self._create_node(
+                        new_state, value_of_new_state, priors_of_new_children_branch, current_branch)
                     current_branch.add_child_node(current_node)
                     break
                 else:
                     current_node = current_branch.child_node
                     game_state_memory.push(current_node.game_state)
 
-            # Normally , the parent node value sholud be the oppsite of current node's value 
-            value = -1* current_node.game_state_value
-                              
+            # Normally , the parent node value sholud be the oppsite of current node's value
+            value = -1 * current_node.game_state_value
+
             while True:
                 current_branch = current_node.parent_branch
                 current_node = current_branch.parent_node
@@ -169,13 +177,11 @@ class AlphaZeroAgent(Player):
                 free_points.append(point)
                 visit_counts_of_free_points.append(visit_count)
 
-        
-
         if game.is_selfplay:
-            
-            next_move_probabilities = softmax(np.log(np.asarray(visit_counts_of_free_points)+1e-10))
-            
-            
+
+            next_move_probabilities = softmax(
+                np.log(np.asarray(visit_counts_of_free_points)+1e-10))
+
             # add dirichlet noise for exploration
             next_move_probabilities = 0.75 * next_move_probabilities + 0.25 * \
                 np.random.dirichlet(
@@ -188,7 +194,7 @@ class AlphaZeroAgent(Player):
         else:
 
             next_move_probabilities = softmax(
-            1.0/self._temperature*np.log(np.asarray(visit_counts_of_free_points)+1e-10))
+                1.0/self._temperature*np.log(np.asarray(visit_counts_of_free_points)+1e-10))
 
             next_move = Move(free_points[np.random.choice(
                 len(free_points), p=next_move_probabilities)])

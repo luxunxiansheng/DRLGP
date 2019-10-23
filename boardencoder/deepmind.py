@@ -60,10 +60,20 @@ class BlackWhiteEncoder(Encoder):
     def board_height(self):
         return self._board_height
 
-    def encode(self, boards, player_in_action, previous_move=None):
-        board_matrix = np.zeros(self.shape(), dtype=int)
+    def encode(self, boards, player_in_action):
+        '''
+        The input to the neural network is a 19 × 19 × 17 image stack comprising num_plane*2+1 binary feature planes.
+        num_plane feature planes Xt consist of binary values indicating the presence of the current player’s stones
+        (Xt(i)= 1 if intersection i contains a stone of the player’s colour at time-step t; 0 if the intersection is
+        empty, contains an opponent stone, or if t < 0). A further 8 feature planes, Yt, represent the corresponding 
+        features for the opponent’s stones. The final feature plane, C, represents the colour to play, and has a constant
+        value of either 1 if black is to play or 0 if white is to play.  These planes are concatenated together to give 
+        input features st = [Xt,Yt, Xt−1, Yt−1, ..., Xt−7, Yt−7, C].  
 
-        # The previous number of planes
+        Refer to: Mastering the Game of Go without Human Knowledge
+        '''
+       
+        board_matrix = np.zeros(self.shape(), dtype=int)
         for plane in range(len(boards)):
             for row in range(self._board_height):
                 for col in range(self._board_width):
@@ -71,29 +81,21 @@ class BlackWhiteEncoder(Encoder):
                     piece = boards[plane].get_piece_at_point(point)
                     if piece is not None:
                         if piece.owner_id == player_in_action.id:
-                            board_matrix[plane*2+1, row, col] = 1
+                            board_matrix[plane*2+1,row, col] = 1
                         else:
                             board_matrix[plane*2, row, col] = 1
-
-        #  the  last move
+            
+        
         for row in range(self._board_height):
             for col in range(self._board_width):
-                flag = 0
-                if previous_move is not None and row == previous_move.point.row-1 and col == previous_move.point.col-1:
-                    flag = 1
-
-                board_matrix[self._num_plane*2, row,col] = flag
-
-        #  the  player who will play in the next move
-        for row in range(self._board_height):
-            for col in range(self._board_width):
-                board_matrix[self._num_plane*2+1,
-                             row, col] = player_in_action.id
-
+                board_matrix[self._num_plane*2, row, col] = player_in_action.id 
+    
+        
         return board_matrix
+      
 
     def shape(self):
-        return self._num_plane*2+2, self._board_height, self._board_width
+        return self._num_plane*2+1, self._board_height, self._board_width
 
     def encode_point(self, point):
         return self._board_width*(point.row-1)+(point.col-1)
