@@ -46,8 +46,8 @@ from common.point import Point
 
 class Connect5Game(Game):
     
-    ASSIGNED_PLAYER_ID_1 = 1
-    ASSIGNED_PLAYER_ID_2 = 2
+    ASSIGNED_PLAYER_ID_1 = 0
+    ASSIGNED_PLAYER_ID_2 = 1
     
     @staticmethod
     def _connect_5_into_a_line(board, player):
