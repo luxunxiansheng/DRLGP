@@ -59,6 +59,7 @@ from agent.alphazeroagent.mcts.tree import Tree
 from agent.mctsagent import MCTSAgent
 from boardencoder.blackwhiteencoder import BlackWhiteEncoder
 from boardencoder.snapshotencoder import SnapshotEncoder
+from boardencoder.deepmindencoder import DeepMindEncoder
 from common.board import Board
 from common.utils import Utils
 from game.connect5game import Connect5Game
@@ -128,7 +129,14 @@ class Trainer(object):
                 self._number_of_planes, self._board_size)
             input_shape = (self._number_of_planes,
                            self._board_size, self._board_size)
-        else:
+
+        if self._encoder_name == 'DeepMindEncoder':
+            self._encoder = DeepMindEncoder(
+                self._number_of_planes, self._board_size)
+            input_shape = (self._number_of_planes*2+1,
+                           self._board_size, self._board_size)
+            
+        if self._encoder_name == 'BlackWhiteEncoder':
             self._encoder = BlackWhiteEncoder(self._number_of_planes, self._board_size)
             input_shape = (self._number_of_planes*2+2,
                            self._board_size, self._board_size)
@@ -376,10 +384,11 @@ class Trainer(object):
 
         self._logger.debug('Winner is {}'.format(winner.name))
 
-        if winner is not None:
-            return 1 if winner.id == az_agent.id else - 1
+        score = 0
+        if winner.id == az_agent.id:
+            score=1  
 
-        return 0
+        return score
 
     @staticmethod
     def _evaluate_policy_once_in_parallel(basic_mcts_round_per_moves, basic_mcts_temperature, az_mcts_temperature,encoder, model, az_mcts_round_per_moves,c_puct, device, board_size, number_of_planes, pipe):
@@ -406,9 +415,10 @@ class Trainer(object):
         winner = game.final_winner
 
         score = 0
-        if winner is not None:
-            score = 1 if winner.id == az_agent.id else -1
+        if winner.id == az_agent.id:
+            score=1  
 
+        
         pipe.send(score)
         pipe.close()
 

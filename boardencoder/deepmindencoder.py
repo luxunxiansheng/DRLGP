@@ -38,7 +38,7 @@ from common.encoder import Encoder
 from common.point import Point
 
 
-class BlackWhiteEncoder(Encoder):
+class DeepMindEncoder(Encoder):
     def __init__(self, num_plane, board_size):
         self._board_size = board_size
         self._board_width = board_size
@@ -46,7 +46,7 @@ class BlackWhiteEncoder(Encoder):
         self._num_plane = num_plane
 
     def name(self):
-        return 'BlackWhiteEncoder'
+        return 'DeepMindEncoder'
 
     @property
     def num_plane(self):
@@ -60,7 +60,7 @@ class BlackWhiteEncoder(Encoder):
     def board_height(self):
         return self._board_height
 
-    def encode(self, boards, player_in_action):
+    def encode(self, boards, player_in_action,previous_move=None):
         '''
         The input to the neural network is a 19 × 19 × 17 image stack comprising num_plane*2+1 binary feature planes.
         num_plane feature planes Xt consist of binary values indicating the presence of the current player’s stones

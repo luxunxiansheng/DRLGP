@@ -157,8 +157,8 @@ class MCTSAgent(Player):
         return Move(best_point)
 
     def _simulate_random_game_for_state(self, game,game_state):
-        bots = [RandomAgent(1, "RandomAgent0"),
-                RandomAgent(2, "RandomAgent1")]
+        bots = [RandomAgent(game.players[0].id, "RandomAgent0"),
+                RandomAgent(game.players[1].id, "RandomAgent1")]
 
         
         # current board status
