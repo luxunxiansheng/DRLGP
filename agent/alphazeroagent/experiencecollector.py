@@ -74,7 +74,7 @@ class ExperienceCollector:
     def complete_episode(self, reward):
         num_states = len(self._states)
         self._rewards += [reward for _ in range(num_states)]
-        self.reset()
+       
 
     @property
     def visit_counts(self):
