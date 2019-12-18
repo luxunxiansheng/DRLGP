@@ -33,27 +33,46 @@
 #
 # /
 
+import numpy as np
 
 class ExperienceCollector:
     def __init__(self):
         self._states = []
         self._visit_counts = []
         self._rewards = []
-        self._current_episode_states = []
-        self._current_episode_visit_counts = []
+        
 
     def reset(self):
-        self._current_episode_states = []
-        self._current_episode_visit_counts = []
+        self._states = []
+        self._visit_counts = []
+        self._rewards = []
 
     def record_decision(self, state, visit_counts):
-        self._current_episode_states.append(state)
-        self._current_episode_visit_counts.append(visit_counts)
+        
+        augmented_state =[]
+        augmented_visit_counts=[]
+        
+        reshaped_visit_counts= visit_counts.reshape(state.shape[1],state.shape[2]) 
+
+        for i in [1,2,3,4]:
+            
+            counterclockwise_rotated_state= np.array([np.rot90(plane,i) for plane in state])
+            counterclockwise_rotated_visit_counts= np.rot90(reshaped_visit_counts,i)
+            augmented_state.append(counterclockwise_rotated_state)
+            augmented_visit_counts.append(counterclockwise_rotated_visit_counts.flatten())
+
+
+            horizontally_flipped_state= np.array([np.fliplr(plane) for plane in counterclockwise_rotated_state]) 
+            horizontally_flipped_visit_counts= np.fliplr(counterclockwise_rotated_visit_counts)
+            augmented_state.append(horizontally_flipped_state)
+            augmented_visit_counts.append(horizontally_flipped_visit_counts.flatten())
+        
+        self._states.extend(augmented_state)
+        self._visit_counts.extend(augmented_visit_counts)  
+        
 
     def complete_episode(self, reward):
-        num_states = len(self._current_episode_states)
-        self._states += self._current_episode_states
-        self._visit_counts += self._current_episode_visit_counts
+        num_states = len(self._states)
         self._rewards += [reward for _ in range(num_states)]
         self.reset()
 
