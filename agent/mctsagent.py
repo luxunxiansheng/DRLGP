@@ -126,7 +126,7 @@ class MCTSAgent(Player):
 
         root = MCTSNode(game, game.working_game_state)
 
-        for _ in range(self._num_rounds):
+        for _ in tqdm(range(self._num_rounds)):
             node = root
 
             # select: based on a UCT policy
