@@ -37,6 +37,8 @@
 import os
 import sys
 
+sys.path.insert(0, os.path.abspath('.'))
+
 import torch
 import torch.nn as nn
 from flask import Flask, jsonify, request
@@ -55,7 +57,7 @@ from common.point import Point
 from game.connect5game import Connect5Game
 from models.ResNet8Network import ResNet8Network
 
-sys.path.insert(0, os.path.abspath('.'))
+
 
 
 def coords_from_point(point):
@@ -82,8 +84,7 @@ def get_web_app():
         historic_moves = [Move(Point(board_size+1-historic_jboard_position.row, historic_jboard_position.col)) for historic_jboard_position in historic_jboard_positions]
         game = Connect5Game(board, players, start_player,number_of_planes, False)
         for move in historic_moves:
-            if isinstance(game.working_game_state.player_in_action, AlphaZeroAgent):
-                game.working_game_state.player_in_action.store_game_state(game.working_game_state)
+            
             game.apply_move(move)
 
         bot_move = bot_agent.select_move(game)
@@ -115,9 +116,14 @@ az_mcts_temperature=0.001
 
 encoder = DeepMindEncoder(number_of_planes, board_size)
 
-input_shape = (number_of_planes, board_size, board_size)
+input_shape = (number_of_planes*2+1, board_size, board_size)
 model_new = ResNet8Network(input_shape, board_size * board_size)
-model_new.load_state_dict(torch.load('./checkpoints/debug_resnet_4_5_deepmind/best.pth.tar'))
+
+
+best_checkpoint_file = './checkpoints/debug_resnet_4_5_deepmind/best.pth.tar'
+checkpoint = torch.load(best_checkpoint_file,map_location='cpu')
+
+model_new.load_state_dict(checkpoint['model'])
 model_new.eval()
 
 mcts_tree = Tree()

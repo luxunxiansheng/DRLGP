@@ -94,6 +94,9 @@ class AlphaZeroAgent(Player):
                 if new_node.game_state.board.is_free_point(point):
                     new_node.add_branch(point, p)
         return new_node
+    
+   
+        
 
     def select_move(self, game):
         # encode  the last specified boards as the root
