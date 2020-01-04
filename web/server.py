@@ -80,11 +80,20 @@ def get_web_app():
 
     @app.route('/select-move/<bot_name>', methods=['POST'])
     def select_move(bot_name):
+        mcts_tree = Tree()
+        bot_agent = AlphaZeroAgent(Connect5Game.ASSIGNED_PLAYER_ID_2, "Agent_New", encoder, model_new,mcts_tree,az_mcts_round_per_moves, c_puct, az_mcts_temperature,device=device)
+        human_agent = HumanPlayer(Connect5Game.ASSIGNED_PLAYER_ID_1, "HumanPlayerX")
+
+        players = [bot_agent, human_agent]
+        start_player = human_agent
+
+        board = Board(board_size)
+
+        game = Connect5Game(board, players, start_player,number_of_planes, False)
+        
         historic_jboard_positions = [point_from_coords([move][0]) for move in (request.json)['moves']]
         historic_moves = [Move(Point(board_size+1-historic_jboard_position.row, historic_jboard_position.col)) for historic_jboard_position in historic_jboard_positions]
-        game = Connect5Game(board, players, start_player,number_of_planes, False)
         for move in historic_moves:
-            
             game.apply_move(move)
 
         bot_move = bot_agent.select_move(game)
@@ -120,20 +129,11 @@ input_shape = (number_of_planes*2+1, board_size, board_size)
 model_new = ResNet8Network(input_shape, board_size * board_size)
 
 
-best_checkpoint_file = './checkpoints/debug_resnet_4_5_deepmind/best.pth.tar'
+""" best_checkpoint_file = './checkpoints/debug_resnet_4_5_deepmind/best.pth.tar'
 checkpoint = torch.load(best_checkpoint_file,map_location='cpu')
-
-model_new.load_state_dict(checkpoint['model'])
+model_new.load_state_dict(checkpoint['model']) """
 model_new.eval()
 
-mcts_tree = Tree()
-bot_agent = AlphaZeroAgent(Connect5Game.ASSIGNED_PLAYER_ID_2, "Agent_New", encoder, model_new,mcts_tree,az_mcts_round_per_moves, c_puct, az_mcts_temperature,device=device)
-human_agent = HumanPlayer(Connect5Game.ASSIGNED_PLAYER_ID_1, "HumanPlayerX")
-
-players = [bot_agent, human_agent]
-start_player = human_agent
-
-board = Board(board_size)
 
 web_app = get_web_app()
 web_app.run()
