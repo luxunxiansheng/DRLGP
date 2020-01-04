@@ -48,8 +48,8 @@ from agent.alphazeroagent.experiencebuffer import ExpericenceBuffer
 from agent.alphazeroagent.experiencecollector import ExperienceCollector
 from agent.alphazeroagent.mcts.tree import Tree
 from agent.humanplayer import HumanPlayer
+from boardencoder.deepmindencoder import DeepMindEncoder
 from boardencoder.snapshotencoder import SnapshotEncoder
-from boardencoder.deepmindencoder import DeepMindEncoder 
 from common.board import Board
 from common.move import Move
 from common.player import Player
@@ -81,7 +81,7 @@ def get_web_app():
     @app.route('/select-move/<bot_name>', methods=['POST'])
     def select_move(bot_name):
         mcts_tree = Tree()
-        bot_agent = AlphaZeroAgent(Connect5Game.ASSIGNED_PLAYER_ID_2, "Agent_New", encoder, model_new,mcts_tree,az_mcts_round_per_moves, c_puct, az_mcts_temperature,device=device)
+        bot_agent = AlphaZeroAgent(Connect5Game.ASSIGNED_PLAYER_ID_2, "Agent_New", encoder, model_new, mcts_tree, az_mcts_round_per_moves, c_puct, az_mcts_temperature, device=device)
         human_agent = HumanPlayer(Connect5Game.ASSIGNED_PLAYER_ID_1, "HumanPlayerX")
 
         players = [bot_agent, human_agent]
@@ -89,20 +89,25 @@ def get_web_app():
 
         board = Board(board_size)
 
-        game = Connect5Game(board, players, start_player,number_of_planes, False)
-        
+        game = Connect5Game(board, players, start_player, number_of_planes, False)
+
         historic_jboard_positions = [point_from_coords([move][0]) for move in (request.json)['moves']]
         historic_moves = [Move(Point(board_size+1-historic_jboard_position.row, historic_jboard_position.col)) for historic_jboard_position in historic_jboard_positions]
+        over = False
+        bot_move_str = ''
+
         for move in historic_moves:
             game.apply_move(move)
 
-        bot_move = bot_agent.select_move(game)
-        game.apply_move(bot_move)
-        game.working_game_state.board.print_board()
-        jboard_postion = Point(board_size+1-bot_move.point.row, bot_move.point.col)
-        bot_move_str = coords_from_point(jboard_postion)
-
-        over = True if game.is_over() else False
+        if game.is_over():
+            over = True
+        else:
+            bot_move = bot_agent.select_move(game)
+            game.apply_move(bot_move)
+            game.working_game_state.board.print_board()
+            jboard_postion = Point(board_size+1-bot_move.point.row, bot_move.point.col)
+            bot_move_str = coords_from_point(jboard_postion)
+            over = True if game.is_over() else False
 
         return jsonify({
             'bot_move': bot_move_str,
@@ -121,7 +126,7 @@ number_of_planes = 4
 board_size = 8
 az_mcts_round_per_moves = 500
 c_puct = 8.0
-az_mcts_temperature=0.001
+az_mcts_temperature = 0.001
 
 encoder = DeepMindEncoder(number_of_planes, board_size)
 
@@ -129,9 +134,9 @@ input_shape = (number_of_planes*2+1, board_size, board_size)
 model_new = ResNet8Network(input_shape, board_size * board_size)
 
 
-""" best_checkpoint_file = './checkpoints/debug_resnet_4_5_deepmind/best.pth.tar'
-checkpoint = torch.load(best_checkpoint_file,map_location='cpu')
-model_new.load_state_dict(checkpoint['model']) """
+best_checkpoint_file = './checkpoints/debug_resnet_4_5_deepmind/best.pth.tar'
+checkpoint = torch.load(best_checkpoint_file, map_location='cpu')
+model_new.load_state_dict(checkpoint['model'])
 model_new.eval()
 
 
