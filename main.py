@@ -518,7 +518,7 @@ class Trainer(object):
                         # update the best_policy
                         torch.save(self._checkpoint, self._best_checkpoint_file)
                         if (best_ratio == 1.0 and self._basic_mcts_rounds_per_move < 6000):
-                            self._basic_mcts_rounds_per_move += 200
+                            self._basic_mcts_rounds_per_move += 500
                             self._logger.debug('current basic_mcts_round_moves:{}'.format(
                                 self._basic_mcts_rounds_per_move))
                             best_ratio = 0.0
