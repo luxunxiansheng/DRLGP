@@ -266,7 +266,7 @@ class Trainer(object):
             move = game.working_game_state.player_in_action.select_move(game)
             game.apply_move(move)
 
-            # game.working_game_state.board.print_board()
+            game.working_game_state.board.print_board()
 
         # game.working_game_state.board.print_board()
         # self._logger.info(game.final_winner.name)
@@ -378,7 +378,7 @@ class Trainer(object):
             move = game.working_game_state.player_in_action.select_move(game)
             game.apply_move(move)
 
-            # game.working_game_state.board.print_board()
+            game.working_game_state.board.print_board()
 
         winner = game.final_winner
 
