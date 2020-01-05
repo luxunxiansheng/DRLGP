@@ -8,6 +8,8 @@ from common.point import Point
 
 class HumanPlayer(Player):
 
+    
+    
     @classmethod
     def point_from_coords(cls, text):
         col_name = text[0]

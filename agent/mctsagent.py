@@ -15,11 +15,10 @@ class MCTSNode(object):
 
     DRAW = -1
 
-    def __init__(self, game, game_state, parent=None, previous_point=None):
+    def __init__(self, game, game_state, parent=None):
         self._game = game
         self._game_state = game_state
         self._parent = parent
-        self._previous_point = previous_point
         self._win_counts = {
             game.players[0].id: 0,
             game.players[1].id: 0,
@@ -34,10 +33,6 @@ class MCTSNode(object):
     @property
     def game_state(self):
         return self._game_state
-
-    @property
-    def previous_point(self):
-        return self._previous_point
 
     @property
     def num_rollouts(self):
@@ -58,7 +53,7 @@ class MCTSNode(object):
         index = random.randint(0, len(self._unvisited_points)-1)
         new_point = self._unvisited_points.pop(index)
         new_game_state = self._game.look_ahead_next_move(self._game_state, Move(new_point))
-        new_node = MCTSNode(self._game, new_game_state, self, new_point)
+        new_node = MCTSNode(self._game, new_game_state, self)
         self._children[new_point]=new_node
         return new_node
 
