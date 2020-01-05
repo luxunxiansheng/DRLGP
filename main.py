@@ -55,8 +55,9 @@ from tqdm import tqdm
 from agent.alphazeroagent.alphazeroagent import AlphaZeroAgent
 from agent.alphazeroagent.experiencebuffer import ExpericenceBuffer
 from agent.alphazeroagent.experiencecollector import ExperienceCollector
-from agent.alphazeroagent.mcts.tree import Tree
+from agent.alphazeroagent.alphazeroagent import AlphaZeroTree 
 from agent.mctsagent import MCTSAgent
+from agent.mctsagent import MCTSTree
 from boardencoder.blackwhiteencoder import BlackWhiteEncoder
 from boardencoder.snapshotencoder import SnapshotEncoder
 from boardencoder.deepmindencoder import DeepMindEncoder
@@ -127,19 +128,16 @@ class Trainer(object):
         if self._encoder_name == 'SnapshotEncoder':
             self._encoder = SnapshotEncoder(
                 self._number_of_planes, self._board_size)
-            input_shape = (self._number_of_planes,
-                           self._board_size, self._board_size)
+            input_shape = (self._number_of_planes,self._board_size, self._board_size)
 
         if self._encoder_name == 'DeepMindEncoder':
             self._encoder = DeepMindEncoder(
                 self._number_of_planes, self._board_size)
-            input_shape = (self._number_of_planes*2+1,
-                           self._board_size, self._board_size)
+            input_shape = (self._number_of_planes*2+1,self._board_size, self._board_size)
             
         if self._encoder_name == 'BlackWhiteEncoder':
             self._encoder = BlackWhiteEncoder(self._number_of_planes, self._board_size)
-            input_shape = (self._number_of_planes*2+2,
-                           self._board_size, self._board_size)
+            input_shape = (self._number_of_planes*2+2,self._board_size, self._board_size)
 
         self._model_name = cfg['MODELS'].get('net')
         self._model = ResNet8Network(input_shape, self._board_size * self._board_size) if self._model_name == 'ResNet8Network' else Simple5Network(
@@ -180,11 +178,9 @@ class Trainer(object):
 
     @staticmethod
     def _collect_data_once_in_parallel(encoder, model, az_mcts_round_per_moves, board_size, number_of_planes,c_puct,az_mcts_temperature,device,pipe):
-        mcts_tree = Tree()
-        agent_1 = AlphaZeroAgent(Connect5Game.ASSIGNED_PLAYER_ID_1, "AlphaZeroAgent1",
-                                 encoder, model, mcts_tree, az_mcts_round_per_moves,c_puct,az_mcts_temperature,device=device)
-        agent_2 = AlphaZeroAgent(Connect5Game.ASSIGNED_PLAYER_ID_2, "AlphaZeroAgent2",
-                                 encoder, model, mcts_tree, az_mcts_round_per_moves,c_puct,az_mcts_temperature, device=device)
+        mcts_tree = AlphaZeroTree()
+        agent_1 = AlphaZeroAgent(Connect5Game.ASSIGNED_PLAYER_ID_1, "AlphaZeroAgent1",encoder, model, mcts_tree, az_mcts_round_per_moves,c_puct,az_mcts_temperature,device=device)
+        agent_2 = AlphaZeroAgent(Connect5Game.ASSIGNED_PLAYER_ID_2, "AlphaZeroAgent2",encoder, model, mcts_tree, az_mcts_round_per_moves,c_puct,az_mcts_temperature, device=device)
 
         board = Board(board_size)
         players = [agent_1, agent_2]
@@ -193,6 +189,7 @@ class Trainer(object):
         while not game.is_over():
             move = game.working_game_state.player_in_action.select_move(game)
             game.apply_move(move)
+            
 
             # game.working_game_state.board.print_board()
 
@@ -251,21 +248,18 @@ class Trainer(object):
     def _collect_data_once(self):
 
         device = self._gpu_devices[0] if self._use_cuda else self._cpu_device
-        mcts_tree = Tree()
-        agent_1 = AlphaZeroAgent(Connect5Game.ASSIGNED_PLAYER_ID_1, "AlphaZeroAgent1",
-                                 self._encoder, self._model, mcts_tree, self._az_mcts_rounds_per_move, self._c_puct,self._az_mcts_temperature,device=device)
-        agent_2 = AlphaZeroAgent(Connect5Game.ASSIGNED_PLAYER_ID_2, "AlphaZeroAgent2",
-                                 self._encoder, self._model, mcts_tree, self._az_mcts_rounds_per_move, self._c_puct,self._az_mcts_temperature,device=device)
+        mcts_tree = AlphaZeroTree()
+        agent_1 = AlphaZeroAgent(Connect5Game.ASSIGNED_PLAYER_ID_1, "AlphaZeroAgent1",self._encoder, self._model, mcts_tree, self._az_mcts_rounds_per_move, self._c_puct,self._az_mcts_temperature,device=device)
+        agent_2 = AlphaZeroAgent(Connect5Game.ASSIGNED_PLAYER_ID_2, "AlphaZeroAgent2",self._encoder, self._model, mcts_tree, self._az_mcts_rounds_per_move, self._c_puct,self._az_mcts_temperature,device=device)
 
         board = Board(self._board_size)
         players = [agent_1, agent_2]
-        game = Connect5Game(board, players,  players[random.choice(
-            [0, 1])], self._number_of_planes, True)
+        game = Connect5Game(board, players,  players[random.choice([0, 1])], self._number_of_planes, True)
 
         while not game.is_over():
             move = game.working_game_state.player_in_action.select_move(game)
             game.apply_move(move)
-
+            
             game.working_game_state.board.print_board()
 
         # game.working_game_state.board.print_board()
@@ -361,21 +355,25 @@ class Trainer(object):
 
     def _evaluate_policy_once(self):
         device = self._gpu_devices[0] if self._use_cuda else self._cpu_device
-        mcts_tree = Tree()
-        mcts_agent = MCTSAgent(Connect5Game.ASSIGNED_PLAYER_ID_1, "MCTSAgent",
-                               self._basic_mcts_rounds_per_move, self._basic_mcts_temperature)
-        az_agent = AlphaZeroAgent(Connect5Game.ASSIGNED_PLAYER_ID_2, "AlphaZeroAgent",
-                                  self._encoder, self._model, mcts_tree, self._az_mcts_rounds_per_move, self._c_puct,self._az_mcts_temperature,device=device)
+        mcts_tree = MCTSTree()
+        mcts_agent = MCTSAgent(Connect5Game.ASSIGNED_PLAYER_ID_1, "MCTSAgent", mcts_tree,self._basic_mcts_rounds_per_move, self._basic_mcts_temperature)
+        
+        alphazero_tree= AlphaZeroTree()
+        az_agent = AlphaZeroAgent(Connect5Game.ASSIGNED_PLAYER_ID_2, "AlphaZeroAgent",self._encoder, self._model, alphazero_tree, self._az_mcts_rounds_per_move, self._c_puct,self._az_mcts_temperature,device=device)
 
         board = Board(self._board_size)
         players = [mcts_agent, az_agent]
 
         # MCTS agent always plays first
-        game = Connect5Game(
-            board, players, players[0], self._number_of_planes, is_self_play=False)
+        game = Connect5Game(board, players, players[0], self._number_of_planes, is_self_play=False)
 
         while not game.is_over():
             move = game.working_game_state.player_in_action.select_move(game)
+            if players[0].id == game.working_game_state.player_in_action.id:
+                players[1].msct_tree.go_down(move)
+            else:
+                players[0].msct_tree.go_down(move)     
+        
             game.apply_move(move)
 
             game.working_game_state.board.print_board()
@@ -393,10 +391,8 @@ class Trainer(object):
     @staticmethod
     def _evaluate_policy_once_in_parallel(basic_mcts_round_per_moves, basic_mcts_temperature, az_mcts_temperature,encoder, model, az_mcts_round_per_moves,c_puct, device, board_size, number_of_planes, pipe):
         mcts_tree = Tree()
-        mcts_agent = MCTSAgent(Connect5Game.ASSIGNED_PLAYER_ID_1, "MCTSAgent",
-                               basic_mcts_round_per_moves, basic_mcts_temperature)
-        az_agent = AlphaZeroAgent(Connect5Game.ASSIGNED_PLAYER_ID_2, "AlphaZeroAgent",
-                                  encoder, model, mcts_tree, az_mcts_round_per_moves,c_puct, az_mcts_temperature,device=device)
+        mcts_agent = MCTSAgent(Connect5Game.ASSIGNED_PLAYER_ID_1, "MCTSAgent",basic_mcts_round_per_moves, basic_mcts_temperature)
+        az_agent = AlphaZeroAgent(Connect5Game.ASSIGNED_PLAYER_ID_2, "AlphaZeroAgent",encoder, model, mcts_tree, az_mcts_round_per_moves,c_puct, az_mcts_temperature,device=device)
 
         board = Board(board_size)
         players = [mcts_agent, az_agent]

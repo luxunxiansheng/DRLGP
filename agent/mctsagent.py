@@ -27,7 +27,7 @@ class MCTSNode(object):
         }
 
         self._num_rollouts = 0
-        self._children = []
+        self._children = {}
         self._unvisited_points = game_state.board.get_legal_points()
 
     
@@ -51,12 +51,15 @@ class MCTSNode(object):
     def parent(self):
         return self._parent
 
+    def get_child(self,point):
+        return self._children[point]
+
     def add_random_child(self):
         index = random.randint(0, len(self._unvisited_points)-1)
         new_point = self._unvisited_points.pop(index)
         new_game_state = self._game.look_ahead_next_move(self._game_state, Move(new_point))
         new_node = MCTSNode(self._game, new_game_state, self, new_point)
-        self._children.append(new_node)
+        self._children[new_point]=new_node
         return new_node
 
     def record_win(self, winner):
@@ -76,22 +79,50 @@ class MCTSNode(object):
         return float(self._win_counts[player.id]/float(self._num_rollouts))
 
 
+class MCTSTree(object):
+    
+    def __init__(self):
+        self._working_node = None
+    
+    @property
+    def working_node(self):    
+        return self._working_node
+
+    @working_node.setter
+    def working_node(self, value):
+        self._working_node = value
+
+    def reset(self):
+        self._working_node =None    
+    
+    
+    def go_down(self, point):
+        branch = self._working_node.get_child(point)
+        self._working_node = branch.child_node
+
+        
+
+
 class MCTSAgent(Player):
-    def __init__(self, id, name,num_rounds, temperature):
+    def __init__(self, id, name,tree,num_rounds, temperature):
         super().__init__(id, name)
         self._num_rounds = num_rounds
         self._temperature = temperature
-    
+        self._mcts_tree = tree
     
 
+    @property
+    def msct_tree(self):
+        return self._mcts_tree
+
     def _select_child(self, node):
-        total_rollouts = sum(child.num_rollouts for child in node.children)
+        total_rollouts = sum(child.num_rollouts for _,child in node.children.items())
         log_rollouts = math.log(total_rollouts)
 
         best_score = -10
         best_child = None
 
-        for child in node.children:
+        for _, child in node.children.items():
             win_ratio = child.win_ratio(node.game_state.player_in_action)
             exploration_factor = math.sqrt(log_rollouts/child.num_rollouts)
             uct_score = win_ratio+self._temperature*exploration_factor
@@ -123,11 +154,14 @@ class MCTSAgent(Player):
         # Use the result of the rollout to update information in the nodes on the path from
         # created node to root
         #
+        
+        if self._mcts_tree.working_node is None:
+            self._mcts_tree.working_node= MCTSNode(game, game.working_game_state)
 
-        root = MCTSNode(game, game.working_game_state)
+        working_root= self._mcts_tree.working_node
 
         for _ in tqdm(range(self._num_rounds)):
-            node = root
+            node = working_root
 
             # select: based on a UCT policy
             while(not node.can_add_child() and (not node.is_terminal())):
@@ -148,11 +182,13 @@ class MCTSAgent(Player):
         best_point = None
         best_win_ratio = -1.0
 
-        for child in root.children:
+        for _,child in working_root.children.items():
             child_win_ratio = child.win_ratio(game.working_game_state.player_in_action)
             if child_win_ratio > best_win_ratio:
                 best_win_ratio = child_win_ratio
                 best_point = child.previous_point
+        
+        self._mcts_tree.go_down(best_point)
 
         return Move(best_point)
 
@@ -174,7 +210,7 @@ class MCTSAgent(Player):
         
         game = copy.deepcopy(game)
         game.reset(board, bots, start_player)
-       
+
         while not game.is_over():
             move = game.working_game_state.player_in_action.select_move(game)
             game.apply_move(move)
