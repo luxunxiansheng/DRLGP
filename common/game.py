@@ -124,8 +124,7 @@ class Game:
         self._state_cache.push(self._working_game_state)
 
     def look_ahead_next_move(self, game_state, move):
-        #new_board =game_state.board.clone()
-        new_board = copy.deepcopy(game_state.board)
+        new_board =game_state.board.clone()
         piece = Piece(game_state.player_in_action.id, move.point)
         new_board.place_piece(piece)
         return GameState(new_board, self.get_player_after_move(game_state.player_in_action), move)

@@ -208,7 +208,7 @@ class MCTSAgent(Player):
 
         
         # current board status
-        board = copy.deepcopy(game_state.board)
+        board = game_state.board.clone()
 
         # whose 's turn
         player_in_action = game_state.player_in_action
