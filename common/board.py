@@ -72,6 +72,14 @@ class Board:
 
         self._grid = {}
 
+
+    
+    def clone(self):
+        clone = Board(self._board_size)
+        for key, value in self._grid.items():
+            clone._grid[key]=value
+        return clone
+
     @classmethod
     def get_column_indicator_index(cls, char):
         return alphabet.index(char)

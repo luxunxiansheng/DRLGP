@@ -10,7 +10,7 @@ import random
 def evaluate():
     
     mcts_tree = MCTSTree()
-    mcts_agent= MCTSAgent(Connect5Game.ASSIGNED_PLAYER_ID_1, "MCTSAgent", mcts_tree,100, 1.4)
+    mcts_agent= MCTSAgent(Connect5Game.ASSIGNED_PLAYER_ID_1, "MCTSAgent", mcts_tree,2000, 1.4)
 
     human_player = HumanPlayer(Connect5Game.ASSIGNED_PLAYER_ID_2,"Human")
         

@@ -167,6 +167,8 @@ class MCTSAgent(Player):
             self._mcts_tree.working_node= MCTSNode(game, game.working_game_state)
 
         working_root= self._mcts_tree.working_node
+        
+        game_clone= copy.deepcopy(game)
 
         for _ in tqdm(range(self._num_rounds)):
             node = working_root
@@ -178,9 +180,9 @@ class MCTSAgent(Player):
             # expand: addunvisited child at random
             if node.can_add_child():
                 node = node.add_random_child()
-
+                        
             # simulate: random rollout policy
-            winner = self._simulate_random_game_for_state(game,node.game_state)
+            winner = self._simulate_random_game_for_state(game_clone,node.game_state)
 
             # backpropagate
             while node is not working_root:
@@ -216,7 +218,6 @@ class MCTSAgent(Player):
         else:
             start_player = bots[1]
         
-        game = copy.deepcopy(game)
         game.reset(board, bots, start_player)
 
         while not game.is_over():
