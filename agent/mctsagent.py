@@ -10,15 +10,14 @@ from common.move import Move
 from common.player import Player
 from agent.randomagent import RandomAgent
 
-
 class MCTSNode(object):
-
     DRAW = -1
 
-    def __init__(self, game, game_state, parent=None):
+    def __init__(self, game, game_state, parent=None, previous_point=None):
         self._game = game
         self._game_state = game_state
         self._parent = parent
+        self._previous_point = previous_point
         self._win_counts = {
             game.players[0].id: 0,
             game.players[1].id: 0,
@@ -35,6 +34,10 @@ class MCTSNode(object):
         return self._game_state
 
     @property
+    def previous_point(self):
+        return self._previous_point
+
+    @property
     def num_rollouts(self):
         return self._num_rollouts
 
@@ -47,13 +50,20 @@ class MCTSNode(object):
         return self._parent
 
     def get_child(self,point):
-        return self._children[point]
+        return self._children.get(point)
 
+    def add_child(self,new_point):
+        new_game_state = self._game.look_ahead_next_move(self._game_state, Move(new_point))
+        new_node = MCTSNode(self._game, new_game_state, self, new_point)
+        self._children[new_point]=new_node
+        return new_node
+    
+    
     def add_random_child(self):
         index = random.randint(0, len(self._unvisited_points)-1)
         new_point = self._unvisited_points.pop(index)
         new_game_state = self._game.look_ahead_next_move(self._game_state, Move(new_point))
-        new_node = MCTSNode(self._game, new_game_state, self)
+        new_node = MCTSNode(self._game, new_game_state, self, new_point)
         self._children[new_point]=new_node
         return new_node
 
@@ -74,8 +84,8 @@ class MCTSNode(object):
         return float(self._win_counts[player.id]/float(self._num_rollouts))
 
 
+
 class MCTSTree(object):
-    
     def __init__(self):
         self._working_node = None
     
@@ -91,11 +101,14 @@ class MCTSTree(object):
         self._working_node =None    
     
     
-    def go_down(self, point):
-        branch = self._working_node.get_child(point)
-        self._working_node = branch.child_node
+    def go_down(self,move):
+        if self._working_node is not None:
+            child = self._working_node.get_child(move.point)
+            if child is None:
+                child =  self._working_node.add_child(move.point)
+            
+            self._working_node = child
 
-        
 
 
 class MCTSAgent(Player):
@@ -170,7 +183,7 @@ class MCTSAgent(Player):
             winner = self._simulate_random_game_for_state(game,node.game_state)
 
             # backpropagate
-            while node is not None:
+            while node is not working_root:
                 node.record_win(winner)
                 node = node.parent
 
@@ -183,7 +196,7 @@ class MCTSAgent(Player):
                 best_win_ratio = child_win_ratio
                 best_point = child.previous_point
         
-        self._mcts_tree.go_down(best_point)
+        self._mcts_tree.go_down(Move(best_point))
 
         return Move(best_point)
 

@@ -40,6 +40,7 @@ import os
 from common.piece import Piece
 from common.point import Point
 
+alphabet = list(map(chr, range(65, 91)))
 
 class Board:
     """
@@ -61,12 +62,11 @@ class Board:
 
     """
 
-    alphabet = list(map(chr, range(65, 91)))
+    
 
     def __init__(self, board_size):
         self._board_size = board_size
-        self._column_indicator = ['  %s' % Board.alphabet[i]
-                                  for i in range(0, board_size)]
+        self._column_indicator = ['  %s' % alphabet[i] for i in range(0, board_size)]
         self._rows = tuple(range(1, board_size+1))
         self._cols = tuple(range(1, board_size+1))
 
@@ -74,11 +74,11 @@ class Board:
 
     @classmethod
     def get_column_indicator_index(cls, char):
-        return Board.alphabet.index(char)
+        return alphabet.index(char)
 
     @classmethod
     def get_column_indicator(cls, index):
-        return Board.alphabet[index]
+        return alphabet[index]
 
     @property
     def board_size(self):

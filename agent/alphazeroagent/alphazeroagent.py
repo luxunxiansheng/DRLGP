@@ -197,8 +197,9 @@ class AlphaZeroTree(object):
     
     
     def go_down(self, move):
-        branch = self._working_node.get_child_branch(move.point)
-        self._working_node = branch.child_node
+        if self._working_node is not None:
+            branch = self._working_node.get_child_branch(move.point)
+            self._working_node = branch.child_node
 
 
 def softmax(x):
