@@ -42,6 +42,7 @@ from common.point import Point
 
 alphabet = list(map(chr, range(65, 91)))
 
+
 class Board:
     """
     A chess borad ,which looks like this:
@@ -62,22 +63,21 @@ class Board:
 
     """
 
-    
-
     def __init__(self, board_size):
         self._board_size = board_size
         self._column_indicator = ['  %s' % alphabet[i] for i in range(0, board_size)]
         self._rows = tuple(range(1, board_size+1))
         self._cols = tuple(range(1, board_size+1))
-
         self._grid = {}
+        for row in self._rows:
+            for col in self._cols:
+                free_point = Point(row, col)
+                self._grid[free_point] = None
 
-
-    
     def clone(self):
         clone = Board(self._board_size)
         for key, value in self._grid.items():
-            clone._grid[key]=value
+            clone._grid[key] = value
         return clone
 
     @classmethod
@@ -112,12 +112,7 @@ class Board:
         return self._grid.get(point)
 
     def get_legal_points(self):
-        points = []
-        for row in self._rows:
-            for col in self._cols:
-                possible_point = Point(row, col)
-                if self.is_free_point(possible_point):
-                    points.append(possible_point)
+        points=[key for key, value in self._grid.items() if value is None]
         return points
 
     def is_free_point(self, point):
