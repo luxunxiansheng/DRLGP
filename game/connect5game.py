@@ -56,31 +56,30 @@ class Connect5Game(Game):
             # check vertical win
             for row in range(1, board.board_size+1-4):
                 for col in range(1, board.board_size):
-                    if board.get_piece_at_point(Point(row, col)) == player and board.get_piece_at_point(Point(row + 1, col)) == player and board.get_piece_at_point(Point(row + 2, col)) == player and board.get_piece_at_point(
-                            Point(row + 3, col)) == player and board.get_piece_at_point(Point(row + 4, col)) == player:
+                    if board.get_piece_at_point(Point(row, col)).owner_id == player and board.get_piece_at_point(Point(row + 1, col)).owner_id == player and board.get_piece_at_point(Point(row + 2, col)).owner_id == player and board.get_piece_at_point(
+                            Point(row + 3, col)).owner_id == player and board.get_piece_at_point(Point(row + 4, col)).owner_id == player:
                         return True
 
             # check horizontal win
             for row in range(1, board.board_size+1):
                 for col in range(1, board.board_size+1-4):
-                    if board.get_piece_at_point(Point(row, col)) == player and board.get_piece_at_point(Point(row, col + 1)) == player and board.get_piece_at_point(
-                            Point(row, col + 2)) == player and board.get_piece_at_point(Point(row, col + 3)) == player and board.get_piece_at_point(Point(row, col + 4)) == player:
+                    if board.get_piece_at_point(Point(row, col)).owner_id == player and board.get_piece_at_point(Point(row, col + 1)).owner_id == player and board.get_piece_at_point(
+                            Point(row, col + 2)).owner_id == player and board.get_piece_at_point(Point(row, col + 3)).owner_id == player and board.get_piece_at_point(Point(row, col + 4)).owner_id == player:
                         return True
 
             # check / diagonal win
             for row in range(5, board.board_size+1):
                 for col in range(1, board.board_size+1-4):
                     if board.get_piece_at_point(
-                            Point(row, col)) == player and board.get_piece_at_point(Point(row - 1, col + 1)) == player and board.get_piece_at_point(
-                            Point(row - 2, col + 2)) == player and board.get_piece_at_point(
-                            Point(row - 3, col + 3)) == player and board.get_piece_at_point(
-                            Point(row - 4, col + 4)) == player:
+                            Point(row, col)).owner_id == player and board.get_piece_at_point(Point(row - 1, col + 1)).owner_id == player and board.get_piece_at_point(
+                            Point(row - 2, col + 2)).owner_id == player and board.get_piece_at_point(Point(row - 3, col + 3)).owner_id == player and board.get_piece_at_point(
+                            Point(row - 4, col + 4)).owner_id == player:
                         return True
 
                     # check \ diagnoal win
             for row in range(1, board.board_size+1-4):
                 for col in range(1, board.board_size+1-4):
-                    if board.get_piece_at_point(Point(row, col)) == player and board.get_piece_at_point(Point(row + 1, col + 1)) == player and board.get_piece_at_point(Point(row + 2, col + 2)) == player and board.get_piece_at_point(Point(row + 3, col + 3)) == player and board.get_piece_at_point(Point(row + 4, col + 4)) == player:
+                    if board.get_piece_at_point(Point(row, col)).owner_id == player and board.get_piece_at_point(Point(row + 1, col + 1)).owner_id == player and board.get_piece_at_point(Point(row + 2, col + 2)).owner_id == player and board.get_piece_at_point(Point(row + 3, col + 3)).owner_id == player and board.get_piece_at_point(Point(row + 4, col + 4)).owner_id == player:
                         return True
         except:
             pass
@@ -96,7 +95,7 @@ class Connect5Game(Game):
             self._final_winner = self._players[1]
             return True
 
-        if all(game_state.board.get_piece_at_point(Point(row, col)) is not None for row in game_state.board.rows for col in game_state.board.cols):
+        if  len(game_state.board.get_legal_points())==0:
             self._final_winner = None
             return True
 

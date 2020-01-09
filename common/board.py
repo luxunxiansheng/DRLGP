@@ -63,22 +63,35 @@ class Board:
 
     """
 
-    def __init__(self, board_size):
+    def __init__(self, board_size,grid=None):
         self._board_size = board_size
         self._column_indicator = ['  %s' % alphabet[i] for i in range(0, board_size)]
         self._rows = tuple(range(1, board_size+1))
         self._cols = tuple(range(1, board_size+1))
         self._grid = {}
+        if grid is None:
+            self._init_grid()
+        else:
+            self._quick_copy(grid)
+        
+    
+
+    def _init_grid(self):
         for row in self._rows:
             for col in self._cols:
                 free_point = Point(row, col)
                 self._grid[free_point] = None
+    
 
-    def clone(self):
-        clone = Board(self._board_size)
-        for key, value in self._grid.items():
-            clone._grid[key] = value
-        return clone
+    def _quick_copy(self,grid):
+        for key,value in grid.items():
+            self._grid[key]=value
+        
+
+
+    @property
+    def grid(self):
+        return self._grid
 
     @classmethod
     def get_column_indicator_index(cls, char):
@@ -114,6 +127,9 @@ class Board:
     def get_legal_points(self):
         points=[key for key, value in self._grid.items() if value is None]
         return points
+
+        
+
 
     def is_free_point(self, point):
         return (self.get_piece_at_point(point) is None)

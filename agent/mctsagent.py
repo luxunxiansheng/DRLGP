@@ -10,6 +10,7 @@ from agent.randomagent import RandomAgent
 from common.gamestate import GameState
 from common.move import Move
 from common.player import Player
+from common.board import Board
 
 
 class MCTSNode(object):
@@ -113,7 +114,7 @@ class MCTSAgent(Player):
     def msct_tree(self):
         return self._mcts_tree
 
-    @profile
+    
     def select_move(self,game):
         # The basic MCTS process is described as below:
         #
@@ -158,9 +159,6 @@ class MCTSAgent(Player):
             
             # simulate: random rollout policy
             leaf_value= self._simulate_random_game_for_state(game_clone,node.game_state)
-
-
-
             node.update_recursively(working_root,-leaf_value)
             
         best_point= max(working_root.children.items(),key=lambda point_node: point_node[1].num_visits)[0]
@@ -170,13 +168,14 @@ class MCTSAgent(Player):
 
         return Move(best_point)
 
+    
     def _simulate_random_game_for_state(self, game,game_state):
         bots={}
         bots[game.players[0]]=RandomAgent(game.players[0], "RandomAgent0")
         bots[game.players[1]]=RandomAgent(game.players[1], "RandomAgent1")
         
         # current board status
-        board = game_state.board.clone()
+        board = Board(game_state.board.board_size,game_state.board.grid)
 
         # whose 's turn
         player_in_action = game_state.player_in_action
@@ -192,4 +191,4 @@ class MCTSAgent(Player):
         if winner is None:
             return 0
         else:
-            return 1 if winner.id == game_state.player_in_action else -1
+            return 1 if winner== game_state.player_in_action else -1
