@@ -145,3 +145,14 @@ class Board:
                 piece = self.get_piece_at_point(Point(row, col))
                 pieces.append(str(piece.owner_id)) if piece is not None else pieces.append(' ')
             print('%d %s' % (row, ' | '.join(pieces)))
+
+    def print_visits(self,childern):
+        print('**************************************************')
+
+        print(' '.join(self._column_indicator))
+
+        for row in range(1, self._board_size+1):
+            pieces = []
+            for col in range(1, self._board_size+1):
+                pieces.append('{:4d}'.format(childern.get(Point(row, col)).num_visits if childern.get(Point(row, col)) is not None else 0)) 
+            print('%d %s' % (row, ' | '.join(pieces)))

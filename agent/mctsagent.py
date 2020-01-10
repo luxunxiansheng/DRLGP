@@ -160,7 +160,9 @@ class MCTSAgent(Player):
             # simulate: random rollout policy
             leaf_value= self._simulate_random_game_for_state(game_clone,node.game_state)
             node.update_recursively(working_root,-leaf_value)
-            
+
+        working_root.game_state.board.print_visits(working_root.children)   
+
         best_point= max(working_root.children.items(),key=lambda point_node: point_node[1].num_visits)[0]
 
         
