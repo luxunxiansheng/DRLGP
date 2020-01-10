@@ -50,39 +50,51 @@ class Connect5Game(Game):
     ASSIGNED_PLAYER_ID_2 = 1
 
     @staticmethod
+    def _check_vertical_win(board, player):
+        for row in range(1, board.board_size+1-4):
+            for col in range(1, board.board_size+1):
+                if board.get_piece_at_point(Point(row, col)).owner_id == player and board.get_piece_at_point(Point(row + 1, col)).owner_id == player and board.get_piece_at_point(Point(row + 2, col)).owner_id == player and board.get_piece_at_point(Point(row + 3, col)).owner_id == player and board.get_piece_at_point(Point(row + 4, col)).owner_id == player:
+                    return True
+        return False
+
+    @staticmethod
+    def _check_horizontal_win(board, player):
+        for col in range(1, board.board_size+1-4):
+            for row in range(1, board.board_size+1):
+                if board.get_piece_at_point(Point(row, col)).owner_id == player and board.get_piece_at_point(Point(row, col + 1)).owner_id == player and board.get_piece_at_point(Point(row, col + 2)).owner_id == player and board.get_piece_at_point(Point(row, col + 3)).owner_id == player and board.get_piece_at_point(Point(row, col + 4)).owner_id == player:
+                    return True
+        return False
+
+    @staticmethod
+    def _check_left_diagonal_win(board, player):
+        for row in range(5, board.board_size+1):
+            for col in range(1, board.board_size+1-4):
+                if board.get_piece_at_point(Point(row, col)).owner_id == player and board.get_piece_at_point(Point(row - 1, col + 1)).owner_id == player and board.get_piece_at_point(Point(row - 2, col + 2)).owner_id == player and board.get_piece_at_point(Point(row - 3, col + 3)).owner_id == player and board.get_piece_at_point(Point(row - 4, col + 4)).owner_id == player:
+                    return True
+        return False
+
+    @staticmethod
+    def _check_right_diagonal_win(board, player):
+        for row in range(1, board.board_size+1-4):
+            for col in range(1, board.board_size+1-4):
+                if board.get_piece_at_point(Point(row, col)).owner_id == player and board.get_piece_at_point(Point(row + 1, col + 1)).owner_id == player and board.get_piece_at_point(Point(row + 2, col + 2)).owner_id == player and board.get_piece_at_point(Point(row + 3, col + 3)).owner_id == player and board.get_piece_at_point(Point(row + 4, col + 4)).owner_id == player:
+                    return True
+        return False
+
+    @staticmethod
     def _connect_5_into_a_line(board, player):
 
-        try:
-            # check vertical win
-            for row in range(1, board.board_size+1-4):
-                for col in range(1, board.board_size):
-                    if board.get_piece_at_point(Point(row, col)).owner_id == player and board.get_piece_at_point(Point(row + 1, col)).owner_id == player and board.get_piece_at_point(Point(row + 2, col)).owner_id == player and board.get_piece_at_point(
-                            Point(row + 3, col)).owner_id == player and board.get_piece_at_point(Point(row + 4, col)).owner_id == player:
-                        return True
+        if Connect5Game._check_vertical_win(board, player):
+            return True
 
-            # check horizontal win
-            for row in range(1, board.board_size+1):
-                for col in range(1, board.board_size+1-4):
-                    if board.get_piece_at_point(Point(row, col)).owner_id == player and board.get_piece_at_point(Point(row, col + 1)).owner_id == player and board.get_piece_at_point(
-                            Point(row, col + 2)).owner_id == player and board.get_piece_at_point(Point(row, col + 3)).owner_id == player and board.get_piece_at_point(Point(row, col + 4)).owner_id == player:
-                        return True
+        if Connect5Game._check_horizontal_win(board, player):
+            return True
 
-            # check / diagonal win
-            for row in range(5, board.board_size+1):
-                for col in range(1, board.board_size+1-4):
-                    if board.get_piece_at_point(
-                            Point(row, col)).owner_id == player and board.get_piece_at_point(Point(row - 1, col + 1)).owner_id == player and board.get_piece_at_point(
-                            Point(row - 2, col + 2)).owner_id == player and board.get_piece_at_point(Point(row - 3, col + 3)).owner_id == player and board.get_piece_at_point(
-                            Point(row - 4, col + 4)).owner_id == player:
-                        return True
+        if Connect5Game._check_left_diagonal_win(board, player):
+            return True
 
-                    # check \ diagnoal win
-            for row in range(1, board.board_size+1-4):
-                for col in range(1, board.board_size+1-4):
-                    if board.get_piece_at_point(Point(row, col)).owner_id == player and board.get_piece_at_point(Point(row + 1, col + 1)).owner_id == player and board.get_piece_at_point(Point(row + 2, col + 2)).owner_id == player and board.get_piece_at_point(Point(row + 3, col + 3)).owner_id == player and board.get_piece_at_point(Point(row + 4, col + 4)).owner_id == player:
-                        return True
-        except:
-            pass
+        if Connect5Game._check_right_diagonal_win(board, player):
+            return True
 
         return False
 
@@ -95,7 +107,7 @@ class Connect5Game(Game):
             self._final_winner = self._players[1]
             return True
 
-        if  len(game_state.board.get_legal_points())==0:
+        if len(game_state.board.get_legal_points()) == 0:
             self._final_winner = None
             return True
 

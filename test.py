@@ -10,7 +10,7 @@ import random
 def evaluate():
     
     mcts_tree = MCTSTree()
-    mcts_agent= MCTSAgent(Connect5Game.ASSIGNED_PLAYER_ID_1, "MCTSAgent", mcts_tree,4000, 5.0)
+    mcts_agent= MCTSAgent(Connect5Game.ASSIGNED_PLAYER_ID_1, "MCTSAgent", mcts_tree,1000, 5.0)
     human_player = HumanPlayer(Connect5Game.ASSIGNED_PLAYER_ID_2,"Human")
         
     board = Board(8)
@@ -20,7 +20,7 @@ def evaluate():
     players[human_player.id]= human_player
 
     #game = Connect5Game(board,[mcts_agent.id, human_player.id],  random.choice(list(players.keys())),state_cache_size=0)
-    game = Connect5Game(board,[mcts_agent.id, human_player.id], human_player.id, state_cache_size=0)
+    game = Connect5Game(board,[mcts_agent.id, human_player.id], mcts_agent.id, state_cache_size=0)
     
     while not game.is_over():
         move = players[game.working_game_state.player_in_action].select_move(game)

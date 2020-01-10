@@ -171,7 +171,7 @@ class MCTSAgent(Player):
         return Move(best_point)
 
     
-    def _simulate_random_game_for_state(self, game,game_state):
+    def _simulate_random_game_for_state(self,game,game_state):
         bots={}
         bots[game.players[0]]=RandomAgent(game.players[0], "RandomAgent0")
         bots[game.players[1]]=RandomAgent(game.players[1], "RandomAgent1")
@@ -187,8 +187,10 @@ class MCTSAgent(Player):
         while not game.is_over():
             move = bots[game.working_game_state.player_in_action].select_move(game)
             game.apply_move(move)
-            #game.working_game_state.board.print_board()
-        winner = game.get_winner(game.working_game_state)
+            game.working_game_state.board.print_board()
+        
+        winner = game.final_winner
+        game.working_game_state.board.print_board()
 
         if winner is None:
             return 0

@@ -80,7 +80,7 @@ class Board:
         for row in self._rows:
             for col in self._cols:
                 free_point = Point(row, col)
-                self._grid[free_point] = None
+                self._grid[free_point] = Piece(-1,free_point)
     
 
     def _quick_copy(self,grid):
@@ -115,7 +115,7 @@ class Board:
 
     def place_piece(self, piece):
         assert self.point_is_on_grid(piece.point)
-        assert self.get_piece_at_point(piece.point) is None
+        assert self.get_piece_at_point(piece.point).owner_id==-1
         self._grid[piece.point] = piece
 
     def point_is_on_grid(self, point):
@@ -125,10 +125,8 @@ class Board:
         return self._grid.get(point)
 
     def get_legal_points(self):
-        points=[key for key, value in self._grid.items() if value is None]
+        points=[key for key, value in self._grid.items() if value.owner_id == -1]
         return points
-
-        
 
 
     def is_free_point(self, point):
@@ -143,7 +141,7 @@ class Board:
             pieces = []
             for col in range(1, self._board_size+1):
                 piece = self.get_piece_at_point(Point(row, col))
-                pieces.append(str(piece.owner_id)) if piece is not None else pieces.append(' ')
+                pieces.append(str(piece.owner_id)) if piece.owner_id != -1 else pieces.append(' ')
             print('%d %s' % (row, ' | '.join(pieces)))
 
     def print_visits(self,childern):
