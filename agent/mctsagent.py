@@ -7,17 +7,16 @@ from profilehooks import profile
 from tqdm import tqdm
 
 from agent.randomagent import RandomAgent
+from game.connect5game import Connect5Game
 from common.gamestate import GameState
 from common.move import Move
 from common.player import Player
 from common.board import Board
 
 
-class MCTSNode(object):
-    DRAW = -1
 
-    def __init__(self, game, game_state, prior_p, parent=None):
-        self._game = game
+class MCTSNode(object):
+    def __init__(self, game_state, prior_p, parent=None):
         self._game_state = game_state
         self._parent = parent
         self._children = {}
@@ -60,14 +59,14 @@ class MCTSNode(object):
     def get_child(self,point):
         return self._children.get(point)
 
-    def add_child(self,new_point,prior):
-        new_game_state = self._game.look_ahead_next_move(self._game_state, Move(new_point))
-        new_node = MCTSNode(self._game, new_game_state,prior,self)
+    def add_child(self,game,new_point,prior):
+        new_game_state = game.look_ahead_next_move(self._game_state, Move(new_point))
+        new_node = MCTSNode(new_game_state,prior,self)
         self._children[new_point]=new_node
         return new_node
 
-    def is_terminal(self):
-        return self._game.is_final_state(self._game_state)
+    def is_terminal(self,game):
+        return game.is_final_state(self._game_state)
 
     def get_value(self,c_puct):
         """
@@ -93,25 +92,25 @@ class MCTSTree(object):
     def reset(self):
         self._working_node =None    
     
-    
-    def go_down(self,move):
+    def go_down(self,game,move):
         if self._working_node is not None:
             child = self._working_node.get_child(move.point)
             if child is None:
-                child =  self._working_node.add_child(move.point)
+                if not self._working_node.is_terminal(game):
+                    child =  self._working_node.add_child(game,move.point,1.0)
             
             self._working_node = child
 
 class MCTSAgent(Player):
-    def __init__(self, id, name,tree,num_rounds, temperature):
+    def __init__(self, id, name,num_rounds, temperature):
         super().__init__(id, name)
         self._num_rounds = num_rounds
         self._temperature = temperature
-        self._mcts_tree = tree
+        self._mcts_tree = MCTSTree()
     
 
     @property
-    def msct_tree(self):
+    def mcts_tree(self):
         return self._mcts_tree
 
     
@@ -138,59 +137,59 @@ class MCTSAgent(Player):
         #
         
         if self._mcts_tree.working_node is None:
-            self._mcts_tree.working_node= MCTSNode(game,game.working_game_state,1.0,None)
-
-        working_root= self._mcts_tree.working_node
-        game_clone= copy.deepcopy(game)
-
+            self._mcts_tree.working_node= MCTSNode(game.working_game_state,1.0,None)
+        
+        
         for _ in tqdm(range(self._num_rounds)):
-            node = working_root
+            node = self._mcts_tree.working_node
             while True:
                 if node.is_leaf():
                     break
                 # select: based on a UCT policy
                 node = node.select(self._temperature)
             
-            if not node.is_terminal():
+            if not node.is_terminal(game):
                 free_points = node.game_state.board.get_legal_points()
                 prior= 1.0/len(free_points)
                 for point in free_points:
-                    node.add_child(point,prior)
+                    node.add_child(game,point,prior)
             
             # simulate: random rollout policy
-            leaf_value= self._simulate_random_game_for_state(game_clone,node.game_state)
-            node.update_recursively(working_root,-leaf_value)
+            leaf_value= self._simulate_random_game_for_state(node.game_state)
+            node.update_recursively(self._mcts_tree.working_node,-leaf_value)
 
-        working_root.game_state.board.print_visits(working_root.children)   
+        self._mcts_tree.working_node.game_state.board.print_visits(self._mcts_tree.working_node.children)   
 
-        best_point= max(working_root.children.items(),key=lambda point_node: point_node[1].num_visits)[0]
+        best_point= max(self._mcts_tree.working_node.children.items(),key=lambda point_node: point_node[1].num_visits)[0]
 
-        
-        self._mcts_tree.go_down(Move(best_point))
+        self._mcts_tree.go_down(game,Move(best_point))
 
         return Move(best_point)
 
     
-    def _simulate_random_game_for_state(self,game,game_state):
+    def _simulate_random_game_for_state(self,game_state):
+        random_agent_0= RandomAgent(Connect5Game.ASSIGNED_PLAYER_ID_1,"RandomAgent0")
+        random_agent_1= RandomAgent(Connect5Game.ASSIGNED_PLAYER_ID_2,"RandomAgent1")
+        
         bots={}
-        bots[game.players[0]]=RandomAgent(game.players[0], "RandomAgent0")
-        bots[game.players[1]]=RandomAgent(game.players[1], "RandomAgent1")
+        bots[random_agent_0.id]=random_agent_0
+        bots[random_agent_1.id]=random_agent_1
         
         # current board status
         board = Board(game_state.board.board_size,game_state.board.grid)
+        init_game_state= GameState(board,game_state.player_in_action,None)
 
-        # whose 's turn
-        player_in_action = game_state.player_in_action
-        
-        game.reset(board, [bots[0].id, bots[1].id], player_in_action)
+        game = Connect5Game(init_game_state,[random_agent_0.id,random_agent_1.id],0) 
+
+        #game.working_game_state.board.print_board()
 
         while not game.is_over():
             move = bots[game.working_game_state.player_in_action].select_move(game)
             game.apply_move(move)
-            game.working_game_state.board.print_board()
+        
         
         winner = game.final_winner
-        game.working_game_state.board.print_board()
+        #game.working_game_state.board.print_board()
 
         if winner is None:
             return 0

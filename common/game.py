@@ -71,20 +71,16 @@ class Game:
     """
     A abstract class about Game. Essentially, it contains a player list and a current working state. 
     """
-    def __init__(self, board, playerlist, start_player, state_cache_size=10, is_self_play=False):
+    def __init__(self,init_game_state, playerlist, state_cache_size=10, is_self_play=False):
         self._players = playerlist
-        self._working_game_state = GameState(board, start_player, None)
+        self._working_game_state = init_game_state
         self._final_winner = None
         self._is_selfplay = is_self_play
         self._state_cache = Game_State_Memory(state_cache_size)
         self._state_cache.push(self._working_game_state)
 
-    def reset(self, board, playerlist, start_player, is_self_play=False):
-        self._players = playerlist
-        self._working_game_state = GameState(board, start_player, None)
-        self._final_winner = None
-        self._is_selfplay = is_self_play
-        self._state_cache.clear()
+    
+
 
     @property
     def state_cache(self):
