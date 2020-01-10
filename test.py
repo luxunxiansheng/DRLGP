@@ -1,11 +1,12 @@
-from agent.mctsagent import MCTSTree,MCTSNode
-from agent.mctsagent import MCTSAgent
+import random
+
 from agent.humanplayer import HumanPlayer
+from agent.mctsagent import MCTSAgent, MCTSNode, MCTSTree
 from common.board import Board
 from common.gamestate import GameState
 from common.utils import Utils
 from game.connect5game import Connect5Game
-import random
+from memory_profiler import profile
 
 
 def evaluate():
@@ -41,8 +42,3 @@ def evaluate():
 
 if __name__ == '__main__':
     evaluate()
-
-
-
-
-

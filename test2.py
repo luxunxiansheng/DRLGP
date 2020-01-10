@@ -9,13 +9,14 @@ def get_num_2():
     print("2")
     return 2
 
+names = {1:"a", 2:"b",3:"c"}
 
-def get_num_3():
-    print("3")
-    return 1
+print(names)
 
+names.pop(1)
 
-if get_num_1()==get_num_2()==get_num_3():
-    print("True")
+print(names)
 
-print("done")
+name= names.pop(4)
+
+print(name)

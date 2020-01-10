@@ -55,6 +55,10 @@ class MCTSNode(object):
     @property
     def parent(self):
         return self._parent
+    
+    @parent.setter
+    def parent(self,value):
+        self._parent = value
 
     def get_child(self,point):
         return self._children.get(point)
@@ -94,11 +98,13 @@ class MCTSTree(object):
     
     def go_down(self,game,move):
         if self._working_node is not None:
-            child = self._working_node.get_child(move.point)
-            if child is None:
+            if move.point in self._working_node.children:
+                child=self.working_node.children.pop(move.point)
+                child.parent= None  
+            else:
                 if not self._working_node.is_terminal(game):
-                    child =  self._working_node.add_child(game,move.point,1.0)
-            
+                    new_game_state = game.look_ahead_next_move(self._working_node.game_state, Move(new_point))
+                    child = MCTSNode(new_game_state,1.0,None)
             self._working_node = child
 
 class MCTSAgent(Player):
