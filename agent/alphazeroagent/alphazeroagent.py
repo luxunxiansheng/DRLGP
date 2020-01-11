@@ -114,8 +114,6 @@ class AlphaZeroAgent(Player):
             if not game.is_final_state(node.game_state):
                 # encode  the last specified boards as the root
                 board_matrix = self._encoder.encode(game_state_memory.game_states, node.game_state.player_in_action, node.game_state.previous_move)
-                print(board_matrix)
-                print("-----------------------------------------")
                 estimated_priors , estimated_state_value = self._predict(board_matrix) 
                 leaf_value = estimated_state_value[0].item()
                 

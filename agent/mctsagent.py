@@ -76,8 +76,7 @@ class MCTSAgent(Player):
 
             node.update_recursively(self._mcts_tree.working_node, -leaf_value)
 
-        self._mcts_tree.working_node.game_state.board.print_visits(
-            self._mcts_tree.working_node.children)
+        #self._mcts_tree.working_node.game_state.board.print_visits(self._mcts_tree.working_node.children)
 
         best_point = max(self._mcts_tree.working_node.children.items(
         ), key=lambda point_node: point_node[1].num_visits)[0]

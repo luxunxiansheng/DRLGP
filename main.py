@@ -372,10 +372,10 @@ class Trainer(object):
 
         while not game.is_over():
             move = players[game.working_game_state.player_in_action].select_move(game)
-            if players[0].id == game.working_game_state.player_in_action.id:
-                players[1].msct_tree.go_down(move)
+            if players[0].id == game.working_game_state.player_in_action:
+                players[1].mcts_tree.go_down(game,move)
             else:
-                players[0].msct_tree.go_down(move)
+                players[0].mcts_tree.go_down(game,move)
 
             game.apply_move(move)
 
@@ -406,10 +406,10 @@ class Trainer(object):
 
         while not game.is_over():
             move = players[game.working_game_state.player_in_action].select_move(game)
-            if players[0].id == game.working_game_state.player_in_action.id:
-                players[1].msct_tree.go_down(move)
+            if players[0].id == game.working_game_state.player_in_action:
+                players[1].mcts_tree.go_down(game,move)
             else:
-                players[0].msct_tree.go_down(move)
+                players[0].mcts_tree.go_down(game,move)
 
             game.apply_move(move)
 
