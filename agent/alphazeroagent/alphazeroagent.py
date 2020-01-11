@@ -106,7 +106,7 @@ class AlphaZeroAgent(Player):
             while True:
                 if node.is_leaf():
                     break
-                node = node.select(self._temperature)
+                node = node.select(self._cpuct)
                 game_state_memory.push(node.game_state)
 
 
@@ -114,7 +114,9 @@ class AlphaZeroAgent(Player):
             if not game.is_final_state(node.game_state):
                 # encode  the last specified boards as the root
                 board_matrix = self._encoder.encode(game.state_cache.game_states, game.working_game_state.player_in_action, game.working_game_state.previous_move)
-                estimated_priors , leaf_value = self._predict(board_matrix) 
+                estimated_priors , estimated_state_value = self._predict(board_matrix) 
+                leaf_value = estimated_state_value[0].item()
+                
                 free_points=node.game_state.board.get_legal_points()
                 for point in free_points:
                     idx = self._encoder.encode_point(point)
@@ -125,7 +127,7 @@ class AlphaZeroAgent(Player):
 
             node.update_recursively(self._mcts_tree.working_node,-leaf_value)
 
-        self._mcts_tree.working_node.game_state.board.print_visits(self._mcts_tree.working_node.children)   
+        #self._mcts_tree.working_node.game_state.board.print_visits(self._mcts_tree.working_node.children)   
                     
         free_points = []
         visit_counts_of_free_points = []
