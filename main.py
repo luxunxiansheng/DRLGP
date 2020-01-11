@@ -57,12 +57,12 @@ from agent.alphazeroagent.experiencebuffer import ExpericenceBuffer
 from agent.alphazeroagent.experiencecollector import ExperienceCollector
 from agent.alphazeroagent.alphazeroagent import AlphaZeroTree 
 from agent.mctsagent import MCTSAgent
-from agent.mctsagent import MCTSTree
 from boardencoder.blackwhiteencoder import BlackWhiteEncoder
 from boardencoder.snapshotencoder import SnapshotEncoder
 from boardencoder.deepmindencoder import DeepMindEncoder
 from common.board import Board
 from common.utils import Utils
+from common.gamestate import GameState
 from game.connect5game import Connect5Game
 
 
@@ -355,20 +355,21 @@ class Trainer(object):
 
     def _evaluate_policy_once(self):
         device = self._gpu_devices[0] if self._use_cuda else self._cpu_device
-        mcts_tree = MCTSTree()
-        mcts_agent = MCTSAgent(Connect5Game.ASSIGNED_PLAYER_ID_1, "MCTSAgent", mcts_tree,self._basic_mcts_rounds_per_move, self._basic_mcts_temperature)
-        
-        alphazero_tree= AlphaZeroTree()
-        az_agent = AlphaZeroAgent(Connect5Game.ASSIGNED_PLAYER_ID_2, "AlphaZeroAgent",self._encoder, self._model, alphazero_tree, self._az_mcts_rounds_per_move, self._c_puct,self._az_mcts_temperature,device=device)
+        mcts_agent = MCTSAgent(Connect5Game.ASSIGNED_PLAYER_ID_1, "MCTSAgent",self._basic_mcts_rounds_per_move, self._basic_mcts_temperature)
+        az_agent = AlphaZeroAgent(Connect5Game.ASSIGNED_PLAYER_ID_2, "AlphaZeroAgent",self._encoder, self._model,self._az_mcts_rounds_per_move, self._c_puct,self._az_mcts_temperature,device=device)
 
         board = Board(self._board_size)
-        players = [mcts_agent, az_agent]
+        players = {}
+        players[mcts_agent.id]= mcts_agent
+        players[az_agent.id] = az_agent
 
+        start_game_state= GameState(board,mcts_agent.id,None)
+        
         # MCTS agent always plays first
-        game = Connect5Game(board, players, players[0], self._number_of_planes, is_self_play=False)
+        game = Connect5Game(start_game_state,[mcts_agent.id,az_agent.id],is_self_play=False)
 
         while not game.is_over():
-            move = game.working_game_state.player_in_action.select_move(game)
+            move = players[game.working_game_state.player_in_action].select_move(game)
             if players[0].id == game.working_game_state.player_in_action.id:
                 players[1].msct_tree.go_down(move)
             else:
@@ -376,42 +377,47 @@ class Trainer(object):
         
             game.apply_move(move)
 
-            game.working_game_state.board.print_board()
-
+            
         winner = game.final_winner
 
-        self._logger.debug('Winner is {}'.format(winner.name))
+        self._logger.debug('Winner is {}'.format(players[winner].name))
 
         score = 0
-        if winner.id == az_agent.id:
+        if winner== az_agent.id:
             score=1  
-
         return score
 
     @staticmethod
     def _evaluate_policy_once_in_parallel(basic_mcts_round_per_moves, basic_mcts_temperature, az_mcts_temperature,encoder, model, az_mcts_round_per_moves,c_puct, device, board_size, number_of_planes, pipe):
-        mcts_tree = Tree()
         mcts_agent = MCTSAgent(Connect5Game.ASSIGNED_PLAYER_ID_1, "MCTSAgent",basic_mcts_round_per_moves, basic_mcts_temperature)
-        az_agent = AlphaZeroAgent(Connect5Game.ASSIGNED_PLAYER_ID_2, "AlphaZeroAgent",encoder, model, mcts_tree, az_mcts_round_per_moves,c_puct, az_mcts_temperature,device=device)
+        az_agent = AlphaZeroAgent(Connect5Game.ASSIGNED_PLAYER_ID_2, "AlphaZeroAgent",encoder, model,az_mcts_round_per_moves,c_puct, az_mcts_temperature,device=device)
 
-        board = Board(board_size)
-        players = [mcts_agent, az_agent]
+        board = Board(self._board_size)
+        players = {}
+        players[mcts_agent.id]= mcts_agent
+        players[az_agent.id] = az_agent
 
-        game = Connect5Game(board, players, players[random.choice(
-            [0, 1])], number_of_planes, is_self_play=False)
+        start_game_state= GameState(board,mcts_agent.id,None)
+
+        # MCTS agent always plays first
+        game = Connect5Game(start_game_state,[mcts_agent.id,az_agent.id],is_self_play=False)
+
 
         while not game.is_over():
-            move = game.working_game_state.player_in_action.select_move(game)
-            game.apply_move(move)
+            move = players[game.working_game_state.player_in_action].select_move(game)
+            if players[0].id == game.working_game_state.player_in_action.id:
+                players[1].msct_tree.go_down(move)
+            else:
+                players[0].msct_tree.go_down(move)     
 
-            # game.working_game_state.board.print_board()
+            game.apply_move(move)
 
         # game.working_game_state.board.print_board()
 
         winner = game.final_winner
 
         score = 0
-        if winner.id == az_agent.id:
+        if winner== az_agent.id:
             score=1  
 
         
@@ -513,8 +519,8 @@ class Trainer(object):
 
                         # update the best_policy
                         torch.save(self._checkpoint, self._best_checkpoint_file)
-                        if (best_ratio == 1.0 and self._basic_mcts_rounds_per_move < 6000):
-                            self._basic_mcts_rounds_per_move += 500
+                        if (best_ratio == 1.0 and self._basic_mcts_rounds_per_move < 8000):
+                            self._basic_mcts_rounds_per_move += 1000
                             self._logger.debug('current basic_mcts_round_moves:{}'.format(
                                 self._basic_mcts_rounds_per_move))
                             best_ratio = 0.0

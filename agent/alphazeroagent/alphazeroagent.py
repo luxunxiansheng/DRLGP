@@ -209,20 +209,25 @@ def softmax(x):
 
 
 class AlphaZeroAgent(Player):
-    def __init__(self, id, name, encoder, model, mcts_tree, num_rounds, c_puct, temperature=1.0, device='cpu'):
+    def __init__(self, id, name, encoder, model, num_rounds, c_puct, temperature=1.0, device='cpu'):
         super().__init__(id, name)
         self._encoder = encoder
         self._device = device
         self._model = model.to(device)
         self._num_rounds = num_rounds
         self._experience_collector = ExperienceCollector()
-        self._mcts_tree = mcts_tree
+        self._mcts_tree = AlphaZeroTree()
         self._cpuct = c_puct
         self._temperature = temperature
     
     @property
-    def msct_tree(self):
+    def mcts_tree(self):
         return self._mcts_tree
+  
+    @mcts_tree.setter
+    def mcts_tree(self,tree):
+        self._mcts_tree = tree
+
 
     @property
     def experience_collector(self):
