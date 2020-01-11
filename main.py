@@ -46,8 +46,6 @@ import torch.multiprocessing as mp
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-from models.ResNet8Network import ResNet8Network
-from models.Simple5Network import Simple5Network
 from torch.nn import DataParallel
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
@@ -55,15 +53,15 @@ from tqdm import tqdm
 from agent.alphazeroagent.alphazeroagent import AlphaZeroAgent
 from agent.alphazeroagent.experiencebuffer import ExpericenceBuffer
 from agent.alphazeroagent.experiencecollector import ExperienceCollector
-from agent.alphazeroagent.alphazeroagent import AlphaZeroTree 
-from agent.mctsagent import MCTSAgent
 from boardencoder.blackwhiteencoder import BlackWhiteEncoder
-from boardencoder.snapshotencoder import SnapshotEncoder
 from boardencoder.deepmindencoder import DeepMindEncoder
+from boardencoder.snapshotencoder import SnapshotEncoder
 from common.board import Board
-from common.utils import Utils
 from common.gamestate import GameState
+from common.utils import Utils
 from game.connect5game import Connect5Game
+from models.ResNet8Network import ResNet8Network
+from models.Simple5Network import Simple5Network
 
 
 class Trainer(object):
@@ -87,7 +85,7 @@ class Trainer(object):
 
 
         self._basic_mcts_temperature = cfg['BASIC_MCTS'].getfloat(
-            'temperature')
+            'C_puct')
         self._basic_mcts_rounds_per_move = cfg['BASIC_MCTS'].getint(
             'rounds_per_move')
 
@@ -427,7 +425,7 @@ class Trainer(object):
 
             game.apply_move(move)
 
-        # game.working_game_state.board.print_board()
+        game.working_game_state.board.print_board()
 
         winner = game.final_winner
 

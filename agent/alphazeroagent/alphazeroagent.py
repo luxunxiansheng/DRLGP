@@ -97,7 +97,7 @@ class AlphaZeroAgent(Player):
         root_board_matrix = self._encoder.encode(game.state_cache.game_states, game.working_game_state.player_in_action, game.working_game_state.previous_move)
 
         if self._mcts_tree.working_node is None:
-            self._mcts_tree.working_node = MCTSNode(game.working_game_sate,1.0,None)
+            self._mcts_tree.working_node = MCTSNode(game.working_game_state,1.0,None)
 
         for _ in tqdm(range(self._num_rounds), desc='Rollout Loop'):
             node = self._mcts_tree.working_node
@@ -114,10 +114,11 @@ class AlphaZeroAgent(Player):
             if not game.is_final_state(node.game_state):
                 # encode  the last specified boards as the root
                 board_matrix = self._encoder.encode(game.state_cache.game_states, game.working_game_state.player_in_action, game.working_game_state.previous_move)
-                estimated_priors, leaf_value = self._predict(board_matrix) 
+                estimated_priors , leaf_value = self._predict(board_matrix) 
                 free_points=node.game_state.board.get_legal_points()
                 for point in free_points:
-                    node.add_child(game,point,estimated_priors[point])
+                    idx = self._encoder.encode_point(point)
+                    node.add_child(game,point,estimated_priors[0][idx].item())
             else:
                 if game.final_winner is not None:
                     leaf_value = 1.0 if game.final_winner == node.game_state.player_in_action else -1.0
