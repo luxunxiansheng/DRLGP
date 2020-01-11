@@ -178,17 +178,25 @@ class Trainer(object):
 
     @staticmethod
     def _collect_data_once_in_parallel(encoder, model, az_mcts_round_per_moves, board_size, number_of_planes,c_puct,az_mcts_temperature,device,pipe):
-        mcts_tree = AlphaZeroTree()
-        agent_1 = AlphaZeroAgent(Connect5Game.ASSIGNED_PLAYER_ID_1, "AlphaZeroAgent1",encoder, model, mcts_tree, az_mcts_round_per_moves,c_puct,az_mcts_temperature,device=device)
-        agent_2 = AlphaZeroAgent(Connect5Game.ASSIGNED_PLAYER_ID_2, "AlphaZeroAgent2",encoder, model, mcts_tree, az_mcts_round_per_moves,c_puct,az_mcts_temperature, device=device)
+        
+        agent_1 = AlphaZeroAgent(Connect5Game.ASSIGNED_PLAYER_ID_1, "AlphaZeroAgent1",encoder, model, az_mcts_round_per_moves,c_puct,az_mcts_temperature,device=device)
+        agent_2 = AlphaZeroAgent(Connect5Game.ASSIGNED_PLAYER_ID_2, "AlphaZeroAgent2",encoder, model, az_mcts_round_per_moves,c_puct,az_mcts_temperature, device=device)
+        agent_2.mcts_tree = agent_1.mcts_tree
 
         board = Board(board_size)
-        players = [agent_1, agent_2]
-        game = Connect5Game(board, players,  players[random.choice([0, 1])], number_of_planes, True)
+        players = {agent_1.id:agent_1, agent_2.id: agent_2}
+        start_game_state = GameState(board,random.choice([agent_1.id,agent_2.id]),None)
+        game = Connect5Game(start_game_state,[agent_1.id,agent_2.id],is_self_play=True)
 
         while not game.is_over():
-            move = game.working_game_state.player_in_action.select_move(game)
+            move = players[game.working_game_state.player_in_action].select_move(game)
+            if players[0].id == game.working_game_state.player_in_action.id:
+                players[1].msct_tree.go_down(move)
+            else:
+                players[0].msct_tree.go_down(move)     
+                    
             game.apply_move(move)
+            
             
 
             # game.working_game_state.board.print_board()
@@ -198,10 +206,10 @@ class Trainer(object):
         winner = game.final_winner
 
         if winner is not None:
-            if winner == players[0]:
+            if winner == players[0].id:
                 players[0].experience_collector.complete_episode(reward=1)
                 players[1].experience_collector.complete_episode(reward=-1)
-            if winner == players[1]:
+            if winner == players[1].id:
                 players[1].experience_collector.complete_episode(reward=1)
                 players[0].experience_collector.complete_episode(reward=-1)
 
@@ -248,29 +256,36 @@ class Trainer(object):
     def _collect_data_once(self):
 
         device = self._gpu_devices[0] if self._use_cuda else self._cpu_device
-        mcts_tree = AlphaZeroTree()
-        agent_1 = AlphaZeroAgent(Connect5Game.ASSIGNED_PLAYER_ID_1, "AlphaZeroAgent1",self._encoder, self._model, mcts_tree, self._az_mcts_rounds_per_move, self._c_puct,self._az_mcts_temperature,device=device)
-        agent_2 = AlphaZeroAgent(Connect5Game.ASSIGNED_PLAYER_ID_2, "AlphaZeroAgent2",self._encoder, self._model, mcts_tree, self._az_mcts_rounds_per_move, self._c_puct,self._az_mcts_temperature,device=device)
+        agent_1 = AlphaZeroAgent(Connect5Game.ASSIGNED_PLAYER_ID_1, "AlphaZeroAgent1",self._encoder, self._model, self._az_mcts_rounds_per_move, self._c_puct,self._az_mcts_temperature,device=device)
+        agent_2 = AlphaZeroAgent(Connect5Game.ASSIGNED_PLAYER_ID_2, "AlphaZeroAgent2",self._encoder, self._model, self._az_mcts_rounds_per_move, self._c_puct,self._az_mcts_temperature,device=device)
+        
+        # Two agents use the same tree to save the memory and improve the efficency 
+        agent_2.mcts_tree = agent_1.mcts_tree 
 
         board = Board(self._board_size)
-        players = [agent_1, agent_2]
-        game = Connect5Game(board, players,  players[random.choice([0, 1])], self._number_of_planes, True)
-
+        players = {agent_1.id:agent_1, agent_2.id: agent_2}
+        start_game_state = GameState(board,random.choice([agent_1.id,agent_2.id]),None)
+        game = Connect5Game(start_game_state,[agent_1.id,agent_2.id],is_self_play=True)
         while not game.is_over():
-            move = game.working_game_state.player_in_action.select_move(game)
+            move = players[game.working_game_state.player_in_action].select_move(game)
+            if players[0].id == game.working_game_state.player_in_action.id:
+                players[1].msct_tree.go_down(move)
+            else:
+                players[0].msct_tree.go_down(move)     
+                    
             game.apply_move(move)
             
-            game.working_game_state.board.print_board()
+            #game.working_game_state.board.print_board()
 
         # game.working_game_state.board.print_board()
         # self._logger.info(game.final_winner.name)
 
         winner = game.final_winner
         if winner is not None:
-            if winner == players[0]:
+            if winner == players[0].id:
                 players[0].experience_collector.complete_episode(reward=1)
                 players[1].experience_collector.complete_episode(reward=-1)
-            if winner == players[1]:
+            if winner == players[1].id:
                 players[1].experience_collector.complete_episode(reward=1)
                 players[0].experience_collector.complete_episode(reward=-1)
 
@@ -392,7 +407,7 @@ class Trainer(object):
         mcts_agent = MCTSAgent(Connect5Game.ASSIGNED_PLAYER_ID_1, "MCTSAgent",basic_mcts_round_per_moves, basic_mcts_temperature)
         az_agent = AlphaZeroAgent(Connect5Game.ASSIGNED_PLAYER_ID_2, "AlphaZeroAgent",encoder, model,az_mcts_round_per_moves,c_puct, az_mcts_temperature,device=device)
 
-        board = Board(self._board_size)
+        board = Board(board_size)
         players = {}
         players[mcts_agent.id]= mcts_agent
         players[az_agent.id] = az_agent
