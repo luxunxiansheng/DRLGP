@@ -69,8 +69,6 @@ class MCTSNode(object):
         self._children[new_point]=new_node
         return new_node
 
-    def is_terminal(self,game):
-        return game.is_final_state(self._game_state)
 
     def get_value(self,c_puct):
         """
@@ -102,9 +100,11 @@ class MCTSTree(object):
                 child=self.working_node.children.pop(move.point)
                 child.parent= None  
             else:
-                if not self._working_node.is_terminal(game):
-                    new_game_state = game.look_ahead_next_move(self._working_node.game_state, Move(new_point))
+                if not game.is_final_state(self._working_node.game_state):
+                    new_game_state = game.look_ahead_next_move(self._working_node.game_state, move)
                     child = MCTSNode(new_game_state,1.0,None)
+                else:
+                    child = None
             self._working_node = child
 
 class MCTSAgent(Player):
@@ -154,14 +154,18 @@ class MCTSAgent(Player):
                 # select: based on a UCT policy
                 node = node.select(self._temperature)
             
-            if not node.is_terminal(game):
+            leaf_value= 0.0
+            if  not game.is_final_state(node.game_state):
                 free_points = node.game_state.board.get_legal_points()
                 prior= 1.0/len(free_points)
                 for point in free_points:
                     node.add_child(game,point,prior)
-            
-            # simulate: random rollout policy
-            leaf_value= self._simulate_random_game_for_state(node.game_state)
+                # simulate: random rollout policy
+                leaf_value= self._simulate_random_game_for_state(node.game_state)
+            else:
+                if game.final_winner is not None:
+                    leaf_value = 1.0 if game.final_winner ==  node.game_state.player_in_action else -1.0 
+                        
             node.update_recursively(self._mcts_tree.working_node,-leaf_value)
 
         self._mcts_tree.working_node.game_state.board.print_visits(self._mcts_tree.working_node.children)   
@@ -198,6 +202,6 @@ class MCTSAgent(Player):
         #game.working_game_state.board.print_board()
 
         if winner is None:
-            return 0
+            return 0.0
         else:
-            return 1 if winner== game_state.player_in_action else -1
+            return 1.0 if winner== game_state.player_in_action else -1.0

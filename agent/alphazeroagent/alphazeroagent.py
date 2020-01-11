@@ -53,137 +53,73 @@ from common.gamestate import GameState
 from common.move import Move
 from common.player import Player
 
-
-class Branch(object):
-    def __init__(self, parent_node,move,prior):
-        self._move = move
-        self._total_value = 0.0
-        self._prior = prior
-        self._visit_counts = 0
-
-        self._parent_node  = parent_node
-        self._child_node = None
-    
-    @property
-    def move(self):
-        return self._move
-
-    @property
-    def prior(self):
-        return self._prior
-
-    @property
-    def total_value(self):
-        return self._total_value
-
-    @total_value.setter
-    def total_value(self, value):
-        self._total_value = value
-
-    @property
-    def visit_counts(self):
-        return self._visit_counts
-
-    @visit_counts.setter
-    def visit_counts(self, value):
-        self._visit_counts = value
-    
-    @property
-    def expected_value(self):
-        return self._total_value/self._visit_counts if self._visit_counts!=0 else 0
-
-    @property
-    def parent_node(self):
-        return self._parent_node
-
-    @property
-    def child_node(self):
-        return self._child_node    
-
-    def add_child_node(self, node):
-        self._child_node = node
-
-class Node(object):
-    def __init__(self, game_state, game_state_value, parent_branch, c_puct=5.0):
+class MCTSNode(object):
+    def __init__(self, game_state, prior_p, parent=None):
         self._game_state = game_state
+        self._parent = parent
+        self._children = {}
+        self._num_visits = 0
         
-        self._game_state_value = game_state_value
-        self._total_visit_counts = 1
+        self._Q = 0
+        self._P = prior_p
+        self._u = 0
 
-        self._parent_branch = parent_branch
-        self._children_branch = {}
+    def select(self,c_puct):
+        child=max(self._children.items(),key=lambda point_node: point_node[1].get_value(c_puct))
+        return child[1]
+    
+    def update_recursively(self,root_node,leaf_value):
+        if self!=root_node and self._parent:
+            self._parent.update_recursively(root_node,-leaf_value)
+                
+        self._num_visits +=1
+        self._Q += 1.0*(leaf_value-self._Q)/self._num_visits
 
-        self._c_puct = c_puct
-
-
-    def add_branch(self,point,prior):
-
-        self._children_branch[point]=Branch(self,Move(point),prior)
-
-    def does_branch_exist(self,point):
-        return point in self.children_branch
-
-    def get_child_branch(self, point):
-        return self._children_branch[point]
-        
-    def expected_value_of_branch(self, point):
-        return self._children_branch[point].expected_value
-        
-    def prior_of_branch(self, point):
-        return self._children_branch[point].prior
-        
-    def visit_counts_of_branch(self, point):
-        return self._children_branch[point].visit_counts if self.does_branch_exist(point) else 0
-        
-        
-    def record_visit(self, point, value):
-        self._total_visit_counts += 1
-        self._children_branch[point].visit_counts += 1
-        self._children_branch[point].total_value += value
-
-    def select_branch(self):
-        Qs = [self.expected_value_of_branch(point) for point in self.children_branch]
-        Ps = [self.prior_of_branch(point) for point in self.children_branch]
-        Ns = [self.visit_counts_of_branch(point) for point in self.children_branch]
-        
-        scores = [(q + self._c_puct * p * np.sqrt(self._total_visit_counts) / (n + 1)).item() for q, p, n in zip(Qs, Ps, Ns)]
-        best_point_index = np.argmax(scores)
-
-        points = list(self.children_branch)
-        return self._children_branch[points[best_point_index]]
+    def is_leaf(self):
+        return self._children == {}
+    
+    @property
+    def num_visits(self):
+        return self._num_visits
 
     @property
     def game_state(self):
         return self._game_state
 
     @property
-    def parent_branch(self):
-        return self._parent_branch
+    def children(self):
+        return self._children
 
     @property
-    def game_state_value(self):
-        return self._game_state_value
+    def parent(self):
+        return self._parent
+    
+    @parent.setter
+    def parent(self,value):
+        self._parent = value
 
-    @property
-    def temperature(self):
-        return self._c_puct
+    def get_child(self,point):
+        return self._children.get(point)
 
-    @property
-    def children_branch(self):
-        return self._children_branch.keys()
+    def add_child(self,game,new_point,prior):
+        new_game_state = game.look_ahead_next_move(self._game_state, Move(new_point))
+        new_node = MCTSNode(new_game_state,prior,self)
+        self._children[new_point]=new_node
+        return new_node
 
-    @children_branch.setter
-    def children_branch(self, value):
-        self._children_branch = value
+    def get_value(self,c_puct):
+        """
+        Same as in alphazero
+        """
+        self._u = (c_puct * self._P *np.sqrt(self._parent._num_visits) / (1 + self._num_visits))
+        return self._Q + self._u
 
-    def is_leaf(self):
-        return not self._children_branch 
 
-
-class AlphaZeroTree(object):
+class MCTSTree(object):
     def __init__(self):
         self._working_node = None
-    
+
+
     @property
     def working_node(self):    
         return self._working_node
@@ -195,12 +131,18 @@ class AlphaZeroTree(object):
     def reset(self):
         self._working_node =None    
     
-    
-    def go_down(self, move):
+    def go_down(self,game,move):
         if self._working_node is not None:
-            branch = self._working_node.get_child_branch(move.point)
-            self._working_node = branch.child_node
-
+            if move.point in self._working_node.children:
+                child=self.working_node.children.pop(move.point)
+                child.parent= None  
+            else:
+                if not self._working_node.is_terminal(game):
+                    new_game_state = game.look_ahead_next_move(self._working_node.game_state, Move(new_point))
+                    child = MCTSNode(new_game_state,1.0,None)
+                else:
+                    child = None
+            self._working_node = child
 
 def softmax(x):
     probs = np.exp(x - np.max(x))
@@ -216,14 +158,14 @@ class AlphaZeroAgent(Player):
         self._model = model.to(device)
         self._num_rounds = num_rounds
         self._experience_collector = ExperienceCollector()
-        self._mcts_tree = AlphaZeroTree()
+        self._mcts_tree = MCTSTree()
         self._cpuct = c_puct
         self._temperature = temperature
     
     @property
     def mcts_tree(self):
         return self._mcts_tree
-  
+
     @mcts_tree.setter
     def mcts_tree(self,tree):
         self._mcts_tree = tree
@@ -237,115 +179,68 @@ class AlphaZeroAgent(Player):
         model_input = torch.from_numpy(board_matrix).unsqueeze(0).to(self._device, dtype=torch.float)
         return self._model(model_input)
 
-    def _create_node(self, game_state, estimated_state_value, estimated_branch_priors, parent_branch):
-
-        new_node = Node(game_state, estimated_state_value,parent_branch, self._cpuct)
-
-        if estimated_branch_priors is not None:
-            for idx, p in enumerate(estimated_branch_priors):
-                point = self._encoder.decode_point_index(idx)
-                if new_node.game_state.board.is_free_point(point):
-                    new_node.add_branch(point, p)
-        return new_node
-        
 
     def select_move(self, game):
+        
         # encode  the last specified boards as the root
-        root_board_matrix = self._encoder.encode(
-            game.state_cache.game_states, game.working_game_state.player_in_action, game.working_game_state.previous_move)
+        root_board_matrix = self._encoder.encode(game.state_cache.game_states, game.working_game_state.player_in_action, game.working_game_state.previous_move)
 
         if self._mcts_tree.working_node is None:
-            estimated_branch_priors, estimated_state_value = self._predict(
-                root_board_matrix)
-            self._mcts_tree.working_node = self._create_node(
-                game.working_game_state, estimated_state_value[0].item(), estimated_branch_priors[0], None)
-
-        working_root = self._mcts_tree.working_node
+            self._mcts_tree.working_node = MCTSNode(game.working_game_sate,1.0,None)
 
         for _ in tqdm(range(self._num_rounds), desc='Rollout Loop'):
-            current_node = working_root
+            node = self._mcts_tree.working_node
             game_state_memory = copy.deepcopy(game.state_cache)
 
             while True:
-                # reach  the end of the game
-                if game.is_final_state(current_node.game_state):
+                if node.is_leaf():
                     break
+                node = node.select(self._temperature)
+                game_state_memory.push(node.game_state)
 
-                current_branch = current_node.select_branch()
-                if current_branch.child_node is None:
-                    # expand
-                    new_state = game.look_ahead_next_move(
-                        current_node.game_state, current_branch.move)
-                    game_state_memory.push(new_state)
 
-                    value_of_new_state = 0
-                    priors_of_new_children_branch = None
+            leaf_value = 0.0 
+            if not game.is_final_state(node.game_state):
+                # encode  the last specified boards as the root
+                board_matrix = self._encoder.encode(game.state_cache.game_states, game.working_game_state.player_in_action, game.working_game_state.previous_move)
+                estimated_priors, leaf_value = self._predict(board_matrix) 
+                free_points=node.game_state.board.get_legal_points()
+                for point in free_points:
+                    node.add_child(game,point,estimated_priors[point])
+            else:
+                if game.final_winner is not None:
+                    leaf_value = 1.0 if game.final_winner == node.game_state.player_in_action else -1.0
 
-                    #  cope with the end state
-                    if game.is_final_state(new_state):
-                        winner = game.get_winner(new_state)
-                        if winner is not None:
-                            if winner.id == self.id:
-                                value_of_new_state = -1
-                            else:
-                                value_of_new_state = 1
-                        else:
-                            value_of_new_state = 0
-                    #  the normal state
-                    else:
-                        board_matrix = self._encoder.encode(game_state_memory.game_states, new_state.player_in_action,new_state.previous_move)
-                        estimated_branch_priors, estimated_state_value = self._predict(
-                            board_matrix)
-                        value_of_new_state = estimated_state_value[0].item()
-                        priors_of_new_children_branch = estimated_branch_priors[0]
+            node.update_recursively(self._mcts_tree.working_node,-leaf_value)
 
-                    current_node = self._create_node(new_state, value_of_new_state, priors_of_new_children_branch, current_branch)
-                    current_branch.add_child_node(current_node)
-                    break
-                else:
-                    current_node = current_branch.child_node
-                    game_state_memory.push(current_node.game_state)
-
-            # Normally , the parent node value sholud be the oppsite of current node's value
-            value = -1 * current_node.game_state_value
-
-            while True:
-                current_branch = current_node.parent_branch
-                current_node = current_branch.parent_node
-                current_node.record_visit(current_branch.move.point, value)
-                value = -1 * value
-                if current_node == working_root:
-                    break
-
+        self._mcts_tree.working_node.game_state.board.print_visits(self._mcts_tree.working_node.children)   
+                    
         free_points = []
         visit_counts_of_free_points = []
         visit_counts = []
 
         for idx in range(self._encoder.num_points()):
             point = self._encoder.decode_point_index(idx)
-            visit_count = working_root.visit_counts_of_branch(point)
-            visit_counts.append(visit_count)
-            if working_root.does_branch_exist(point):
+            
+            num_visits= 0
+            if point in self.mcts_tree.working_node.children:
                 free_points.append(point)
-                visit_counts_of_free_points.append(visit_count)
-
+                num_visits = self.mcts_tree.working_node.get_child(point).num_visits
+                visit_counts_of_free_points.append(num_visits)
+            
+            visit_counts.append(num_visits)
+            
         if game.is_selfplay:
             next_move_probabilities = softmax(np.log(np.asarray(visit_counts_of_free_points)+1e-10))
 
             # add dirichlet noise for exploration
-            next_move_probabilities = 0.75 * next_move_probabilities + 0.25 * \
-                np.random.dirichlet(
-                    0.3 * np.ones(len(next_move_probabilities)))
-            next_move = Move(free_points[np.random.choice(
-                len(free_points), p=next_move_probabilities)])
-            self._experience_collector.record_decision(
-                root_board_matrix, np.asarray(visit_counts))
+            next_move_probabilities = 0.75 * next_move_probabilities + 0.25 * np.random.dirichlet(0.3 * np.ones(len(next_move_probabilities)))
+            next_move = Move(free_points[np.random.choice(len(free_points), p=next_move_probabilities)])
+            self._experience_collector.record_decision(root_board_matrix, np.asarray(visit_counts))
         else:
-            next_move_probabilities = softmax(
-                1.0/self._temperature*np.log(np.asarray(visit_counts_of_free_points)+1e-10))
+            next_move_probabilities = softmax(1.0/self._temperature*np.log(np.asarray(visit_counts_of_free_points)+1e-10))
+            next_move = Move(free_points[np.random.choice(len(free_points), p=next_move_probabilities)])
 
-            next_move = Move(free_points[np.random.choice(
-                len(free_points), p=next_move_probabilities)])
-
-        self._mcts_tree.go_down(next_move)            
+        
+        self._mcts_tree.go_down(game,next_move)
         return next_move
