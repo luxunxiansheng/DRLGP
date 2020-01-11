@@ -67,7 +67,7 @@ class SnapshotEncoder(Encoder):
                 for col in range(self._board_width):
                     point = Point(row+1, col+1)
                     piece = boards[plane].get_piece_at_point(point)
-                    if piece is not None:
+                    if piece.owner_id != -1:
                         board_matrix[plane, row, col] = piece.owner_id
         return board_matrix
 
