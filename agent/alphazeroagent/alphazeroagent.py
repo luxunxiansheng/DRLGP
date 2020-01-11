@@ -47,102 +47,13 @@ import torch.optim as optim
 from tqdm import tqdm
 
 from agent.alphazeroagent.experiencecollector import ExperienceCollector
-
 from common.board import Board
 from common.gamestate import GameState
 from common.move import Move
 from common.player import Player
+from agent.mcts.mctsnode import MCTSNode
+from agent.mcts.mctstree import MCTSTree
 
-class MCTSNode(object):
-    def __init__(self, game_state, prior_p, parent=None):
-        self._game_state = game_state
-        self._parent = parent
-        self._children = {}
-        self._num_visits = 0
-        
-        self._Q = 0
-        self._P = prior_p
-        self._u = 0
-
-    def select(self,c_puct):
-        child=max(self._children.items(),key=lambda point_node: point_node[1].get_value(c_puct))
-        return child[1]
-    
-    def update_recursively(self,root_node,leaf_value):
-        if self!=root_node and self._parent:
-            self._parent.update_recursively(root_node,-leaf_value)
-                
-        self._num_visits +=1
-        self._Q += 1.0*(leaf_value-self._Q)/self._num_visits
-
-    def is_leaf(self):
-        return self._children == {}
-    
-    @property
-    def num_visits(self):
-        return self._num_visits
-
-    @property
-    def game_state(self):
-        return self._game_state
-
-    @property
-    def children(self):
-        return self._children
-
-    @property
-    def parent(self):
-        return self._parent
-    
-    @parent.setter
-    def parent(self,value):
-        self._parent = value
-
-    def get_child(self,point):
-        return self._children.get(point)
-
-    def add_child(self,game,new_point,prior):
-        new_game_state = game.look_ahead_next_move(self._game_state, Move(new_point))
-        new_node = MCTSNode(new_game_state,prior,self)
-        self._children[new_point]=new_node
-        return new_node
-
-    def get_value(self,c_puct):
-        """
-        Same as in alphazero
-        """
-        self._u = (c_puct * self._P *np.sqrt(self._parent._num_visits) / (1 + self._num_visits))
-        return self._Q + self._u
-
-
-class MCTSTree(object):
-    def __init__(self):
-        self._working_node = None
-
-
-    @property
-    def working_node(self):    
-        return self._working_node
-
-    @working_node.setter
-    def working_node(self, value):
-        self._working_node = value
-
-    def reset(self):
-        self._working_node =None    
-    
-    def go_down(self,game,move):
-        if self._working_node is not None:
-            if move.point in self._working_node.children:
-                child=self.working_node.children.pop(move.point)
-                child.parent= None  
-            else:
-                if not self._working_node.is_terminal(game):
-                    new_game_state = game.look_ahead_next_move(self._working_node.game_state, Move(new_point))
-                    child = MCTSNode(new_game_state,1.0,None)
-                else:
-                    child = None
-            self._working_node = child
 
 def softmax(x):
     probs = np.exp(x - np.max(x))

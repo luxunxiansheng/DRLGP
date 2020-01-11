@@ -34,7 +34,7 @@ def evaluate():
         if game.working_game_state.player_in_action== Connect5Game.ASSIGNED_PLAYER_ID_1: 
             game.working_game_state.board.print_board()
 
-    # game.working_game_state.board.print_board()
+    game.working_game_state.board.print_board()
     # self._logger.info(game.final_winner.name)
 
     print(players[game.final_winner].name)

@@ -147,7 +147,7 @@ class Board:
     def print_visits(self,childern):
         print('**************************************************')
 
-        print('     '.join(self._column_indicator))
+        print('    '.join(self._column_indicator))
 
         for row in range(1, self._board_size+1):
             pieces = []
