@@ -1,7 +1,7 @@
 import random
 
 from agent.humanplayer import HumanPlayer
-from agent.mctsagent import MCTSAgent, MCTSNode, MCTSTree
+from agent.mctsagent import MCTSAgent
 from common.board import Board
 from common.gamestate import GameState
 from common.utils import Utils
