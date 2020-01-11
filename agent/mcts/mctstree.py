@@ -22,9 +22,8 @@ class MCTSTree(object):
                 child = self.working_node.children.pop(move.point)
                 child.parent = None
             else:
-                if not self._working_node.is_terminal(game):
-                    new_game_state = game.look_ahead_next_move(
-                        self._working_node.game_state, move)
+                if not  game.is_final_state(self._working_node.game_state):
+                    new_game_state = game.look_ahead_next_move(self._working_node.game_state, move)
                     child = MCTSNode(new_game_state, 1.0, None)
                 else:
                     child = None
