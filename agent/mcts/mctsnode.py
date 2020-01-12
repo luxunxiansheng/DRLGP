@@ -20,7 +20,7 @@ class MCTSNode(object):
         return child[1]
 
     def update_recursively(self, root_node, leaf_value):
-        if self != root_node and self._parent:
+        if self._parent is not None:
             self._parent.update_recursively(root_node, -leaf_value)
 
         self._num_visits += 1
