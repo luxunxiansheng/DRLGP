@@ -11,7 +11,7 @@ from memory_profiler import profile
 
 def evaluate():
     
-    mcts_agent= MCTSAgent(Connect5Game.ASSIGNED_PLAYER_ID_1, "MCTSAgent", 4000, 5.0)
+    mcts_agent= MCTSAgent(Connect5Game.ASSIGNED_PLAYER_ID_1, "MCTSAgent",2500, 5.0)
     human_player = HumanPlayer(Connect5Game.ASSIGNED_PLAYER_ID_2,"Human")
         
     board = Board(8)
