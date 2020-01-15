@@ -46,7 +46,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 from tqdm import tqdm
 
-from agent.alphazeroagent.experiencecollector import ExperienceCollector
+from agent.experiencecollector import ExperienceCollector
 from common.board import Board
 from common.gamestate import GameState
 from common.move import Move

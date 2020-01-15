@@ -50,9 +50,9 @@ from torch.nn import DataParallel
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
-from agent.alphazeroagent.alphazeroagent import AlphaZeroAgent
-from agent.alphazeroagent.experiencebuffer import ExpericenceBuffer
-from agent.alphazeroagent.experiencecollector import ExperienceCollector
+from agent.alphazeroagent import AlphaZeroAgent
+from agent.experiencebuffer import ExpericenceBuffer
+from agent.experiencecollector import ExperienceCollector
 from agent.mctsagent import MCTSAgent
 from boardencoder.blackwhiteencoder import BlackWhiteEncoder
 from boardencoder.deepmindencoder import DeepMindEncoder
