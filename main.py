@@ -33,39 +33,29 @@
 #
 # /
 
-
 import argparse
 import logging
 import os
-import random
 import sys
 
-import numpy as np
 import torch
 import torch.multiprocessing as mp
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
-from torch.nn import DataParallel
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
-from agent.alphazeroagent import AlphaZeroAgent
 from agent.experiencebuffer import ExpericenceBuffer
-from agent.experiencecollector import ExperienceCollector
-from agent.mctsagent import MCTSAgent
 from boardencoder.blackwhiteencoder import BlackWhiteEncoder
 from boardencoder.deepmindencoder import DeepMindEncoder
 from boardencoder.snapshotencoder import SnapshotEncoder
-from common.board import Board
-from common.gamestate import GameState
 from common.utils import Utils
-from game.connect5game import Connect5Game
+from datacollector import DataCollector
 from models.ResNet8Network import ResNet8Network
 from models.Simple5Network import Simple5Network
+from policyevaluator import PolicyEvaluator
+from policyimprover import PolicyImprover
 
 
-class Trainer(object):
+class Trainer:
     def __init__(self, args, logger):
 
         self._logger = logger
@@ -108,34 +98,36 @@ class Trainer(object):
         self._evaluate_number_of_games = cfg['EVALUATE'].getint(
             'number_of_games')
 
-        os.makedirs(os.path.dirname(self._latest_checkpoint_file), exist_ok=True)
+        os.makedirs(os.path.dirname(
+            self._latest_checkpoint_file), exist_ok=True)
         os.makedirs(os.path.dirname(self._best_checkpoint_file), exist_ok=True)
 
         self._use_cuda = torch.cuda.is_available()
-        self._gpu_ids = []
+        self._devices_ids = []
         if self._use_cuda:
-            self._gpu_ids = list(map(int, args.gpu_ids.split(',')))
+            self._devices_ids = list(map(int, args.gpu_ids.split(',')))
             num_devices = torch.cuda.device_count()
-            if len(self._gpu_ids) > num_devices:
-                raise Exception('#available gpu : {} < --device_ids : {}'.format(num_devices, len(self._gpu_ids)))
-
-        self._gpu_devices = [torch.device('cuda:'+str(self._gpu_ids[i])) for i in range(len(self._gpu_ids))]
-
-        self._cpu_device = torch.device('cpu')
+            if len(self._devices_ids) > num_devices:
+                raise Exception(
+                    '#available gpu : {} < --device_ids : {}'.format(num_devices, len(self._devices_ids)))
 
         if self._encoder_name == 'SnapshotEncoder':
             self._encoder = SnapshotEncoder(
                 self._number_of_planes, self._board_size)
-            input_shape = (self._number_of_planes, self._board_size, self._board_size)
+            input_shape = (self._number_of_planes,
+                           self._board_size, self._board_size)
 
         if self._encoder_name == 'DeepMindEncoder':
             self._encoder = DeepMindEncoder(
                 self._number_of_planes, self._board_size)
-            input_shape = (self._number_of_planes*2+1, self._board_size, self._board_size)
+            input_shape = (self._number_of_planes*2+1,
+                           self._board_size, self._board_size)
 
         if self._encoder_name == 'BlackWhiteEncoder':
-            self._encoder = BlackWhiteEncoder(self._number_of_planes, self._board_size)
-            input_shape = (self._number_of_planes*2+2, self._board_size, self._board_size)
+            self._encoder = BlackWhiteEncoder(
+                self._number_of_planes, self._board_size)
+            input_shape = (self._number_of_planes*2+2,
+                           self._board_size, self._board_size)
 
         self._model_name = cfg['MODELS'].get('net')
         self._model = ResNet8Network(input_shape, self._board_size * self._board_size) if self._model_name == 'ResNet8Network' else Simple5Network(
@@ -155,9 +147,15 @@ class Trainer(object):
         # Be aware this is not the first time to run this program
         resume = args.resume
         if resume:
-            self._checkpoint = torch.load(self._latest_checkpoint_file, map_location='cpu')
+            self._checkpoint = torch.load(
+                self._latest_checkpoint_file, map_location='cpu')
             if self._checkpoint['model_name'] == self._model_name:
-                self._model.to(self._gpu_devices[0]) if self._use_cuda else self._model.to(self._cpu_device)
+                if self._use_cuda:
+                    self._model.to(torch.device(
+                        'cuda:'+str(self._devices_ids[0])))
+                else:
+                    self._model.to(torch.device('cpu'))
+
                 self._model.load_state_dict(self._checkpoint['model'])
                 self._optimizer.load_state_dict(self._checkpoint['optimizer'])
                 self._start_game_index = self._checkpoint['game_index']
@@ -167,321 +165,13 @@ class Trainer(object):
                 self._loss_policy = self._checkpoint['loss_policy']
                 self._experience_buffer.data = self._checkpoint['experience_buffer'].data
                 self._basic_mcts_rounds_per_move = self._checkpoint['basic_mcts_rounds_per_move']
-                self._logger.debug('ExpericenceBuffer size is {}'.format(self._experience_buffer.size()))
+                self._logger.debug('ExpericenceBuffer size is {}'.format(
+                    self._experience_buffer.size()))
 
-        self._writer = SummaryWriter(log_dir='./runs/' + config_name.split('.')[0])
+        self._writer = SummaryWriter(
+            log_dir='./runs/' + config_name.split('.')[0])
 
         self._checkpoint = None
-
-    @staticmethod
-    def _collect_data_once_in_parallel(encoder, model, az_mcts_round_per_moves, board_size, number_of_planes, c_puct, az_mcts_temperature, device, pipe):
-
-        agent_1 = AlphaZeroAgent(Connect5Game.ASSIGNED_PLAYER_ID_1, "AlphaZeroAgent1", encoder, model, az_mcts_round_per_moves, c_puct, az_mcts_temperature, device=device)
-        agent_2 = AlphaZeroAgent(Connect5Game.ASSIGNED_PLAYER_ID_2, "AlphaZeroAgent2", encoder, model, az_mcts_round_per_moves, c_puct, az_mcts_temperature, device=device)
-        agent_2.mcts_tree = agent_1.mcts_tree
-
-        board = Board(board_size)
-        players = {agent_1.id: agent_1, agent_2.id: agent_2}
-        start_game_state = GameState(board, random.choice([agent_1.id, agent_2.id]), None)
-        game = Connect5Game(start_game_state, [agent_1.id, agent_2.id],number_of_planes,is_self_play=True)
-
-        while not game.is_over():
-            move = players[game.working_game_state.player_in_action].select_move(game)
-            game.apply_move(move)
-
-            # game.working_game_state.board.print_board()
-
-        # game.working_game_state.board.print_board()
-
-        winner = game.final_winner
-
-        if winner is not None:
-            if winner == players[0].id:
-                players[0].experience_collector.complete_episode(reward=1)
-                players[1].experience_collector.complete_episode(reward=-1)
-            if winner == players[1].id:
-                players[1].experience_collector.complete_episode(reward=1)
-                players[0].experience_collector.complete_episode(reward=-1)
-
-            expericence_buffer = ExpericenceBuffer()
-            expericence_buffer.combine_experience(
-                [agent_1.experience_collector, agent_2.experience_collector])
-            pipe.send(expericence_buffer)
-            pipe.close()
-
-    def _collect_data_in_parallel(self):
-        processes = []
-        pipes = []
-
-        for gpu_index in range(len(self._gpu_devices)):
-            parent_connection_end, child_connection_end = mp.Pipe()
-            p = mp.Process(target=Trainer._collect_data_once_in_parallel, args=(self._encoder, self._model, self._az_mcts_rounds_per_move, self._board_size,
-                                                                                self._number_of_planes, self._c_puct, self._az_mcts_temperature, self._gpu_devices[gpu_index], child_connection_end))
-            processes.append(p)
-            pipes.append((parent_connection_end, child_connection_end))
-            p.start()
-
-        for (parent_connection_end, child_connection_end) in pipes:
-            child_connection_end.close()
-
-            while True:
-                try:
-                    experience_buffer = parent_connection_end.recv()
-                    self._logger.debug('Received experience buffer size  is {}'.format(
-                        experience_buffer.size()))
-                    self._experience_buffer.merge(experience_buffer)
-                except EOFError:
-
-                    break
-
-        for (parent_connection_end, _) in pipes:
-            parent_connection_end.close()
-
-        for p in tqdm(processes):
-            p.join()
-
-        self._logger.debug("buffer size is :{}".format(
-            self._experience_buffer.size()))
-
-    def _collect_data_once(self):
-
-        device = self._gpu_devices[0] if self._use_cuda else self._cpu_device
-        agent_1 = AlphaZeroAgent(Connect5Game.ASSIGNED_PLAYER_ID_1, "AlphaZeroAgent1", self._encoder, self._model,
-                                 self._az_mcts_rounds_per_move, self._c_puct, self._az_mcts_temperature, device=device)
-        agent_2 = AlphaZeroAgent(Connect5Game.ASSIGNED_PLAYER_ID_2, "AlphaZeroAgent2", self._encoder, self._model,
-                                 self._az_mcts_rounds_per_move, self._c_puct, self._az_mcts_temperature, device=device)
-
-        # Two agents use the same tree to save the memory and improve the efficency
-        agent_2.mcts_tree = agent_1.mcts_tree
-
-        board = Board(self._board_size)
-        players = {agent_1.id: agent_1, agent_2.id: agent_2}
-        start_game_state = GameState(board, random.choice([agent_1.id, agent_2.id]), None)
-        game = Connect5Game(start_game_state, [agent_1.id, agent_2.id], self._number_of_planes,is_self_play=True)
-        while not game.is_over():
-            move = players[game.working_game_state.player_in_action].select_move(game)
-            game.apply_move(move)
-
-            # game.working_game_state.board.print_board()
-
-        # game.working_game_state.board.print_board()
-        
-        winner = game.final_winner
-        if winner is not None:
-            if winner == players[0].id:
-                players[0].experience_collector.complete_episode(reward=1)
-                players[1].experience_collector.complete_episode(reward=-1)
-            if winner == players[1].id:
-                players[1].experience_collector.complete_episode(reward=1)
-                players[0].experience_collector.complete_episode(reward=-1)
-
-            self._experience_buffer.combine_experience([agent_1.experience_collector, agent_2.experience_collector])
-        
-        self._logger.debug("buffer size is :{}".format(self._experience_buffer.size())) 
-
-    def _collect_data(self):
-
-        self._model.eval()
-
-        if len(self._gpu_devices) > 1:
-            self._collect_data_in_parallel()
-        else:
-            self._collect_data_once()
-
-    def _improve_policy(self, game_index):
-        self._model.train()
-
-        device = self._cpu_device
-        if self._use_cuda:
-            device = self._gpu_devices[0]
-            self._model = DataParallel(self._model.to(device), device_ids=self._gpu_ids)
-        else:
-            self._model.to(device)
-
-        batch_data = random.sample(self._experience_buffer.data, self._batch_size)
-        for _ in range(self._epochs):
-            states, rewards, visit_counts = zip(*batch_data)
-            states = torch.from_numpy(np.array(list(states))).to(device, dtype=torch.float)
-            rewards = torch.from_numpy(np.array(list(rewards))).to(device, dtype=torch.float)
-            visit_counts = torch.from_numpy(np.array(list(visit_counts))).to(device, dtype=torch.float)
-
-            action_policy_target = F.softmax(visit_counts, dim=1)
-            value_target = rewards
-
-            [action_policy, value] = self._model(states)
-
-            log_action_policy = torch.log(action_policy)
-            self._loss_policy = - log_action_policy * action_policy_target
-            self._loss_policy = self._loss_policy.sum(dim=1).mean()
-
-            self._loss_value = F.mse_loss(value.squeeze(), value_target)
-
-            self._loss = self._loss_policy + self._loss_value
-
-            with torch.no_grad():
-                self._entropy = -torch.mean(torch.sum(log_action_policy*action_policy, dim=1))
-
-            self._optimizer.zero_grad()
-
-            self._loss.backward()
-            self._optimizer.step()
-            [updated_action_policy, _] = self._model(states)
-            kl = F.kl_div(action_policy, updated_action_policy).item()
-
-            if kl > self._kl_threshold * 4:
-                break
-
-        real_game_index = game_index * len(self._gpu_devices) if len(self._gpu_devices) > 1 else game_index
-
-        self._writer.add_scalar('loss', self._loss.item(), real_game_index)
-        self._writer.add_scalar('loss_value', self._loss_value.item(), real_game_index)
-        self._writer.add_scalar('loss_policy', self._loss_policy.item(), real_game_index)
-        self._writer.add_scalar('entropy', self._entropy.item(), real_game_index)
-
-        # refer to https://discuss.pytorch.org/t/how-could-i-train-on-multi-gpu-and-infer-with-single-gpu/22838/7
-
-        if self._use_cuda:
-            self._model = self._model.module.to(self._cpu_device)
-
-        self._checkpoint = {'game_index': game_index,
-                            'model_name': self._model_name,
-                            'model': self._model.state_dict(),
-                            'optimizer': self._optimizer.state_dict(),
-                            'entropy': self._entropy.item(),
-                            'loss': self._loss.item(),
-                            'loss_policy': self._loss_policy.item(),
-                            'loss_value': self._loss_value.item(),
-                            'experience_buffer': self._experience_buffer
-                            }
-
-    def _evaluate_policy_once(self):
-        device = self._gpu_devices[0] if self._use_cuda else self._cpu_device
-        mcts_agent = MCTSAgent(Connect5Game.ASSIGNED_PLAYER_ID_1, "MCTSAgent", self._basic_mcts_rounds_per_move, self._basic_mcts_c_puct)
-        az_agent = AlphaZeroAgent(Connect5Game.ASSIGNED_PLAYER_ID_2, "AlphaZeroAgent", self._encoder, self._model,
-                                  self._az_mcts_rounds_per_move, self._c_puct, self._az_mcts_temperature, device=device)
-
-        board = Board(self._board_size)
-        players = {}
-        players[mcts_agent.id] = mcts_agent
-        players[az_agent.id] = az_agent
-
-        start_game_state = GameState(board, mcts_agent.id, None)
-
-        # MCTS agent always plays first
-        game = Connect5Game(start_game_state, [mcts_agent.id, az_agent.id],self._number_of_planes,is_self_play=False)
-
-        while not game.is_over():
-            move = players[game.working_game_state.player_in_action].select_move(game)
-            if players[0].id == game.working_game_state.player_in_action:
-                players[1].mcts_tree.go_down(game,move)
-            else:
-                players[0].mcts_tree.go_down(game,move)
-
-            game.apply_move(move)
-
-        winner = game.final_winner
-
-        self._logger.debug('Winner is {}'.format(players[winner].name))
-
-        score = 0
-        if winner == az_agent.id:
-            score = 1
-        return score
-
-    @staticmethod
-    def _evaluate_policy_once_in_parallel(
-            basic_mcts_round_per_moves, basic_mcts_c_puct, az_mcts_temperature, encoder, model, az_mcts_round_per_moves, c_puct, device, board_size, number_of_planes, pipe):
-        mcts_agent = MCTSAgent(Connect5Game.ASSIGNED_PLAYER_ID_1, "MCTSAgent", basic_mcts_round_per_moves, basic_mcts_c_puct)
-        az_agent = AlphaZeroAgent(Connect5Game.ASSIGNED_PLAYER_ID_2, "AlphaZeroAgent", encoder, model, az_mcts_round_per_moves, c_puct, az_mcts_temperature, device=device)
-
-        board = Board(board_size)
-        players = {}
-        players[mcts_agent.id] = mcts_agent
-        players[az_agent.id] = az_agent
-
-        start_game_state = GameState(board, mcts_agent.id, None)
-
-        # MCTS agent always plays first
-        game = Connect5Game(start_game_state, [mcts_agent.id, az_agent.id],number_of_planes, is_self_play=False)
-
-        while not game.is_over():
-            move = players[game.working_game_state.player_in_action].select_move(game)
-            if players[0].id == game.working_game_state.player_in_action:
-                players[1].mcts_tree.go_down(game,move)
-            else:
-                players[0].mcts_tree.go_down(game,move)
-
-            game.apply_move(move)
-
-        game.working_game_state.board.print_board()
-
-        winner = game.final_winner
-
-        score = 0
-        if winner == az_agent.id:
-            score = 1
-
-        pipe.send(score)
-        pipe.close()
-
-    def _evaluate_ploicy_in_parallel(self):
-
-        final_score = 0
-
-        num_of_devices = len(self._gpu_devices)
-
-        for _ in range(0, self._evaluate_number_of_games, num_of_devices):
-            processes = []
-            pipes = []
-
-            for gpu_index in range(num_of_devices):
-                parent_connection_end, child_connection_end = mp.Pipe()
-
-                p = mp.Process(target=Trainer._evaluate_policy_once_in_parallel, args=(self._basic_mcts_rounds_per_move, self._basic_mcts_c_puct, self._az_mcts_temperature,
-                                                                                       self._encoder, self._model, self._az_mcts_rounds_per_move, self._c_puct, self._gpu_devices[gpu_index], self._board_size, self._number_of_planes, child_connection_end))
-
-                processes.append(p)
-                pipes.append((parent_connection_end, child_connection_end))
-                p.start()
-
-            for (parent_connection_end, child_connection_end) in pipes:
-
-                child_connection_end.close()
-
-                while True:
-                    try:
-                        score = parent_connection_end.recv()
-                        self._logger.debug("current score is {}".format(score))
-
-                        final_score += score
-
-                    except EOFError:
-                        break
-
-            for (parent_connection_end, _) in pipes:
-                parent_connection_end.close()
-
-            for p in tqdm(processes):
-                p.join()
-
-        return final_score
-
-    def _evaluate_policy(self):
-
-        self._model.eval()
-
-        final_score = 0
-
-        if len(self._gpu_devices) > 1:
-            self._evaluate_number_of_games = len(self._gpu_devices)*2
-            final_score = self._evaluate_ploicy_in_parallel()
-        else:
-            for _ in tqdm(range(self._evaluate_number_of_games), desc='Evaluation Loop'):
-                final_score += self._evaluate_policy_once()
-
-        self._logger.debug('Alphazero gets win_ratio {:.2%} in {}'.format(final_score/self._evaluate_number_of_games, self._evaluate_number_of_games))
-
-        return final_score/self._evaluate_number_of_games
 
     def run(self):
 
@@ -489,23 +179,38 @@ class Trainer(object):
 
         best_ratio = 0.0
 
+        data_collector = DataCollector(self._encoder, self._model, self._az_mcts_rounds_per_move, self._c_puct, self._az_mcts_temperature,
+                                       self._board_size, self._number_of_planes, self._experience_buffer, self._devices_ids, self._use_cuda, self._logger)
+
+        policy_improver = PolicyImprover(self._model, self._model_name, self._batch_size, self._epochs, self._kl_threshold, self._experience_buffer,
+                                         self._devices_ids, self._use_cuda, self._optimizer, self._writer, self._checkpoint, self._logger)
+
+        policy_evaluator = PolicyEvaluator(self._devices_ids, self._use_cuda, self._encoder, self._board_size, self._number_of_planes, self._model,
+                                           self._az_mcts_rounds_per_move, self._c_puct, self._az_mcts_temperature, self._basic_mcts_c_puct, self._basic_mcts_rounds_per_move, self._evaluate_number_of_games, self._logger)
+
         for game_index in tqdm(range(self._start_game_index, self._train_number_of_games+1), desc='Training Loop'):
             # collect data via self-playing
-            self._collect_data()
 
-            self._logger.debug('--Data Collected in round {}--'.format(game_index))
+            data_collector.collect_data()
+
+            self._logger.debug(
+                '--Data Collected in round {}--'.format(game_index))
 
             if self._experience_buffer.size() > self._batch_size:
                 # update the policy with SGD
-                self._improve_policy(game_index)
-                self._logger.debug('--Policy Improved  in round {}--'.format(game_index))
+                policy_improver.improve_policy(game_index)
+                self._logger.debug(
+                    '--Policy Improved  in round {}--'.format(game_index))
 
                 if game_index % self._check_frequence == 0:
-                    win_ratio = self._evaluate_policy()
+
+                    win_ratio = policy_evaluator.evaluate_policy()
+
                     self._logger.debug('--Policy Evaluated in round {} with win_ratio {:.2%} (az_mcts_round_per_move {} : basic_mcts_round_move {})--'.format(
                         game_index, win_ratio, self._az_mcts_rounds_per_move, self._basic_mcts_rounds_per_move))
 
-                    self._writer.add_scalar('score', win_ratio, game_index * len(self._gpu_devices) if len(self._gpu_devices) > 1 else game_index)
+                    self._writer.add_scalar('score', win_ratio, game_index * len(
+                        self._devices_ids) if len(self._devices_ids) > 1 else game_index)
 
                     self._checkpoint['basic_mcts_rounds_per_move'] = self._basic_mcts_rounds_per_move
                     self._checkpoint['best_score'] = win_ratio
@@ -513,12 +218,14 @@ class Trainer(object):
                     torch.save(self._checkpoint, self._latest_checkpoint_file)
 
                     if win_ratio > best_ratio:
-                        self._logger.info("New best score {:.2%}".format(win_ratio))
+                        self._logger.info(
+                            "New best score {:.2%}".format(win_ratio))
 
                         best_ratio = win_ratio
 
                         # update the best_policy
-                        torch.save(self._checkpoint, self._best_checkpoint_file)
+                        torch.save(self._checkpoint,
+                                   self._best_checkpoint_file)
                         if (best_ratio == 1.0 and self._basic_mcts_rounds_per_move < 8000):
                             self._basic_mcts_rounds_per_move += 1000
                             self._logger.debug('current basic_mcts_round_moves:{}'.format(
@@ -543,7 +250,8 @@ def main():
 
     args = parser.parse_args()
 
-    logging.basicConfig(stream=sys.stdout, level=logging.DEBUG if args.debug else logging.INFO)
+    logging.basicConfig(stream=sys.stdout,
+                        level=logging.DEBUG if args.debug else logging.INFO)
 
     logger = logging.getLogger(__name__)
 

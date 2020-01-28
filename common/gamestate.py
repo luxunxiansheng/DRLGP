@@ -34,14 +34,6 @@
 # /
 
 
-import copy
-
-from common.board import Board
-from common.move import Move
-from common.player import Player
-from common.point import Point
-
-
 class GameState:
     """
     board: what the situation looks like

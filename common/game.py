@@ -34,16 +34,12 @@
 # /
 
 
-import copy
-import os
+
 from collections import deque
 
 from common.board import Board
 from common.gamestate import GameState
-from common.move import Move
-from common.piece import Piece
-from common.player import Player
-from common.point import Point
+
 
 
 class Game_State_Memory:

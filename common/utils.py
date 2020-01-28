@@ -34,16 +34,16 @@
 # /
 
 
-import errno
+
 import os
-import shutil
+
 from configparser import ConfigParser
-from pathlib import Path
+
 
 import numpy as np
-import torch
+
 import torch.nn as nn
-from torch.optim import SGD, Adadelta, Adagrad, Adam, RMSprop
+
 
 
 class Utils(object):

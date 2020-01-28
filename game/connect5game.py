@@ -34,13 +34,6 @@
 # /
 
 
-import copy
-
-from common.board import Board
-from common.game import Game, GameState
-from common.move import Move
-from common.piece import Piece
-from common.player import Player
 from common.point import Point
 
 
