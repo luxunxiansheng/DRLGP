@@ -42,12 +42,12 @@ from torch.nn import DataParallel
 
 
 class PolicyImprover:
-    def __init__(self, model, model_name, batch_size, epochs, kl_threshold, expericence_buffer, devices_ids, use_cuda, optimizer, writer, checkpoint, logger):
+    def __init__(self, model, model_name, batch_size, epochs, kl_threshold, expericence_buffer, devices_ids, use_cuda, optimizer, writer,logger):
         self._use_cuda = use_cuda
         self._devices_ids = devices_ids
         self._model = model
-        self._model_name = model_name,
-        self._batch_size = batch_size,
+        self._model_name = model_name
+        self._batch_size = batch_size
         self._epochs = epochs
         self._experience_buffer = expericence_buffer
         self._kl_threshold = kl_threshold
@@ -58,7 +58,7 @@ class PolicyImprover:
         self._loss_value = 0
         self._loss_policy = 0
         self._writer = writer
-        self._checkpoint = checkpoint
+        
 
         if use_cuda:
             self._devices = [torch.device(
@@ -69,8 +69,8 @@ class PolicyImprover:
     def improve_policy(self, game_index):
         self._model.train()
 
+        device = self._devices[0]
         if self._use_cuda:
-            device = self._devices[0]
             self._model = DataParallel(self._model.to(
                 device), device_ids=self._devices_ids)
         else:
@@ -78,6 +78,7 @@ class PolicyImprover:
 
         batch_data = random.sample(
             self._experience_buffer.data, self._batch_size)
+
         for _ in range(self._epochs):
             states, rewards, visit_counts = zip(*batch_data)
             states = torch.from_numpy(np.array(list(states))).to(
@@ -131,7 +132,7 @@ class PolicyImprover:
         if self._use_cuda:
             self._model = self._model.module.to(torch.device('cpu'))
 
-        self._checkpoint = {'game_index': game_index,
+        checkpoint = {'game_index': game_index,
                             'model_name': self._model_name,
                             'model': self._model.state_dict(),
                             'optimizer': self._optimizer.state_dict(),
@@ -144,3 +145,5 @@ class PolicyImprover:
 
         self._logger.debug(
             '--Policy Improved  in round {}--'.format(game_index))
+        
+        return checkpoint
