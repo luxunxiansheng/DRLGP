@@ -36,15 +36,11 @@
 
 
 import os
-
 from configparser import ConfigParser
 
-
 import numpy as np
-
 import torch.nn as nn
-
-
+from torch.optim import Adam
 
 class Utils(object):
     @staticmethod
@@ -97,5 +93,3 @@ class Utils(object):
             return Adam(params, lr=cfg['TRAIN.OPTIMIZER.ADAM'].getfloat('learning_rate'), weight_decay=cfg['TRAIN.OPTIMIZER.ADAM'].getfloat('weight_decay'))
         else:
             raise Exception('Unknown optimizer : {}'.format(cfg['TRAIN'].get('optimizer')))
-
-    

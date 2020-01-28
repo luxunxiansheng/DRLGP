@@ -34,15 +34,14 @@
 # /
 
 
-
 from collections import deque
 
 from common.board import Board
 from common.gamestate import GameState
+from common.piece import Piece
 
 
-
-class Game_State_Memory:
+class GameStateMemory:
     def __init__(self, capacity):
         self._capacity = capacity
         self._game_states = deque()
@@ -67,16 +66,14 @@ class Game:
     """
     A abstract class about Game. Essentially, it contains a player list and a current working state. 
     """
-    def __init__(self,init_game_state, playerlist, state_cache_size=10, is_self_play=False):
+
+    def __init__(self, init_game_state, playerlist, state_cache_size=10, is_self_play=False):
         self._players = playerlist
         self._working_game_state = init_game_state
         self._final_winner = None
         self._is_selfplay = is_self_play
-        self._state_cache = Game_State_Memory(state_cache_size)
+        self._state_cache = GameStateMemory(state_cache_size)
         self._state_cache.push(self._working_game_state)
-
-    
-
 
     @property
     def state_cache(self):
@@ -112,16 +109,17 @@ class Game:
         pass
 
     def apply_move(self, move):
-        self._working_game_state = self.look_ahead_next_move(self._working_game_state, move)
+        self._working_game_state = self.look_ahead_next_move(
+            self._working_game_state, move)
         self._state_cache.push(self._working_game_state)
 
     def look_ahead_next_move(self, game_state, move):
         piece = Piece(game_state.player_in_action, move.point)
-        new_board =Board(game_state.board.board_size,game_state.board.grid)
+        new_board = Board(game_state.board.board_size, game_state.board.grid)
         new_board.place_piece(piece)
         return GameState(new_board, self.get_player_after_move(game_state.player_in_action), move)
 
-    def get_player_after_move(self, the_player):
+    def get_player_after_move(self, player_in_action):
         pass
 
     @property

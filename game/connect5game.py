@@ -35,6 +35,7 @@
 
 
 from common.point import Point
+from common.game import Game
 
 
 class Connect5Game(Game):
