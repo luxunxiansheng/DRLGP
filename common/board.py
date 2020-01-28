@@ -34,13 +34,10 @@
 # /
 
 
-import copy
-import os
-
 from common.piece import Piece
 from common.point import Point
 
-alphabet = list(map(chr, range(65, 91)))
+ALPHABET = list(map(chr, range(65, 91)))
 
 
 class Board:
@@ -63,9 +60,10 @@ class Board:
 
     """
 
-    def __init__(self, board_size,grid=None):
+    def __init__(self, board_size, grid=None):
         self._board_size = board_size
-        self._column_indicator = ['  %s' % alphabet[i] for i in range(0, board_size)]
+        self._column_indicator = ['  %s' % ALPHABET[i]
+                                  for i in range(0, board_size)]
         self._rows = tuple(range(1, board_size+1))
         self._cols = tuple(range(1, board_size+1))
         self._grid = {}
@@ -73,21 +71,16 @@ class Board:
             self._init_grid()
         else:
             self._quick_copy(grid)
-        
-    
 
     def _init_grid(self):
         for row in self._rows:
             for col in self._cols:
                 free_point = Point(row, col)
-                self._grid[free_point] = Piece(-1,free_point)
-    
+                self._grid[free_point] = Piece(-1, free_point)
 
-    def _quick_copy(self,grid):
-        for key,value in grid.items():
-            self._grid[key]=value
-        
-
+    def _quick_copy(self, grid):
+        for key, value in grid.items():
+            self._grid[key] = value
 
     @property
     def grid(self):
@@ -95,11 +88,11 @@ class Board:
 
     @classmethod
     def get_column_indicator_index(cls, char):
-        return alphabet.index(char)
+        return ALPHABET.index(char)
 
     @classmethod
     def get_column_indicator(cls, index):
-        return alphabet[index]
+        return ALPHABET[index]
 
     @property
     def board_size(self):
@@ -115,7 +108,7 @@ class Board:
 
     def place_piece(self, piece):
         assert self.point_is_on_grid(piece.point)
-        assert self.get_piece_at_point(piece.point).owner_id==-1
+        assert self.get_piece_at_point(piece.point).owner_id == -1
         self._grid[piece.point] = piece
 
     def point_is_on_grid(self, point):
@@ -125,9 +118,9 @@ class Board:
         return self._grid.get(point)
 
     def get_legal_points(self):
-        points=[key for key, value in self._grid.items() if value.owner_id == -1]
+        points = [key for key, value in self._grid.items()
+                  if value.owner_id == -1]
         return points
-
 
     def is_free_point(self, point):
         return (self.get_piece_at_point(point) is None)
@@ -141,10 +134,11 @@ class Board:
             pieces = []
             for col in range(1, self._board_size+1):
                 piece = self.get_piece_at_point(Point(row, col))
-                pieces.append(str(piece.owner_id)) if piece.owner_id != -1 else pieces.append(' ')
+                pieces.append(str(piece.owner_id)
+                              ) if piece.owner_id != -1 else pieces.append(' ')
             print('%d %s' % (row, ' | '.join(pieces)))
 
-    def print_visits(self,childern):
+    def print_visits(self, childern):
         print('**************************************************')
 
         print('    '.join(self._column_indicator))
@@ -152,5 +146,6 @@ class Board:
         for row in range(1, self._board_size+1):
             pieces = []
             for col in range(1, self._board_size+1):
-                pieces.append('{:4d}'.format(childern.get(Point(row, col)).num_visits if childern.get(Point(row, col)) is not None else 0)) 
+                pieces.append('{:4d}'.format(childern.get(
+                    Point(row, col)).num_visits if childern.get(Point(row, col)) is not None else 0))
             print('%d %s' % (row, ' | '.join(pieces)))

@@ -141,3 +141,6 @@ class PolicyImprover:
                             'loss_value': self._loss_value.item(),
                             'experience_buffer': self._experience_buffer
                             }
+
+        self._logger.debug(
+            '--Policy Improved  in round {}--'.format(game_index))

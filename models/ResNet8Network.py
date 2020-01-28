@@ -38,7 +38,6 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-
 NUM_FILTERS = 64
 
 

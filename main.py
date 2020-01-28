@@ -191,23 +191,15 @@ class Trainer:
         for game_index in tqdm(range(self._start_game_index, self._train_number_of_games+1), desc='Training Loop'):
             # collect data via self-playing
 
-            data_collector.collect_data()
-
-            self._logger.debug(
-                '--Data Collected in round {}--'.format(game_index))
+            data_collector.collect_data(game_index)
 
             if self._experience_buffer.size() > self._batch_size:
                 # update the policy with SGD
                 policy_improver.improve_policy(game_index)
-                self._logger.debug(
-                    '--Policy Improved  in round {}--'.format(game_index))
 
                 if game_index % self._check_frequence == 0:
 
-                    win_ratio = policy_evaluator.evaluate_policy()
-
-                    self._logger.debug('--Policy Evaluated in round {} with win_ratio {:.2%} (az_mcts_round_per_move {} : basic_mcts_round_move {})--'.format(
-                        game_index, win_ratio, self._az_mcts_rounds_per_move, self._basic_mcts_rounds_per_move))
+                    win_ratio = policy_evaluator.evaluate_policy(game_index)
 
                     self._writer.add_scalar('score', win_ratio, game_index * len(
                         self._devices_ids) if len(self._devices_ids) > 1 else game_index)
@@ -224,12 +216,10 @@ class Trainer:
                         best_ratio = win_ratio
 
                         # update the best_policy
-                        torch.save(self._checkpoint,
-                                   self._best_checkpoint_file)
+                        torch.save(self._checkpoint, self._best_checkpoint_file)
                         if (best_ratio == 1.0 and self._basic_mcts_rounds_per_move < 8000):
                             self._basic_mcts_rounds_per_move += 1000
-                            self._logger.debug('current basic_mcts_round_moves:{}'.format(
-                                self._basic_mcts_rounds_per_move))
+                            self._logger.debug('current basic_mcts_round_moves:{}'.format(self._basic_mcts_rounds_per_move))
                             best_ratio = 0.0
 
 

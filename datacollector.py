@@ -65,13 +65,15 @@ class DataCollector:
         else:
             self._devices = [torch.device('cpu')]
 
-    def collect_data(self):
+    def collect_data(self, game_index):
         self._model.eval()
 
         if len(self._devices) > 1:
             self._collect_data_in_parallel()
         else:
             self._collect_data_once()
+
+        self._logger.debug('--Data Collected in round {}--'.format(game_index))
 
     def _collect_data_once(self):
 
@@ -87,7 +89,8 @@ class DataCollector:
         players = {agent_1.id: agent_1, agent_2.id: agent_2}
         start_game_state = GameState(
             board, random.choice([agent_1.id, agent_2.id]), None)
-        game = Connect5Game(start_game_state, [agent_1.id, agent_2.id], self._number_of_planes, is_self_play=True)
+        game = Connect5Game(start_game_state, [
+                            agent_1.id, agent_2.id], self._number_of_planes, is_self_play=True)
         while not game.is_over():
             move = players[game.working_game_state.player_in_action].select_move(
                 game)

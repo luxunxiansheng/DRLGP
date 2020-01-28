@@ -33,22 +33,16 @@
 #
 # /
 
-import copy
-import math
-import random
-
-import numpy as np
-from profilehooks import profile
 from tqdm import tqdm
 
+from agent.mcts.mctsnode import MCTSNode
+from agent.mcts.mctstree import MCTSTree
 from agent.randomagent import RandomAgent
 from common.board import Board
 from common.gamestate import GameState
 from common.move import Move
 from common.player import Player
 from game.connect5game import Connect5Game
-from agent.mcts.mctsnode import MCTSNode
-from agent.mcts.mctstree import MCTSTree
 
 
 class MCTSAgent(Player):
@@ -111,7 +105,7 @@ class MCTSAgent(Player):
 
             node.update_recursively(self._mcts_tree.working_node, -leaf_value)
 
-        #self._mcts_tree.working_node.game_state.board.print_visits(self._mcts_tree.working_node.children)
+        # self._mcts_tree.working_node.game_state.board.print_visits(self._mcts_tree.working_node.children)
 
         best_point = max(self._mcts_tree.working_node.children.items(
         ), key=lambda point_node: point_node[1].num_visits)[0]

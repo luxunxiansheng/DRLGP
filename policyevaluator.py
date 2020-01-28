@@ -72,7 +72,7 @@ class PolicyEvaluator:
 
         self._logger = logger
 
-    def evaluate_policy(self):
+    def evaluate_policy(self, game_index):
 
         self._model.eval()
 
@@ -88,7 +88,12 @@ class PolicyEvaluator:
         self._logger.debug('Alphazero gets win_ratio {:.2%} in {}'.format(
             final_score/self._evaluate_number_of_games, self._evaluate_number_of_games))
 
-        return final_score/self._evaluate_number_of_games
+        win_ratio = final_score/self._evaluate_number_of_games
+
+        self._logger.debug('--Policy Evaluated in round {} with win_ratio {:.2%} (az_mcts_round_per_move {} : basic_mcts_round_move {})--'.format(
+            game_index, win_ratio, self._az_mcts_rounds_per_move, self._basic_mcts_rounds_per_move))
+
+        return win_ratio
 
     def _evaluate_policy_once(self):
         device = self._devices[0]
