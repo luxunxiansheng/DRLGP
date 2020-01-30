@@ -32,25 +32,24 @@
 # #### END LICENSE BLOCK #####
 #
 # /
-
-
 import os
 import sys
 
 sys.path.insert(0, os.path.abspath('.'))
 
-import torch
-from flask import Flask, jsonify, request
-
-from agent.alphazeroagent.alphazeroagent import AlphaZeroAgent
-from agent.humanplayer import HumanPlayer
-from boardencoder.deepmindencoder import DeepMindEncoder
-from common.board import Board
-from common.gamestate import GameState
-from common.move import Move
-from common.point import Point
-from game.connect5game import Connect5Game
 from models.ResNet8Network import ResNet8Network
+from game.connect5game import Connect5Game
+from common.point import Point
+from common.move import Move
+from common.gamestate import GameState
+from common.board import Board
+from boardencoder.deepmindencoder import DeepMindEncoder
+from agent.humanplayer import HumanPlayer
+from agent.alphazeroagent.alphazeroagent import AlphaZeroAgent
+from flask import Flask, jsonify, request
+import torch
+
+
 
 def coords_from_point(point):
     return '%s%d' % (Board.get_column_indicator(point.col-1), point.row)
@@ -68,23 +67,23 @@ def get_web_app():
     """
     here = os.path.dirname(__file__)
     static_path = os.path.join(here, 'static')
-    print(static_path)
+
     app = Flask(__name__, static_folder=static_path, static_url_path='/static')
 
     @app.route('/select-move/<bot_name>', methods=['POST'])
     def select_move(bot_name):
-       
+
         bot_agent = AlphaZeroAgent(Connect5Game.ASSIGNED_PLAYER_ID_2, "Agent_New", encoder, model_new, az_mcts_round_per_moves, c_puct, az_mcts_temperature, device=device)
         human_agent = HumanPlayer(Connect5Game.ASSIGNED_PLAYER_ID_1, "HumanPlayerX")
 
         board = Board(board_size)
         players = {}
-        players[bot_agent.id] =bot_agent
+        players[bot_agent.id] = bot_agent
         players[human_agent.id] = human_agent
 
         start_game_state = GameState(board, human_agent.id, None)
 
-        game = Connect5Game(start_game_state, [bot_agent.id,human_agent.id], number_of_planes, False)
+        game = Connect5Game(start_game_state, [bot_agent.id, human_agent.id], number_of_planes, False)
 
         historic_jboard_positions = [point_from_coords([move][0]) for move in (request.json)['moves']]
         historic_moves = [Move(Point(board_size+1-historic_jboard_position.row, historic_jboard_position.col)) for historic_jboard_position in historic_jboard_positions]
@@ -119,7 +118,7 @@ device = torch.device('cuda' if use_cuda else 'cpu')
 
 number_of_planes = 4
 board_size = 8
-az_mcts_round_per_moves = 500
+az_mcts_round_per_moves = 700
 c_puct = 8.0
 az_mcts_temperature = 0.001
 
@@ -129,7 +128,7 @@ input_shape = (number_of_planes*2+1, board_size, board_size)
 model_new = ResNet8Network(input_shape, board_size * board_size)
 
 
-best_checkpoint_file = './checkpoints/test/best.pth.tar'
+best_checkpoint_file = './checkpoints/test/latest.pth.tar'
 checkpoint = torch.load(best_checkpoint_file, map_location='cpu')
 model_new.load_state_dict(checkpoint['model'])
 model_new.eval()

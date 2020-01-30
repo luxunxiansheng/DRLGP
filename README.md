@@ -66,8 +66,13 @@ In computer science, Monte Carlo tree search (MCTS) is a heuristic search algori
         python   main.py
        
        ```
+  2.  To play the game, run the following command to launch the web server 
+       ```
+        python   ./web/server.py 
+       
+       ```
 
-
+      and then input the 127.0.0.1:5000/static/index.html into the web browser to open the game page.
 
 ## References
 [1] [Silver et al. “Mastering Chess and Shogi by Self-Play with a General Reinforcement Learning Algorithm.”](https://arxiv.org/pdf/1712.01815.pdf)

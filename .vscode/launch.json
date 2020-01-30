@@ -10,8 +10,7 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-            "debugOptions": ["DebugStdLib"],
-            "args": ["-config","default.ini"]
+            "debugOptions": ["DebugStdLib"]           
            
         },
         {
