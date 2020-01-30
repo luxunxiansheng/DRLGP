@@ -92,7 +92,7 @@ class AlphaZeroAgent(Player):
             self._mcts_tree.working_node = MCTSNode(
                 game.working_game_state, 1.0, None)
 
-        for _ in tqdm(range(self._num_rounds), desc='Rollout Loop'):
+        for _ in range(self._num_rounds):
             node = self._mcts_tree.working_node
             game_state_memory = copy.deepcopy(game.state_cache)
 

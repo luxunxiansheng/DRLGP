@@ -82,7 +82,7 @@ class MCTSAgent(Player):
             self._mcts_tree.working_node = MCTSNode(
                 game.working_game_state, 1.0, None)
 
-        for _ in tqdm(range(self._num_rounds)):
+        for _ in range(self._num_rounds):
             node = self._mcts_tree.working_node
             while True:
                 if node.is_leaf():

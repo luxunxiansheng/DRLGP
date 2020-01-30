@@ -184,7 +184,7 @@ class DataCollector:
         for (parent_connection_end, _) in pipes:
             parent_connection_end.close()
 
-        for p in tqdm(processes):
+        for p in processes:
             p.join()
 
         self._logger.debug("buffer size is :{}".format(
