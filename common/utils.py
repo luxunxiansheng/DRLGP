@@ -34,17 +34,13 @@
 # /
 
 
-import errno
+
 import os
-import shutil
 from configparser import ConfigParser
-from pathlib import Path
 
 import numpy as np
-import torch
 import torch.nn as nn
-from torch.optim import SGD, Adadelta, Adagrad, Adam, RMSprop
-
+from torch.optim import Adam
 
 class Utils(object):
     @staticmethod
@@ -97,5 +93,3 @@ class Utils(object):
             return Adam(params, lr=cfg['TRAIN.OPTIMIZER.ADAM'].getfloat('learning_rate'), weight_decay=cfg['TRAIN.OPTIMIZER.ADAM'].getfloat('weight_decay'))
         else:
             raise Exception('Unknown optimizer : {}'.format(cfg['TRAIN'].get('optimizer')))
-
-    

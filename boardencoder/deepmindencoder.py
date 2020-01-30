@@ -60,7 +60,7 @@ class DeepMindEncoder(Encoder):
     def board_height(self):
         return self._board_height
 
-    def encode(self, boards, player_in_action,previous_move=None):
+    def encode(self, boards, player_in_action, previous_move=None):
         '''
         The input to the neural network is a 19 × 19 × 17 image stack comprising num_plane*2+1 binary feature planes.
         num_plane feature planes Xt consist of binary values indicating the presence of the current player’s stones
@@ -72,27 +72,24 @@ class DeepMindEncoder(Encoder):
 
         Refer to: Mastering the Game of Go without Human Knowledge
         '''
-       
+
         board_matrix = np.zeros(self.shape(), dtype=int)
         for plane in range(len(boards)):
             for row in range(self._board_height):
                 for col in range(self._board_width):
                     point = Point(row+1, col+1)
                     piece = boards[plane].get_piece_at_point(point)
-                    if piece.owner_id!= -1:
+                    if piece.owner_id != -1:
                         if piece.owner_id == player_in_action:
-                            board_matrix[plane*2+1,row, col] = 1
+                            board_matrix[plane*2+1, row, col] = 1
                         else:
                             board_matrix[plane*2, row, col] = 1
-            
-        
+
         for row in range(self._board_height):
             for col in range(self._board_width):
                 board_matrix[self._num_plane*2, row, col] = player_in_action
-    
-        
+
         return board_matrix
-      
 
     def shape(self):
         return self._num_plane*2+1, self._board_height, self._board_width

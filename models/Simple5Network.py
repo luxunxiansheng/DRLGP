@@ -72,11 +72,14 @@ class Simple5Network(nn.Module):
         body_out_shape = (NUM_FILTERS,) + input_shape[1:]
         conv_2_out_size = self._get_con_2_out_size(body_out_shape)
 
-        self._value_hidden_layer = nn.Sequential(nn.Linear(conv_2_out_size, 512), nn.ReLU())
+        self._value_hidden_layer = nn.Sequential(
+            nn.Linear(conv_2_out_size, 512), nn.ReLU())
         self._value_output_layer = nn.Sequential(nn.Linear(512, 1), nn.Tanh())
 
-        self._policy_hidden_layer = nn.Sequential(nn.Linear(conv_2_out_size, 512), nn.ReLU())
-        self._policy_output_layer = nn.Sequential(nn.Linear(512, num_points), nn.Softmax(dim=1))
+        self._policy_hidden_layer = nn.Sequential(
+            nn.Linear(conv_2_out_size, 512), nn.ReLU())
+        self._policy_output_layer = nn.Sequential(
+            nn.Linear(512, num_points), nn.Softmax(dim=1))
 
     def forward(self, encoded_boards):
         batch_size = encoded_boards.size()[0]
@@ -84,10 +87,12 @@ class Simple5Network(nn.Module):
         v = self._conv_1(v)
         processed_board = self._conv_2(v)
 
-        output_value_hidden = self._value_hidden_layer(processed_board.view(batch_size, -1))
+        output_value_hidden = self._value_hidden_layer(
+            processed_board.view(batch_size, -1))
         output_value = self._value_output_layer(output_value_hidden)
 
-        output_policy_hidden = self._policy_hidden_layer(processed_board.view(batch_size, -1))
+        output_policy_hidden = self._policy_hidden_layer(
+            processed_board.view(batch_size, -1))
         output_policy = self._policy_output_layer(output_policy_hidden)
 
         return output_policy, output_value

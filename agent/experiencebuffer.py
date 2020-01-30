@@ -33,24 +33,38 @@
 #
 # /
 
+import copy
+from collections import deque
 
-from six.moves import input
-
-from common.board import Board
-from common.move import Move
-from common.player import Player
-from common.point import Point
+import numpy as np
 
 
-class HumanPlayer(Player):
-    @classmethod
-    def point_from_coords(cls, text):
-        col_name = text[0]
-        row = int(text[1])
-        return Point(row, Board.get_column_indicator_index(col_name)+1)
+class ExpericenceBuffer:
+    def __init__(self, compacity=10000):
+        self._data = deque(maxlen=compacity)
 
-    def select_move(self, game):
-        game.working_game_state.board.print_board()
-        human_move = input('--')
-        point = HumanPlayer.point_from_coords(human_move.strip())
-        return Move(point)
+    @property
+    def data(self):
+        return self._data
+
+    @data.setter
+    def data(self, data):
+        self._data = copy.deepcopy(data)
+
+    def combine_experience(self, collectors):
+        combined_states = np.concatenate(
+            [np.array(c.states) for c in collectors])
+        combined_rewards = np.concatenate(
+            [np.array(c.rewards) for c in collectors])
+        combined_visit_counts = np.concatenate(
+            [np.array(c.visit_counts) for c in collectors])
+
+        zipped_data = zip(combined_states, combined_rewards,
+                          combined_visit_counts)
+        self._data.extend(zipped_data)
+
+    def size(self):
+        return len(self._data)
+
+    def merge(self, other):
+        self._data += other.data

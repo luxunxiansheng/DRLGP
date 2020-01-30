@@ -82,7 +82,7 @@ class BlackWhiteEncoder(Encoder):
                 if previous_move is not None and row == previous_move.point.row-1 and col == previous_move.point.col-1:
                     flag = 1
 
-                board_matrix[self._num_plane*2, row,col] = flag
+                board_matrix[self._num_plane*2, row, col] = flag
 
         #  the  player who will play in the next move
         for row in range(self._board_height):

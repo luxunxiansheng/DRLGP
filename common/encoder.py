@@ -38,11 +38,8 @@ class Encoder:
     def name(self):
         raise NotImplementedError()
 
-    def encode(self, game_state,player_in_action,previous_move=None):
+    def encode(self, boards, player_in_action, previous_move=None):
         raise NotImplementedError()
-
-    def decode(self, board_matrix):
-        raise NotImplementedError
 
     def encode_point(self, point):
         raise NotImplementedError()

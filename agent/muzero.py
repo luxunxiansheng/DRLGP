@@ -33,36 +33,26 @@
 #
 # /
 
+
 import copy
-from collections import deque
+import gc
+import math
+import random
 
 import numpy as np
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
+from tqdm import tqdm
 
-class ExpericenceBuffer:
-    def __init__(self, compacity=10000):
-        self._data = deque(maxlen=compacity)
+from agent.experiencecollector import ExperienceCollector
+from common.board import Board
+from common.gamestate import GameState
+from common.move import Move
+from common.player import Player
+from agent.mcts.mctsnode import MCTSNode
+from agent.mcts.mctstree import MCTSTree
 
-    @property
-    def data(self):
-        return self._data
-
-    @data.setter
-    def data(self,data):
-        self._data=copy.deepcopy(data)
-
-    
-    def combine_experience(self, collectors):
-        combined_states = np.concatenate([np.array(c.states) for c in collectors])
-        combined_rewards = np.concatenate([np.array(c.rewards) for c in collectors])
-        combined_visit_counts = np.concatenate([np.array(c.visit_counts) for c in collectors])
-
-        zipped_data = zip(combined_states, combined_rewards, combined_visit_counts)
-        self._data.extend(zipped_data)
-
-    def size(self):
-        return len(self._data)
-
-
-    def merge(self, other):
-        self._data += other.data
-    
+class MuZeroAgent(Player):
+    def __init__(self,id,name,encoder,model)
