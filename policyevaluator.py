@@ -45,7 +45,7 @@ from game.connect5game import Connect5Game
 
 
 class PolicyEvaluator:
-    def __init__(self, devices_ids, use_cuda, encoder, board_size, number_of_planes, model, az_mcts_round_per_moves, c_puct, az_mcts_temperature, basic_mcts_c_puct, basic_mcts_round_per_moves, evaluate_number_of_games, logger):
+    def __init__(self, devices_ids, use_cuda, encoder, board_size, number_of_planes, model, az_mcts_round_per_moves, c_puct, az_mcts_temperature, basic_mcts_c_puct, basic_mcts_round_per_move, evaluate_number_of_games, logger):
 
         self._devices_ids = devices_ids
 
@@ -66,7 +66,7 @@ class PolicyEvaluator:
         self._az_mcts_temperature = az_mcts_temperature
 
         self._basic_mcts_c_puct = basic_mcts_c_puct
-        self._basic_mcts_rounds_per_move = basic_mcts_round_per_moves
+        self._basic_mcts_rounds_per_move = basic_mcts_round_per_move
 
         self._evaluate_number_of_games = evaluate_number_of_games
 
@@ -207,7 +207,7 @@ class PolicyEvaluator:
             for (parent_connection_end, _) in pipes:
                 parent_connection_end.close()
 
-            for p in tqdm(processes):
+            for p in processes:
                 p.join()
 
         return final_score

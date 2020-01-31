@@ -136,7 +136,7 @@ class Board:
                 piece = self.get_piece_at_point(Point(row, col))
                 pieces.append(str(piece.owner_id)
                               ) if piece.owner_id != -1 else pieces.append(' ')
-            print('%d %s' % (row, ' | '.join(pieces)))
+            print('%02d %s' % (row, ' | '.join(pieces)))
 
     def print_visits(self, childern):
         print('**************************************************')

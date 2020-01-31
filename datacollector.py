@@ -174,8 +174,6 @@ class DataCollector:
             while True:
                 try:
                     experience_buffer = parent_connection_end.recv()
-                    self._logger.debug('Received experience buffer size  is {}'.format(
-                        experience_buffer.size()))
                     self._experience_buffer.merge(experience_buffer)
                 except EOFError:
 
@@ -187,5 +185,4 @@ class DataCollector:
         for p in processes:
             p.join()
 
-        self._logger.debug("buffer size is :{}".format(
-            self._experience_buffer.size()))
+       
