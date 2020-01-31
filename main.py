@@ -57,8 +57,7 @@ from policyimprover import PolicyImprover
 
 class Trainer:
     def __init__(self, args, logger):
-
-        self._logger = logger
+    
 
         config_name = args.config
 
@@ -173,33 +172,37 @@ class Trainer:
 
         self._checkpoint = None
 
+
+        self._data_collector = DataCollector(self._encoder, self._model, self._az_mcts_rounds_per_move, self._c_puct, self._az_mcts_temperature,
+                                       self._board_size, self._number_of_planes, self._experience_buffer, self._devices_ids, self._use_cuda, logger)
+
+        self._policy_improver = PolicyImprover(self._model, self._model_name, self._batch_size, self._epochs, self._kl_threshold, self._experience_buffer,
+                                         self._devices_ids, self._use_cuda, self._optimizer, self._writer, logger)
+
+        self._policy_evaluator = PolicyEvaluator(self._devices_ids, self._use_cuda, self._encoder, self._board_size, self._number_of_planes, self._model, self._az_mcts_rounds_per_move,
+                                           self._c_puct, self._az_mcts_temperature, self._basic_mcts_c_puct, self._basic_mcts_rounds_per_move, self._evaluate_number_of_games, logger)
+
+
+
     def run(self):
 
         mp.set_start_method('spawn', force=True)
 
         best_ratio = 0.0
 
-        data_collector = DataCollector(self._encoder, self._model, self._az_mcts_rounds_per_move, self._c_puct, self._az_mcts_temperature,
-                                       self._board_size, self._number_of_planes, self._experience_buffer, self._devices_ids, self._use_cuda, self._logger)
-
-        policy_improver = PolicyImprover(self._model, self._model_name, self._batch_size, self._epochs, self._kl_threshold, self._experience_buffer,
-                                         self._devices_ids, self._use_cuda, self._optimizer, self._writer,self._logger)
-
-        policy_evaluator = PolicyEvaluator(self._devices_ids, self._use_cuda, self._encoder, self._board_size, self._number_of_planes, self._model,
-                                           self._az_mcts_rounds_per_move, self._c_puct, self._az_mcts_temperature, self._basic_mcts_c_puct, self._basic_mcts_rounds_per_move, self._evaluate_number_of_games, self._logger)
-
+      
         for game_index in tqdm(range(self._start_game_index, self._train_number_of_games+1), desc='Training Loop'):
             # collect data via self-playing
 
-            data_collector.collect_data(game_index)
+            self._data_collector.collect_data(game_index)
 
             if self._experience_buffer.size() > self._batch_size:
                 # update the policy with SGD
-                self._checkpoint = policy_improver.improve_policy(game_index)
+                self._checkpoint = self._policy_improver.improve_policy(game_index)
 
                 if game_index % self._check_frequence == 0:
 
-                    win_ratio = policy_evaluator.evaluate_policy(game_index)
+                    win_ratio = self._policy_evaluator.evaluate_policy(game_index)
 
                     self._writer.add_scalar('score', win_ratio, game_index * len(
                         self._devices_ids) if len(self._devices_ids) > 1 else game_index)
