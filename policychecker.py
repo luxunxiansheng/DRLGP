@@ -37,7 +37,7 @@ import logging
 
 import torch
 import torch.multiprocessing as mp
-from tqdm import tqdm
+
 
 from agent.alphazeroagent import AlphaZeroAgent
 from agent.mctsagent import MCTSAgent
@@ -187,8 +187,7 @@ class PolicyChecker:
             for gpu_index in range(num_of_devices):
                 parent_connection_end, child_connection_end = mp.Pipe()
 
-                p = mp.Process(target=PolicyCheker._check_policy_once_in_parallel, args=(self._basic_mcts_rounds_per_move, self._basic_mcts_c_puct, self._az_mcts_temperature,
-                                                                                               self._encoder, self._model, self._az_mcts_rounds_per_move, self._c_puct, self._devices[gpu_index], self._board_size, self._number_of_planes, child_connection_end))
+                p = mp.Process(target=PolicyChecker._check_policy_once_in_parallel, args=(self._basic_mcts_rounds_per_move, self._basic_mcts_c_puct, self._az_mcts_temperature,self._encoder, self._model, self._az_mcts_rounds_per_move, self._c_puct, self._devices[gpu_index], self._board_size, self._number_of_planes, child_connection_end))
 
                 processes.append(p)
                 pipes.append((parent_connection_end, child_connection_end))

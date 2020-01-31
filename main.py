@@ -83,7 +83,7 @@ class Trainer:
         batch_size = cfg['TRAIN'].getint('batch_size')
 
         epochs = cfg['TRAIN'].getint('epochs')
-        kl_threshold = cfg['TRAIN'].getfloat('kl_threshold')
+       
         
         self._basic_mcts_rounds_per_move = cfg['BASIC_MCTS'].getint('rounds_per_move')
         self._latest_checkpoint_file = './checkpoints/' + config_name.split('.')[0]+'/latest.pth.tar'
