@@ -59,7 +59,7 @@ class Trainer:
     def __init__(self, args):
         
         self._logger = logging.getLogger('Traniner')
-        self._checkpoint = None
+        self._checkpoint = {}
         
         config_name = args.config
 
@@ -151,7 +151,7 @@ class Trainer:
         self._data_collector = DataCollector(encoder, self._model, az_mcts_rounds_per_move, c_puct, az_mcts_temperature,
                                        board_size, number_of_planes, devices_ids, use_cuda)
 
-        self._policy_improver = PolicyImprover(self._model, batch_size, epochs,kl_threshold,devices_ids, use_cuda, self._optimizer, writer)
+        self._policy_improver = PolicyImprover(self._model, batch_size, epochs, devices_ids, use_cuda, self._optimizer, writer)
 
         self._policy_checker = PolicyChecker(devices_ids, use_cuda, encoder, board_size, number_of_planes, self._model, az_mcts_rounds_per_move,
                                            c_puct, az_mcts_temperature, basic_mcts_c_puct, check_number_of_games, writer)
@@ -178,7 +178,7 @@ class Trainer:
             self._checkpoint['optimizer']= self._optimizer.state_dict()
 
             # check the policy 
-            if game_index % self._check_frequency == 0:
+            if game_index % self._check_frequence == 0:
                 win_ratio = self._policy_checker.check_policy(game_index, self._basic_mcts_rounds_per_move)
                 self._checkpoint['basic_mcts_rounds_per_move'] = self._basic_mcts_rounds_per_move
                 self._checkpoint['best_score'] = win_ratio

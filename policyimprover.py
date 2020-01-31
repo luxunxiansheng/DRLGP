@@ -43,14 +43,13 @@ from torch.nn import DataParallel
 
 
 class PolicyImprover:
-    def __init__(self, model, batch_size, epochs, kl_threshold, devices_ids, use_cuda, optimizer, writer):
+    def __init__(self, model, batch_size, epochs, devices_ids, use_cuda, optimizer, writer):
         self._use_cuda = use_cuda
         self._devices_ids = devices_ids
         self._model = model
         self._batch_size = batch_size
         self._epochs = epochs
-        self._kl_threshold = kl_threshold
-        
+       
         self._optimizer = optimizer
         self._writer = writer
 
