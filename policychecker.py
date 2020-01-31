@@ -33,6 +33,8 @@
 #
 # /
 
+import logging
+
 import torch
 import torch.multiprocessing as mp
 from tqdm import tqdm
@@ -44,14 +46,13 @@ from common.gamestate import GameState
 from game.connect5game import Connect5Game
 
 
-class PolicyEvaluator:
-    def __init__(self, devices_ids, use_cuda, encoder, board_size, number_of_planes, model, az_mcts_round_per_moves, c_puct, az_mcts_temperature, basic_mcts_c_puct, basic_mcts_round_per_move, evaluate_number_of_games, logger):
+class PolicyChecker:
+    def __init__(self, devices_ids, use_cuda, encoder, board_size, number_of_planes, model, az_mcts_round_per_moves, c_puct, az_mcts_temperature, basic_mcts_c_puct, check_number_of_games, writer):
 
         self._devices_ids = devices_ids
 
         if use_cuda:
-            self._devices = [torch.device(
-                'cuda:'+str(devices_ids[i])) for i in range(len(devices_ids))]
+            self._devices = [torch.device('cuda:'+str(devices_ids[i])) for i in range(len(devices_ids))]
         else:
             self._devices = [torch.device('cpu')]
 
@@ -66,36 +67,39 @@ class PolicyEvaluator:
         self._az_mcts_temperature = az_mcts_temperature
 
         self._basic_mcts_c_puct = basic_mcts_c_puct
-        self._basic_mcts_rounds_per_move = basic_mcts_round_per_move
+        self._basic_mcts_rounds_per_move = 0
 
-        self._evaluate_number_of_games = evaluate_number_of_games
+        self._check_number_of_games = check_number_of_games
 
-        self._logger = logger
+        self._writer = writer
+        self._logger = logging.getLogger('PolicyChecker')
 
-    def evaluate_policy(self, game_index):
+    def check_policy(self, game_index, basic_mcts_rounds_per_move):
+
+        self._basic_mcts_rounds_per_move = basic_mcts_rounds_per_move
 
         self._model.eval()
 
         final_score = 0
 
         if len(self._devices) > 1:
-            self._evaluate_number_of_games = len(self._devices)*2
-            final_score = self._evaluate_ploicy_in_parallel()
+            self._check_number_of_games = len(self._devices)*2
+            final_score = self._check_ploicy_in_parallel()
         else:
-            for _ in tqdm(range(self._evaluate_number_of_games), desc='Evaluation Loop'):
-                final_score += self._evaluate_policy_once()
+            for _ in range(self._check_number_of_games):
+                final_score += self._check_policy_once()
 
-        self._logger.debug('Alphazero gets win_ratio {:.2%} in {}'.format(
-            final_score/self._evaluate_number_of_games, self._evaluate_number_of_games))
+        win_ratio = final_score/self._check_number_of_games
 
-        win_ratio = final_score/self._evaluate_number_of_games
-
-        self._logger.debug('--Policy Evaluated in round {} with win_ratio {:.2%} (az_mcts_round_per_move {} : basic_mcts_round_move {})--'.format(
+        self._logger.debug('--Policy checked in round {} with win_ratio {:.2%} (az_mcts_round_per_move {} : basic_mcts_round_move {})--'.format(
             game_index, win_ratio, self._az_mcts_rounds_per_move, self._basic_mcts_rounds_per_move))
-
+         
+        self._writer.add_scalar('win_ratio', win_ratio, game_index * len(self._devices_ids) if len(self._devices_ids) > 1 else game_index)
+ 
         return win_ratio
-
-    def _evaluate_policy_once(self):
+        
+       
+    def _check_policy_once(self):
         device = self._devices[0]
         mcts_agent = MCTSAgent(Connect5Game.ASSIGNED_PLAYER_ID_1, "MCTSAgent",
                                self._basic_mcts_rounds_per_move, self._basic_mcts_c_puct)
@@ -132,7 +136,7 @@ class PolicyEvaluator:
         return score
 
     @staticmethod
-    def _evaluate_policy_once_in_parallel(basic_mcts_round_per_moves, basic_mcts_c_puct, az_mcts_temperature, encoder, model, az_mcts_round_per_moves, c_puct, device, board_size, number_of_planes, pipe):
+    def _check_policy_once_in_parallel(basic_mcts_round_per_moves, basic_mcts_c_puct, az_mcts_temperature, encoder, model, az_mcts_round_per_moves, c_puct, device, board_size, number_of_planes, pipe):
         mcts_agent = MCTSAgent(Connect5Game.ASSIGNED_PLAYER_ID_1,
                                "MCTSAgent", basic_mcts_round_per_moves, basic_mcts_c_puct)
         az_agent = AlphaZeroAgent(Connect5Game.ASSIGNED_PLAYER_ID_2, "AlphaZeroAgent", encoder,
@@ -170,20 +174,20 @@ class PolicyEvaluator:
         pipe.send(score)
         pipe.close()
 
-    def _evaluate_ploicy_in_parallel(self):
+    def _check_ploicy_in_parallel(self):
 
         final_score = 0
 
         num_of_devices = len(self._devices_ids)
 
-        for _ in range(0, self._evaluate_number_of_games, num_of_devices):
+        for _ in range(0, self._check_number_of_games, num_of_devices):
             processes = []
             pipes = []
 
             for gpu_index in range(num_of_devices):
                 parent_connection_end, child_connection_end = mp.Pipe()
 
-                p = mp.Process(target=PolicyEvaluator._evaluate_policy_once_in_parallel, args=(self._basic_mcts_rounds_per_move, self._basic_mcts_c_puct, self._az_mcts_temperature,
+                p = mp.Process(target=PolicyCheker._check_policy_once_in_parallel, args=(self._basic_mcts_rounds_per_move, self._basic_mcts_c_puct, self._az_mcts_temperature,
                                                                                                self._encoder, self._model, self._az_mcts_rounds_per_move, self._c_puct, self._devices[gpu_index], self._board_size, self._number_of_planes, child_connection_end))
 
                 processes.append(p)

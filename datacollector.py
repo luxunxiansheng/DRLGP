@@ -35,6 +35,7 @@
 
 
 import random
+import logging
 
 import torch
 import torch.multiprocessing as mp
@@ -48,7 +49,7 @@ from game.connect5game import Connect5Game
 
 
 class DataCollector:
-    def __init__(self, encoder, model, az_mcts_round_per_moves, c_puct, az_mcts_temperature, boder_size, number_of_planes, expericence_buffer, devices_id, use_cuda, logger):
+    def __init__(self, encoder, model, az_mcts_round_per_moves, c_puct, az_mcts_temperature, boder_size, number_of_planes, devices_id, use_cuda):
         self._encoder = encoder
         self._model = model
         self._az_mcts_rounds_per_move = az_mcts_round_per_moves
@@ -56,15 +57,16 @@ class DataCollector:
         self._az_mcts_temperature = az_mcts_temperature
         self._board_size = boder_size
         self._number_of_planes = number_of_planes
-        self._experience_buffer = expericence_buffer
-        self._logger = logger
-
+        self._experience_buffer = ExpericenceBuffer()
+        
         if use_cuda:
             self._devices = [torch.device(
                 'cuda:'+str(devices_id[i])) for i in range(len(devices_id))]
         else:
             self._devices = [torch.device('cpu')]
 
+        self._logger = logging.getLogger('DataCollector') 
+        
     def collect_data(self, game_index):
         self._model.eval()
 
@@ -74,6 +76,8 @@ class DataCollector:
             self._collect_data_once()
 
         self._logger.debug('--Data Collected in round {}--'.format(game_index))
+
+        return self._experience_buffer
 
     def _collect_data_once(self):
 
@@ -87,10 +91,8 @@ class DataCollector:
 
         board = Board(self._board_size)
         players = {agent_1.id: agent_1, agent_2.id: agent_2}
-        start_game_state = GameState(
-            board, random.choice([agent_1.id, agent_2.id]), None)
-        game = Connect5Game(start_game_state, [
-                            agent_1.id, agent_2.id], self._number_of_planes, is_self_play=True)
+        start_game_state = GameState(board, random.choice([agent_1.id, agent_2.id]), None)
+        game = Connect5Game(start_game_state, [agent_1.id, agent_2.id], self._number_of_planes, is_self_play=True)
         while not game.is_over():
             move = players[game.working_game_state.player_in_action].select_move(
                 game)
@@ -109,11 +111,9 @@ class DataCollector:
                 players[1].experience_collector.complete_episode(reward=1)
                 players[0].experience_collector.complete_episode(reward=-1)
 
-            self._experience_buffer.combine_experience(
-                [agent_1.experience_collector, agent_2.experience_collector])
+            self._experience_buffer.combine_experience([agent_1.experience_collector, agent_2.experience_collector])
 
-        self._logger.debug("buffer size is :{}".format(
-            self._experience_buffer.size()))
+        
 
     @staticmethod
     def _collect_data_once_in_parallel(encoder, model, az_mcts_round_per_moves, board_size, number_of_planes, c_puct, az_mcts_temperature, device, pipe):
