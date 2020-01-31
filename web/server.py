@@ -45,7 +45,7 @@ from common.gamestate import GameState
 from common.board import Board
 from boardencoder.deepmindencoder import DeepMindEncoder
 from agent.humanplayer import HumanPlayer
-from agent.alphazeroagent.alphazeroagent import AlphaZeroAgent
+from agent.alphazeroagent import AlphaZeroAgent
 from flask import Flask, jsonify, request
 import torch
 
