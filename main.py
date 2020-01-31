@@ -187,7 +187,7 @@ class Trainer:
                 torch.save(self._checkpoint, self._latest_checkpoint_file)
                 if win_ratio > best_ratio:
                     best_ratio = win_ratio
-                    self._logger.info("New best score {:.2%} against MCTS {} rounds per move ".format(win_ratio, self._basic_mcts_rounds_per_move))
+                    self._logger.info("New best score {:.2%} against MCTS ({} rounds per move) ".format(win_ratio, self._basic_mcts_rounds_per_move))
 
                     # save the best_policy
                     torch.save(self._checkpoint, self._best_checkpoint_file)

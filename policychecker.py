@@ -127,12 +127,10 @@ class PolicyChecker:
             game.apply_move(move)
 
         winner = game.final_winner
-
-        self._logger.debug('Winner is {}'.format(players[winner].name))
-
         score = 0
         if winner == az_agent.id:
             score = 1
+        print('This score is {}'.format(score))
         return score
 
     @staticmethod
@@ -170,7 +168,8 @@ class PolicyChecker:
         score = 0
         if winner == az_agent.id:
             score = 1
-
+        
+        print('This score is {}'.format(score))
         pipe.send(score)
         pipe.close()
 
@@ -200,8 +199,6 @@ class PolicyChecker:
                 while True:
                     try:
                         score = parent_connection_end.recv()
-                        self._logger.debug("current score is {}".format(score))
-
                         final_score += score
 
                     except EOFError:
