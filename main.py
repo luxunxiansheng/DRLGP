@@ -178,7 +178,7 @@ class Trainer:
             self._checkpoint['optimizer']= self._optimizer.state_dict()
 
             # check the policy 
-            if game_index % 50 == 0:
+            if game_index % self._check_frequence == 0:
                 win_ratio = self._policy_checker.check_policy(game_index, self._basic_mcts_rounds_per_move)
                 self._checkpoint['basic_mcts_rounds_per_move'] = self._basic_mcts_rounds_per_move
                 self._checkpoint['best_score'] = win_ratio

@@ -35,6 +35,8 @@
 import os
 import sys
 
+from flask import Flask, jsonify, request
+
 sys.path.insert(0, os.path.abspath('.'))
 
 from models.ResNet8Network import ResNet8Network
@@ -46,7 +48,7 @@ from common.board import Board
 from boardencoder.deepmindencoder import DeepMindEncoder
 from agent.humanplayer import HumanPlayer
 from agent.alphazeroagent import AlphaZeroAgent
-from flask import Flask, jsonify, request
+
 import torch
 
 
@@ -117,8 +119,8 @@ use_cuda = torch.cuda.is_available()
 device = torch.device('cuda' if use_cuda else 'cpu')
 
 number_of_planes = 4
-board_size = 8
-az_mcts_round_per_moves = 700
+board_size = 11
+az_mcts_round_per_moves = 500
 c_puct = 8.0
 az_mcts_temperature = 0.001
 
@@ -128,11 +130,11 @@ input_shape = (number_of_planes*2+1, board_size, board_size)
 model_new = ResNet8Network(input_shape, board_size * board_size)
 
 
-best_checkpoint_file = './checkpoints/test/latest.pth.tar'
+best_checkpoint_file = './checkpoints/test11/latest.pth.tar'
 checkpoint = torch.load(best_checkpoint_file, map_location='cpu')
 model_new.load_state_dict(checkpoint['model'])
 model_new.eval()
 
 
 web_app = get_web_app()
-web_app.run()
+web_app.run(debug=True)
