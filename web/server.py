@@ -54,13 +54,15 @@ import torch
 
 
 def coords_from_point(point):
-    return '%s%d' % (Board.get_column_indicator(point.col-1), point.row)
+    coords = '%s%d' % (Board.get_column_indicator(point.col-1), point.row-1)
+    return  coords
 
 
-def point_from_coords(text):
-    col_name = text[0]
-    row = int(text[1])
-    return Point(row, Board.get_column_indicator_index(col_name)+1)
+def point_from_coords(coords):
+    col_name = coords[0]
+    row = int(coords[1])
+    point = Point(row+1, Board.get_column_indicator_index(col_name)+1)
+    return point
 
 
 def get_web_app():
@@ -88,7 +90,7 @@ def get_web_app():
         game = Connect5Game(start_game_state, [bot_agent.id, human_agent.id], number_of_planes, False)
 
         historic_jboard_positions = [point_from_coords([move][0]) for move in (request.json)['moves']]
-        historic_moves = [Move(Point(board_size+1-historic_jboard_position.row, historic_jboard_position.col)) for historic_jboard_position in historic_jboard_positions]
+        historic_moves = [Move(Point(historic_jboard_position.row, historic_jboard_position.col)) for historic_jboard_position in historic_jboard_positions]
         over = False
         bot_move_str = ''
 
@@ -101,7 +103,7 @@ def get_web_app():
             bot_move = bot_agent.select_move(game)
             game.apply_move(bot_move)
             game.working_game_state.board.print_board()
-            jboard_postion = Point(board_size+1-bot_move.point.row, bot_move.point.col)
+            jboard_postion = Point(bot_move.point.row, bot_move.point.col)
             bot_move_str = coords_from_point(jboard_postion)
             over = True if game.is_over() else False
 
