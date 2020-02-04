@@ -104,7 +104,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 <script type="text/javascript" src="./jgoboard-latest.js"></script>
 <script type="text/javascript" src="large/board.js"></script>
 <script type="text/javascript">
-var BOARD_SIZE = 8;
+var BOARD_SIZE = 11;
 var jrecord = new JGO.Record(BOARD_SIZE);
 var jboard = jrecord.jboard;
 var jsetup = new JGO.Setup(jboard, JGO.BOARD.largeWalnut);
@@ -127,16 +127,16 @@ function resetGame(ev) {
 }
 
 function coordsToString(point) {
-    var row = (BOARD_SIZE - 1) - point.j;
+    var row = point.j;
     var col = point.i;
-    return colnames[col] + ((row + 1).toString());
+    return colnames[col] + ((row).toString());
 }
 
 function stringToCoords(move_string) {
     var colStr = move_string.substring(0, 1);
     var rowStr = move_string.substring(1);
     var col = colnames.indexOf(colStr);
-    var row = BOARD_SIZE - parseInt(rowStr, 10);
+    var row = parseInt(rowStr, 10);
     return new JGO.Coordinate(col, row);
 }
 
@@ -169,7 +169,11 @@ function waitForBot() {
 }
 
 function stopWaiting(botmove) {
-    var text = 'Bot plays ' + botmove;
+  display_coords=stringToCoords(botmove)
+  display_coords.j =  BOARD_SIZE - display_coords.j
+  display_coords.i =  display_coords.i
+  botmove= coordsToString(display_coords)
+  var text = 'Bot plays ' + botmove;
     if (botmove == 'pass') {
         text = 'Bot passes';
     } else if (botmove == 'resign') {

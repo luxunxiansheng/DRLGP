@@ -35,6 +35,8 @@
 import os
 import sys
 
+from flask import Flask, jsonify, request
+
 sys.path.insert(0, os.path.abspath('.'))
 
 from models.ResNet8Network import ResNet8Network
@@ -46,19 +48,21 @@ from common.board import Board
 from boardencoder.deepmindencoder import DeepMindEncoder
 from agent.humanplayer import HumanPlayer
 from agent.alphazeroagent import AlphaZeroAgent
-from flask import Flask, jsonify, request
+
 import torch
 
 
 
 def coords_from_point(point):
-    return '%s%d' % (Board.get_column_indicator(point.col-1), point.row)
+    coords = '%s%d' % (Board.get_column_indicator(point.col-1), point.row-1)
+    return  coords
 
 
-def point_from_coords(text):
-    col_name = text[0]
-    row = int(text[1])
-    return Point(row, Board.get_column_indicator_index(col_name)+1)
+def point_from_coords(coords):
+    col_name = coords[0]
+    row = int(coords[1])
+    point = Point(row+1, Board.get_column_indicator_index(col_name)+1)
+    return point
 
 
 def get_web_app():
@@ -86,7 +90,7 @@ def get_web_app():
         game = Connect5Game(start_game_state, [bot_agent.id, human_agent.id], number_of_planes, False)
 
         historic_jboard_positions = [point_from_coords([move][0]) for move in (request.json)['moves']]
-        historic_moves = [Move(Point(board_size+1-historic_jboard_position.row, historic_jboard_position.col)) for historic_jboard_position in historic_jboard_positions]
+        historic_moves = [Move(Point(historic_jboard_position.row, historic_jboard_position.col)) for historic_jboard_position in historic_jboard_positions]
         over = False
         bot_move_str = ''
 
@@ -99,7 +103,7 @@ def get_web_app():
             bot_move = bot_agent.select_move(game)
             game.apply_move(bot_move)
             game.working_game_state.board.print_board()
-            jboard_postion = Point(board_size+1-bot_move.point.row, bot_move.point.col)
+            jboard_postion = Point(bot_move.point.row, bot_move.point.col)
             bot_move_str = coords_from_point(jboard_postion)
             over = True if game.is_over() else False
 
@@ -117,8 +121,8 @@ use_cuda = torch.cuda.is_available()
 device = torch.device('cuda' if use_cuda else 'cpu')
 
 number_of_planes = 4
-board_size = 8
-az_mcts_round_per_moves = 700
+board_size = 11
+az_mcts_round_per_moves = 500
 c_puct = 8.0
 az_mcts_temperature = 0.001
 
@@ -128,11 +132,11 @@ input_shape = (number_of_planes*2+1, board_size, board_size)
 model_new = ResNet8Network(input_shape, board_size * board_size)
 
 
-best_checkpoint_file = './checkpoints/test/latest.pth.tar'
+best_checkpoint_file = './checkpoints/test11/latest.pth.tar'
 checkpoint = torch.load(best_checkpoint_file, map_location='cpu')
 model_new.load_state_dict(checkpoint['model'])
 model_new.eval()
 
 
 web_app = get_web_app()
-web_app.run()
+web_app.run(debug=True)
