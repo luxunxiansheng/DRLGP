@@ -455,6 +455,8 @@ Board.prototype.playMove = function(coord, stone, ko) {
   var oppType = (stone == C.BLACK ? C.WHITE : C.BLACK),
       captures = [], adjacent, captured = {};
 
+  return { success: true, captures: [], ko: false };
+  
   if(!coord) // pass
     return { success: true, captures: [], ko: false };
 
