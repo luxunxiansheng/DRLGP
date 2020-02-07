@@ -55,10 +55,14 @@ import torch
 
 def coords_from_point(point):
     coords = '%s%d' % (Board.get_column_indicator(point.col-1), point.row-1)
+    print('coords_from_point') 
+    print(coords)
     return  coords
 
 
 def point_from_coords(coords):
+    print('point_from_coords')
+    print(coords)
     col_name = coords[0]
     row = int(coords[1])
     point = Point(row+1, Board.get_column_indicator_index(col_name)+1)
@@ -95,6 +99,8 @@ def get_web_app():
         bot_move_str = ''
 
         for move in historic_moves:
+            print("move is {}-{}".format(move.point.col,move.point.row))
+            
             game.apply_move(move)
 
         if game.is_over():
