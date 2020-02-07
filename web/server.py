@@ -55,71 +55,14 @@ import torch
 
 def coords_from_point(point):
     coords = '%s%d' % (Board.get_column_indicator(point.col-1), point.row-1)
-    print('coords_from_point') 
-    print(coords)
     return  coords
 
 
 def point_from_coords(coords):
-    print('point_from_coords')
-    print(coords)
     col_name = coords[0]
-    row = int(coords[1])
+    row = int(coords[1:])
     point = Point(row+1, Board.get_column_indicator_index(col_name)+1)
     return point
-
-
-def get_web_app():
-    """Create a flask application for serving bot moves.
-    Returns: Flask application instance
-    """
-    here = os.path.dirname(__file__)
-    static_path = os.path.join(here, 'static')
-
-    app = Flask(__name__, static_folder=static_path, static_url_path='/static')
-
-    @app.route('/select-move/<bot_name>', methods=['POST'])
-    def select_move(bot_name):
-
-        bot_agent = AlphaZeroAgent(Connect5Game.ASSIGNED_PLAYER_ID_2, "Agent_New", encoder, model_new, az_mcts_round_per_moves, c_puct, az_mcts_temperature, device=device)
-        human_agent = HumanPlayer(Connect5Game.ASSIGNED_PLAYER_ID_1, "HumanPlayerX")
-
-        board = Board(board_size)
-        players = {}
-        players[bot_agent.id] = bot_agent
-        players[human_agent.id] = human_agent
-
-        start_game_state = GameState(board, human_agent.id, None)
-
-        game = Connect5Game(start_game_state, [bot_agent.id, human_agent.id], number_of_planes, False)
-
-        historic_jboard_positions = [point_from_coords([move][0]) for move in (request.json)['moves']]
-        historic_moves = [Move(Point(historic_jboard_position.row, historic_jboard_position.col)) for historic_jboard_position in historic_jboard_positions]
-        over = False
-        bot_move_str = ''
-
-        for move in historic_moves:
-            print("move is {}-{}".format(move.point.col,move.point.row))
-            
-            game.apply_move(move)
-
-        if game.is_over():
-            over = True
-        else:
-            bot_move = bot_agent.select_move(game)
-            game.apply_move(bot_move)
-            game.working_game_state.board.print_board()
-            jboard_postion = Point(bot_move.point.row, bot_move.point.col)
-            bot_move_str = coords_from_point(jboard_postion)
-            over = True if game.is_over() else False
-
-        return jsonify({
-            'bot_move': bot_move_str,
-            'over': over,
-            'diagnostics': None
-        })
-
-    return app
 
 
 torch.manual_seed(1)
@@ -144,5 +87,53 @@ model_new.load_state_dict(checkpoint['model'])
 model_new.eval()
 
 
-web_app = get_web_app()
-web_app.run(debug=True)
+"""Create a flask application for serving bot moves.
+Returns: Flask application instance
+"""
+here = os.path.dirname(__file__)
+static_path = os.path.join(here, 'static')
+
+app = Flask(__name__, static_folder=static_path, static_url_path='/static')
+
+@app.route('/select-move/<bot_name>', methods=['POST'])
+def select_move(bot_name):
+
+    bot_agent = AlphaZeroAgent(Connect5Game.ASSIGNED_PLAYER_ID_2, "Agent_New", encoder, model_new, az_mcts_round_per_moves, c_puct, az_mcts_temperature, device=device)
+    human_agent = HumanPlayer(Connect5Game.ASSIGNED_PLAYER_ID_1, "HumanPlayerX")
+
+    board = Board(board_size)
+    players = {}
+    players[bot_agent.id] = bot_agent
+    players[human_agent.id] = human_agent
+
+    start_game_state = GameState(board, human_agent.id, None)
+
+    game = Connect5Game(start_game_state, [bot_agent.id, human_agent.id], number_of_planes, False)
+
+    historic_jboard_positions = [point_from_coords([move][0]) for move in (request.json)['moves']]
+    historic_moves = [Move(Point(historic_jboard_position.row, historic_jboard_position.col)) for historic_jboard_position in historic_jboard_positions]
+    over = False
+    bot_move_str = ''
+
+    for move in historic_moves:
+        game.apply_move(move)
+
+    if game.is_over():
+        over = True
+    else:
+        bot_move = bot_agent.select_move(game)
+        game.apply_move(bot_move)
+        game.working_game_state.board.print_board()
+        jboard_postion = Point(bot_move.point.row, bot_move.point.col)
+        bot_move_str = coords_from_point(jboard_postion)
+        over = True if game.is_over() else False
+
+    return jsonify({
+        'bot_move': bot_move_str,
+        'over': over,
+        'diagnostics': None
+    })
+
+
+if __name__ == '__main__':
+    app.run()
