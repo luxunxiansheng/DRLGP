@@ -95,7 +95,7 @@ class PolicyChecker:
             game_index, win_ratio, self._az_mcts_rounds_per_move, self._basic_mcts_rounds_per_move))
          
         self._writer.add_scalar('win_ratio', win_ratio, game_index * len(self._devices_ids) if len(self._devices_ids) > 1 else game_index)
- 
+        self._writer.add_scalar('basic_mcts_rounds_per_move', self._basic_mcts_rounds_per_move, game_index * len(self._devices_ids) if len(self._devices_ids) > 1 else game_index)
         return win_ratio
         
        
